@@ -1,0 +1,7 @@
+misc/
+.vscode
+env/
+__pycache__
+src/
+*.session
+.venv3.7

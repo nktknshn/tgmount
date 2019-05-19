@@ -1,0 +1,6 @@
+telethon
+pysocks
+funcy
+pysqlite3
+pyfuse3
+tqdm
