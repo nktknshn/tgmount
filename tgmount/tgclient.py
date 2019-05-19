@@ -67,7 +67,8 @@ def split_range(offset: int, limit: int):
 def msg_to_inputlocation(msg):
     return InputDocumentFileLocation(id=msg.media.document.id,
                                      access_hash=msg.media.document.access_hash,
-                                     file_reference=msg.media.document.file_reference)
+                                     file_reference=msg.media.document.file_reference,
+                                     thumb_size=None)
 
  
 class TelegramFsClient(TelegramClient):
