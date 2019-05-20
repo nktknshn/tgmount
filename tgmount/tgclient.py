@@ -68,7 +68,7 @@ def msg_to_inputlocation(msg):
     return InputDocumentFileLocation(id=msg.media.document.id,
                                      access_hash=msg.media.document.access_hash,
                                      file_reference=msg.media.document.file_reference,
-                                     thumb_size=None)
+                                     thumb_size='')
 
  
 class TelegramFsClient(TelegramClient):

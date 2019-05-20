@@ -5,3 +5,4 @@ __pycache__
 src/
 *.session
 .venv3.7
+tgfs.session-journal
