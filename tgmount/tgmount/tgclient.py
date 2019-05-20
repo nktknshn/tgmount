@@ -1,27 +1,23 @@
+import asyncio
+import getpass
+import logging
 import os
 import sys
-import asyncio
-import logging
-from funcy import walk, func_partial, with_next
+from typing import Dict, List, Sequence, Tuple
 
-from telethon import TelegramClient
+from funcy import func_partial, walk, with_next
+from telethon import TelegramClient, errors, functions, utils
+from telethon.crypto import CdnDecrypter
+from telethon.errors import FileMigrateError, SessionPasswordNeededError
 from telethon.network.connection import tcpabridged
 from telethon.tl.custom import dialog
-
-from telethon.crypto import CdnDecrypter
-from telethon.errors import SessionPasswordNeededError, FileMigrateError
 from telethon.tl.functions.upload import GetFileRequest
 from telethon.tl.types import (DocumentAttributeAudio,
-                               DocumentAttributeFilename, InputDocumentFileLocation, InputPeerEmpty)
+                               DocumentAttributeFilename,
+                               InputDocumentFileLocation,
+                               InputMessagesFilterMusic, InputPeerEmpty)
 from telethon.tl.types.upload import FileCdnRedirect
 from telethon.utils import get_display_name
-from telethon.tl.types import InputMessagesFilterMusic
-from telethon import utils
-from telethon import errors
-from telethon import functions
-from typing import Dict, Tuple, Sequence, List
-import getpass
-
 
 logger = logging.getLogger('tgclient')
 
@@ -43,7 +39,14 @@ def mb(byte: int):
 
 
 def split_range(offset: int, limit: int):
-
+    """
+    Restrictions on upload.getFile and upload.getCdnFile parameters
+    offset must be divisible by 4096 bytes
+    limit must be divisible by 4096 bytes
+    10485760 (1MB) must be divisible by limit
+    offset / (1024 * 1024) == (offset + limit - 1) / (1024 * 1024)
+    (file parts that are being downloaded must always be inside the same megabyte-sized fragment)
+    """
     if offset % 4096 != 0:
         offset = (offset // 4096) * 4096
 
@@ -70,7 +73,7 @@ def msg_to_inputlocation(msg):
                                      file_reference=msg.media.document.file_reference,
                                      thumb_size='')
 
- 
+
 class TelegramFsClient(TelegramClient):
     def __init__(self, session_user_id, api_id, api_hash, proxy):
 
@@ -162,13 +165,6 @@ class TelegramFsClient(TelegramClient):
         else:
             # The used sender will also change if ``FileMigrateError`` occurs
             sender = self._sender
-
-        # Restrictions on upload.getFile and upload.getCdnFile parameters
-        # offset must be divisible by 4096 bytes
-        # limit must be divisible by 4096 bytes
-        # 10485760 (1MB) must be divisible by limit
-        # offset / (1024 * 1024) == (offset + limit - 1) / (1024 * 1024)
-        # (file parts that are being downloaded must always be inside the same megabyte-sized fragment)
 
         try:
             for a, b in with_next(ranges):
@@ -307,7 +303,7 @@ class TelegramFsClient(TelegramClient):
                                                           limit=limit,
                                                           offset_id=offset_id,
                                                           reverse=reverse,
-                                                          filter_music=filter_music, 
+                                                          filter_music=filter_music,
                                                           ids=ids)
 
         logger.debug("Received %d documents" % len(documents))

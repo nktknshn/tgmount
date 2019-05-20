@@ -16,13 +16,13 @@ from telethon import events
 from telethon.tl import types
 from telethon.tl.custom.dialog import Dialog
 from telethon.utils import get_display_name
-
-from tgclient import TelegramFsClient
-from tgvfs import TelegramFsAsync
-from functions import list_dialogs, list_documents, mount, download
-from util import DateTimeEncoder, document_to_dict, int_or_string, none_or_int
 from tqdm import tqdm
 
+from tgmount.functions import download, list_dialogs, list_documents, mount
+from tgmount.tgclient import TelegramFsClient
+from tgmount.tgvfs import TelegramFsAsync
+from tgmount.util import (DateTimeEncoder, document_to_dict, int_or_string,
+                          none_or_int)
 
 unmount_required = False
 
@@ -120,7 +120,7 @@ def parse_args():
     parser.add_argument('--list-dialogs', default=False, action="store_true",
                         help='print available telegram dialogs')
 
-    parser.add_argument('--list-documents', action='store_true', default=False, 
+    parser.add_argument('--list-documents', action='store_true', default=False,
                         help='print available documents')
 
     parser.add_argument('--download', type=str, metavar='DIR',

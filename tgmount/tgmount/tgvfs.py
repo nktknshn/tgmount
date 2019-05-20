@@ -1,15 +1,12 @@
-import stat
-import logging
+import asyncio
 import errno
-
+import logging
 import os
-from funcy import *
+import stat
 
 import pyfuse3
 import pyfuse3_asyncio
-import asyncio
-
-import os
+from funcy import *
 
 logvfs = logging.getLogger('tgvfs')
 

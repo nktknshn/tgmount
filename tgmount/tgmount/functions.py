@@ -14,11 +14,11 @@ from telethon import events
 from telethon.tl import types
 from telethon.tl.custom.dialog import Dialog
 from telethon.utils import get_display_name
-
-from tgclient import TelegramFsClient
-from tgvfs import TelegramFsAsync
-from util import DateTimeEncoder, document_to_dict, int_or_string, none_or_int
 from tqdm import tqdm
+
+from .tgclient import TelegramFsClient
+from .tgvfs import TelegramFsAsync
+from .util import DateTimeEncoder, document_to_dict, int_or_string, none_or_int
 
 
 async def list_dialogs(client: TelegramFsClient, limit=None, json_output=False, offset_id=0):
