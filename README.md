@@ -1,6 +1,6 @@
 # Overview
 
-The main purpose of the program is to make audio files posted on Telegram available to regular desktop audio players. This is done via VFS by mapping remote files from telegram's cloud to local file system. Supports reading arbitrary file parts. Tested with audio players [quodlibet](https://github.com/quodlibet/quodlibet) and [deadbeef](https://github.com/DeaDBeeF-Player/deadbeef).
+The main purpose of the program is to make audio files posted on Telegram available to regular desktop audio players. This is done via VFS by mapping remote files from telegram's cloud to local file system. Tested with audio players [quodlibet](https://github.com/quodlibet/quodlibet), [deadbeef](https://github.com/DeaDBeeF-Player/deadbeef), [clementine](https://github.com/clementine-player/Clementine).
 
 # Libraries used 
 * [telethon](https://github.com/LonamiWebs/Telethon)

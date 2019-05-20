@@ -120,7 +120,9 @@ class TelegramFsClient(TelegramClient):
                     self_user = await self.sign_in(password=pw)
 
     async def get_dialogs_dict(self, limit=150, offset_id=0) -> Dict:
-
+        """
+        Returns mapping dialog_display_name -> dialog
+        """
         logger.debug("get_dialogs_map(limit=%s, offset_id=%d)" %
                      (limit, offset_id))
         dialogs = await self.get_dialogs(limit=limit, offset_id=offset_id)

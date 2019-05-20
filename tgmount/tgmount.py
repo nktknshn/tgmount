@@ -43,7 +43,7 @@ async def main():
         api_hash = hash
 
     if api_id is None or api_hash is None:
-        print("Use TGAPP environment variable to set up telegram app API credentials")
+        print("Use TGAPP environment variable to set up telegram app API id")
         print("Obtain your API credentials at https://my.telegram.org/apps")
         sys.exit(1)
 
