@@ -23,8 +23,12 @@ logger = logging.getLogger('tgclient')
 
 MB = 1048576
 KB = 1024
-BLOCK_SIZE = 32 * KB
+BLOCK_SIZE = 128 * KB
 
+# 178
+# 356
+# 711
+# requests_made = 0
 
 def block(byte_idx: int):
     return byte_idx//BLOCK_SIZE
@@ -183,6 +187,11 @@ class TelegramFsClient(TelegramClient):
                     result = await sender.send(functions.upload.GetFileRequest(
                         input_location, _offset, _limit
                     ))
+
+                    # global requests_made
+                    # requests_made += 1
+
+                    # print("requests_made = %d" % requests_made)
 
                     if isinstance(result, FileCdnRedirect):
                         logger.debug("FileCdnRedirect was received")
