@@ -1,11 +1,9 @@
-import asyncio
 import errno
 import logging
 import os
 import stat
 
 import pyfuse3
-import pyfuse3_asyncio
 from funcy import *
 
 logvfs = logging.getLogger('tgvfs')
@@ -136,18 +134,24 @@ class TelegramFsAsync(pyfuse3.Operations):
 
     async def open(self, inode, flags, ctx):
         logvfs.info("open(%s)", self.files[inode].fname)
+
         if flags & os.O_RDWR or flags & os.O_WRONLY:
+            logvfs.info("error: readonly")
             raise pyfuse3.FUSEError(errno.EPERM)
 
-        return inode
+        # logvfs.info("ret %d", inode)
+        return pyfuse3.FileInfo(fh=inode)
 
     async def read(self, fh, off, size):
-        logvfs.debug("read(fh=%s,off=%s,size=%s) = %s; " %
+        logvfs.debug("read(fh=%s,off=%s,size=%s). totoal: %s; " %
                      (fh, off, size, off + size))
 
         doc = self.files[fh].doc
 
         reading_func = doc['download_func']
+
         chunk = await reading_func(off, size)
+
         logvfs.debug("readurned: %s" % len(chunk))
+
         return chunk

@@ -22,11 +22,14 @@ def none_or_int(value):
 
 
 def int_or_string(value):
-
     try:
         return int(value)
     except ValueError:
         return str(value)
+
+
+def parse_ids(input_str: str):
+    return [int(id) for id in input_str.split(',')]
 
 
 class DateTimeEncoder(json.JSONEncoder):

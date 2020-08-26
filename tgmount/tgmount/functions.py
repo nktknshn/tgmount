@@ -1,24 +1,16 @@
-import asyncio
 import json
 import logging
-import os
-import socket
-import sys
-from argparse import ArgumentParser
 from typing import List
 
 import pyfuse3
 import pyfuse3_asyncio
-import socks
-from telethon import events
 from telethon.tl import types
-from telethon.tl.custom.dialog import Dialog
 from telethon.utils import get_display_name
 from tqdm import tqdm
 
 from .tgclient import TelegramFsClient
 from .tgvfs import TelegramFsAsync
-from .util import DateTimeEncoder, document_to_dict, int_or_string, none_or_int
+from .util import DateTimeEncoder, document_to_dict
 
 
 async def list_dialogs(client: TelegramFsClient, limit=None, json_output=False, offset_id=0):

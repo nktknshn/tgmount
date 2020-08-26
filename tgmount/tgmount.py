@@ -1,34 +1,22 @@
 #!/usr/bin/env python3
 
 import asyncio
-import json
 import logging
 import os
-import socket
 import sys
 from argparse import ArgumentParser
-from typing import List
 
 import pyfuse3
-import pyfuse3_asyncio
 import socks
-from telethon import events
-from telethon.tl import types
-from telethon.tl.custom.dialog import Dialog
-from telethon.utils import get_display_name
-from tqdm import tqdm
 
 from tgmount.functions import download, list_dialogs, list_documents, mount
+from tgmount.logging import init_logging
 from tgmount.tgclient import TelegramFsClient
-from tgmount.tgvfs import TelegramFsAsync
-from tgmount.util import (DateTimeEncoder, document_to_dict, int_or_string,
-                          none_or_int)
+from tgmount.util import (int_or_string, none_or_int)
 
 unmount_required = False
 
-
 async def main():
-
     global unmount_required
 
     api_id = None
@@ -109,8 +97,8 @@ def parse_args():
 
     parser.add_argument('--id', default=None,
                         required='--mount' in sys.argv
-                        or '--list-documents' in sys.argv
-                        or '--download' in sys.argv,
+                                 or '--list-documents' in sys.argv
+                                 or '--download' in sys.argv,
                         help='chat or channel ID. Telegram username or numeric ID')
 
     #  actions
@@ -172,34 +160,6 @@ def parse_args():
                         help='json output. Default: no')
 
     return [parser, parser.parse_args()]
-
-
-def init_logging(debug=False):
-
-    formatter = logging.Formatter(
-        '%(levelname)s\t[%(name)s]\t%(message)s', datefmt="%Y-%m-%d %H:%M:%S")
-
-    handler = logging.StreamHandler()
-    handler.setFormatter(formatter)
-    root_logger = logging.getLogger()
-
-    if (root_logger.hasHandlers()):
-        root_logger.handlers.clear()
-
-    root_logger.addHandler(handler)
-
-    if debug:
-        handler.setLevel(logging.DEBUG)
-        root_logger.setLevel(logging.DEBUG)
-        logging.getLogger('tgvfs').setLevel(logging.DEBUG)
-        logging.getLogger('tgclient').setLevel(logging.DEBUG)
-        logging.getLogger('telethon').setLevel(logging.INFO)
-    else:
-        handler.setLevel(logging.INFO)
-        root_logger.setLevel(logging.INFO)
-        logging.getLogger('tgvfs').setLevel(logging.INFO)
-        logging.getLogger('tgclient').setLevel(logging.INFO)
-        logging.getLogger('telethon').setLevel(logging.ERROR)
 
 
 if __name__ == '__main__':

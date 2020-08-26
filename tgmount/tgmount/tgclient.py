@@ -1,22 +1,15 @@
-import asyncio
+import getpass
 import getpass
 import logging
-import os
-import sys
-from typing import Dict, List, Sequence, Tuple
+from typing import Dict
 
-from funcy import func_partial, walk, with_next
-from telethon import TelegramClient, errors, functions, utils
-from telethon.crypto import CdnDecrypter
-from telethon.errors import FileMigrateError, SessionPasswordNeededError
-from telethon.network.connection import tcpabridged
-from telethon.tl.custom import dialog
-from telethon.tl.functions.upload import GetFileRequest
+from funcy import func_partial
+from telethon import TelegramClient
+from telethon.errors import SessionPasswordNeededError
 from telethon.tl.types import (DocumentAttributeAudio,
                                DocumentAttributeFilename,
                                InputDocumentFileLocation,
-                               InputMessagesFilterMusic, InputPeerEmpty)
-from telethon.tl.types.upload import FileCdnRedirect
+                               InputMessagesFilterMusic)
 from telethon.utils import get_display_name
 
 logger = logging.getLogger('tgclient')
@@ -25,24 +18,20 @@ MB = 1048576
 KB = 1024
 BLOCK_SIZE = 128 * KB
 
-# 178
-# 356
-# 711
-# requests_made = 0
 
 def block(byte_idx: int):
-    return byte_idx//BLOCK_SIZE
+    return byte_idx // BLOCK_SIZE
 
 
 def block_mb(block_idx: int):
-    return (block_idx*BLOCK_SIZE)//MB
+    return (block_idx * BLOCK_SIZE) // MB
 
 
 def mb(byte: int):
-    return byte//MB
+    return byte // MB
 
 
-def split_range(offset: int, limit: int):
+def split_range(offset: int, limit: int, block_size=BLOCK_SIZE):
     """
     Restrictions on upload.getFile and upload.getCdnFile parameters
     offset must be divisible by 4096 bytes
@@ -65,8 +54,8 @@ def split_range(offset: int, limit: int):
 
     blocks = list(range(starting_block, ending_block + 1))
 
-    rngs = list(map(lambda b: b * BLOCK_SIZE, blocks))
-    rngs.append(rngs[-1] + BLOCK_SIZE)
+    rngs = list(map(lambda b: b * block_size, blocks))
+    rngs.append(rngs[-1] + block_size)
 
     return rngs
 
@@ -135,99 +124,18 @@ class TelegramFsClient(TelegramClient):
 
         return dict(entities)
 
-    async def get_file_chunk(self, input_location, offset, limit):
-        """
-        This reimplementation of telethon's `download_file` method adds offset and limit parametres 
-        in order to download arbitrary chunks of a file
-        """
-        logger.debug("get_file_chunk(%s, %s,%s)" %
-                     (input_location.id, offset, limit))
+    async def get_file_chunk(self, input_location, offset, limit, *, request_size=BLOCK_SIZE):
+        ranges = split_range(offset, limit, request_size)
 
-        ranges = split_range(offset, limit)
+        result = bytes()
 
-        received_bytes = bytes()
+        async for chunk in self.iter_download(input_location,
+                                              offset=ranges[0],
+                                              request_size=request_size,
+                                              limit=len(ranges) - 1):
+            result += chunk
 
-        assert not offset % 4096
-
-        dc_id, input_location = utils.get_input_location(input_location)
-        exported = dc_id and self.session.dc_id != dc_id
-
-        if exported:
-            try:
-                sender = await self._borrow_exported_sender(dc_id)
-            except errors.DcIdInvalidError:
-                # Can't export a sender for the ID we are currently in
-                config = await self(functions.help.GetConfigRequest())
-                for option in config.dc_options:
-                    if option.ip_address == self.session.server_address:
-                        self.session.set_dc(
-                            option.id, option.ip_address, option.port)
-                        self.session.save()
-                        break
-
-                # TODO Figure out why the session may have the wrong DC ID
-                sender = self._sender
-                exported = False
-        else:
-            # The used sender will also change if ``FileMigrateError`` occurs
-            sender = self._sender
-
-        try:
-            for a, b in with_next(ranges):
-                if not b:
-                    break
-
-                _offset = a
-                _limit = b - a
-
-                logger.debug("Quering range offset=%s limit=%s" %
-                             (_offset, _limit))
-
-                try:
-                    result = await sender.send(functions.upload.GetFileRequest(
-                        input_location, _offset, _limit
-                    ))
-
-                    # global requests_made
-                    # requests_made += 1
-
-                    # print("requests_made = %d" % requests_made)
-
-                    if isinstance(result, FileCdnRedirect):
-                        logger.debug("FileCdnRedirect was received")
-                        raise NotImplementedError
-
-                except FileMigrateError as e:
-                    logger.debug("Caught FileMigrateError")
-
-                    sender = await self._borrow_exported_sender(e.new_dc)
-                    exported = True
-                    continue
-
-                if not result.bytes:
-                    return getattr(result, 'type', '')
-
-                received_bytes += result.bytes
-
-        except Exception as e:
-            logger.error("Zero chunk received %s" % e)
-        finally:
-            logger.debug("Finalization %s" % len(received_bytes))
-
-            if exported:
-                await self._return_exported_sender(sender)
-            elif sender != self._sender:
-                await sender.disconnect()
-
-            ret_data = received_bytes[offset -
-                                      ranges[0]: offset - ranges[0] + limit]
-
-            if len(ret_data) == 0:
-                logger.error("Empty result")
-
-            logger.debug("Returning %s bytes" % len(ret_data))
-
-            return ret_data
+        return result[offset - ranges[0]: offset - ranges[0] + limit]
 
     def document_from_message(self, msg):
         """
