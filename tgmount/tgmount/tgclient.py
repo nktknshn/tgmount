@@ -1,10 +1,11 @@
 import getpass
 import logging
-from functools import partial
+from random import random
 from typing import Dict, Optional, List, Tuple
 
 from telethon import TelegramClient
-from telethon.errors import SessionPasswordNeededError
+from telethon.errors import SessionPasswordNeededError, FileReferenceExpiredError
+from telethon.tl.custom import Message
 from telethon.tl.types import (DocumentAttributeAudio,
                                DocumentAttributeFilename,
                                InputDocumentFileLocation,
@@ -61,14 +62,14 @@ def split_range(offset: int, limit: int, block_size=BLOCK_SIZE):
     return rngs
 
 
-def msg_to_inputlocation(msg):
+def msg_to_inputlocation(msg: Message) -> InputDocumentFileLocation:
     return InputDocumentFileLocation(id=msg.media.document.id,
                                      access_hash=msg.media.document.access_hash,
                                      file_reference=msg.media.document.file_reference,
                                      thumb_size='')
 
 
-def document_from_message(msg) -> Optional[TgmountDocument]:
+def document_from_message(msg: Message) -> Optional[TgmountDocument]:
     if not getattr(msg, 'media', None):
         return None
 
@@ -154,6 +155,7 @@ class TelegramFsClient(TelegramClient):
         """
         logger.debug("get_dialogs_map(limit=%s, offset_id=%d)" %
                      (limit, offset_id))
+
         dialogs = await self.get_dialogs(limit=limit, offset_id=offset_id)
 
         entities = [(get_display_name(d.entity), d.entity) for d in dialogs]
@@ -162,8 +164,10 @@ class TelegramFsClient(TelegramClient):
 
     async def get_file_chunk(self, input_location, offset, limit, *, request_size=BLOCK_SIZE):
         ranges = split_range(offset, limit, request_size)
-
         result = bytes()
+
+        if random() > 0.5:
+            raise FileReferenceExpiredError(None)
 
         async for chunk in self.iter_download(input_location,
                                               offset=ranges[0],
@@ -173,8 +177,30 @@ class TelegramFsClient(TelegramClient):
 
         return result[offset - ranges[0]: offset - ranges[0] + limit]
 
-    def get_reading_function(self, input_location):
-        return partial(self.get_file_chunk, input_location)
+    def get_reading_function(self, msg: Message, input_location: InputDocumentFileLocation):
+
+        async def _inner(offset, limit, *, request_size=BLOCK_SIZE):
+            try:
+                chunk = await self.get_file_chunk(input_location, offset, limit, request_size=request_size)
+
+            except FileReferenceExpiredError:
+                logger.debug(f'FileReferenceExpiredError was caught. file_reference needs refetching')
+                refetched_msg = await self.get_messages(msg.chat, ids=msg.id)
+
+                if not isinstance(refetched_msg, Message):
+                    logger.error(f'refetched_msg isnt a Message')
+                    logger.error(f'refetched_msg={refetched_msg}')
+                    raise
+
+                logger.debug(f'old file_reference={str(input_location.file_reference)}')
+                input_location.file_reference = msg.media.document.file_reference
+                logger.debug(f'new file_reference={str(input_location.file_reference)}')
+
+                chunk = await _inner(offset, limit, request_size=request_size)
+
+            return chunk
+
+        return _inner
 
     def get_document_handle(self, msg):
         document = document_from_message(msg)
@@ -182,7 +208,7 @@ class TelegramFsClient(TelegramClient):
         if document is None:
             return
 
-        read_func = self.get_reading_function(msg_to_inputlocation(msg))
+        read_func = self.get_reading_function(msg, msg_to_inputlocation(msg))
 
         return DocumentHandle(document=document, read_func=read_func)
 
@@ -228,13 +254,16 @@ class TelegramFsClient(TelegramClient):
         logger.debug("Received %d documents" % len(documents_handles))
 
         while not ids and limit and limit > len(documents_handles):
+
             logger.debug("Loading more documents")
+
             more_messages, more_documents_handles = \
                 await self._get_documents_handles(entity,
                                                   offset_id=messages[-1].id,
                                                   limit=100,
                                                   reverse=reverse,
                                                   filter_music=filter_music)
+
             logger.debug("Received %d documents" % len(more_documents_handles))
 
             if len(messages) == 0:

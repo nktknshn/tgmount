@@ -161,8 +161,7 @@ async def download(client: TelegramFsClient, id, destination: str, files: List[i
     # logging.debug("Files %s" % ([m.id for m, d in documents], ))
 
     for (msg, doc) in documents:
-
-        if not msg.id in files:
+        if msg.id not in files:
             logging.error("Wrong message id %d" % msg.id)
             continue
 
