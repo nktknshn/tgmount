@@ -11,7 +11,7 @@ from telethon.tl.types import (DocumentAttributeAudio,
                                InputMessagesFilterMusic)
 from telethon.utils import get_display_name
 
-from tgmount.dclasses import TgmountDocument, DocumentHandle, MessageType
+from tgmount.dclasses import TgmountDocument, DocumentHandle
 
 logger = logging.getLogger('tgclient')
 
@@ -221,17 +221,19 @@ class TelegramFsClient(TelegramClient):
         messages = await self.get_messages(entity, limit=limit, offset_id=offset_id, reverse=reverse,
                                            filter=filter_music and InputMessagesFilterMusic, ids=ids)
 
+        messages_with_documents = []
         logger.debug("Received %d messages" % len(messages))
 
         for msg in messages:
             document = self.get_document_handle(msg)
             if document:
+                messages_with_documents.append(msg)
                 handles.append(document)
 
-        return messages, handles
+        return messages_with_documents, handles
 
     async def get_documents(self, entity, limit=None, offset_id=0, reverse=False, filter_music=False, ids=None) -> \
-            Tuple[List[MessageType], List[DocumentHandle]]:
+            Tuple[List[Message], List[DocumentHandle]]:
         """
         Returns list of tuples (message, document)
         """

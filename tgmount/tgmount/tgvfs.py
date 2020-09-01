@@ -8,7 +8,8 @@ from typing import Dict
 import pyfuse3
 from funcy import *
 
-from tgmount.dclasses import TgmountDocument, DocumentHandle, MessageType, TgfsFile
+from tgmount.dclasses import TgmountDocument, DocumentHandle, TgfsFile
+from telethon.tl.custom import Message
 
 logvfs = logging.getLogger('tgvfs')
 
@@ -93,11 +94,11 @@ class TelegramFsAsync(pyfuse3.Operations):
 
         self._inodes = list(self._files.keys())
 
-    def add_file(self, msg: MessageType, doc: DocumentHandle):
+    def add_file(self, msg: Message, doc: DocumentHandle):
         self._add_file(msg, doc)
         self.update_index()
 
-    def _add_file(self, msg: MessageType, doc: DocumentHandle):
+    def _add_file(self, msg: Message, doc: DocumentHandle):
         inode = self._last_inode + 1
 
         attrs = create_attributes_from_doc(doc.document, inode)

@@ -3,8 +3,8 @@ from datetime import datetime
 from typing import Callable, Any, Optional
 
 import pyfuse3
+from telethon.tl.custom import Message
 
-MessageType = Any
 
 
 @dataclass
@@ -27,7 +27,7 @@ class DocumentHandle:
 
 @dataclass
 class TgfsFile:
-    msg: MessageType
+    msg: Message
     handle: DocumentHandle
     inode: Optional[int]
     attr: Optional[pyfuse3.EntryAttributes]
@@ -37,10 +37,12 @@ class TgfsFile:
         return message_doc_filename_format(self.msg, self.handle.document)
 
 
-def message_doc_filename_format(msg: MessageType, doc: TgmountDocument):
+def message_doc_filename_format(msg: Message, doc: TgmountDocument):
     attr_file_name = doc.atrributes.get('file_name')
 
     if attr_file_name:
         return ("%s %s" % (msg.id, attr_file_name)).encode()
     else:
         return ("msg_%s_doc" % msg.id).encode()
+
+# https://t.me/techtroit/28377
