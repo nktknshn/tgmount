@@ -1,6 +1,5 @@
 import getpass
 import logging
-from random import random
 from typing import Dict, Optional, List, Tuple
 
 from telethon import TelegramClient
@@ -165,9 +164,6 @@ class TelegramFsClient(TelegramClient):
     async def get_file_chunk(self, input_location, offset, limit, *, request_size=BLOCK_SIZE):
         ranges = split_range(offset, limit, request_size)
         result = bytes()
-
-        if random() > 0.5:
-            raise FileReferenceExpiredError(None)
 
         async for chunk in self.iter_download(input_location,
                                               offset=ranges[0],
