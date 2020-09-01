@@ -1,9 +1,8 @@
 import getpass
-import getpass
 import logging
-from typing import Dict
+from functools import partial
+from typing import Dict, Optional, List, Tuple
 
-from funcy import func_partial
 from telethon import TelegramClient
 from telethon.errors import SessionPasswordNeededError
 from telethon.tl.types import (DocumentAttributeAudio,
@@ -11,6 +10,8 @@ from telethon.tl.types import (DocumentAttributeAudio,
                                InputDocumentFileLocation,
                                InputMessagesFilterMusic)
 from telethon.utils import get_display_name
+
+from tgmount.dclasses import TgmountDocument, DocumentHandle, MessageType
 
 logger = logging.getLogger('tgclient')
 
@@ -65,6 +66,41 @@ def msg_to_inputlocation(msg):
                                      access_hash=msg.media.document.access_hash,
                                      file_reference=msg.media.document.file_reference,
                                      thumb_size='')
+
+
+def document_from_message(msg) -> Optional[TgmountDocument]:
+    if not getattr(msg, 'media', None):
+        return None
+
+    if not getattr(msg.media, 'document', None):
+        return None
+
+    document = msg.media.document
+
+    doc = TgmountDocument(
+        document_id=str(document.id),
+        message_date=msg.date,
+        document_date=document.date,
+        mime_type=document.mime_type,
+        size=document.size,
+        message_id=msg.id,
+        atrributes=dict.fromkeys([
+            'file_name',
+            'title',
+            'performer',
+            'duration'])
+    )
+
+    for attr in msg.media.document.attributes:
+        if isinstance(attr, DocumentAttributeAudio):
+            doc.atrributes['title'] = getattr(attr, 'title', None)
+            doc.atrributes['performer'] = getattr(attr, 'performer', None)
+            doc.atrributes['duration'] = int(getattr(attr, 'duration', 0))
+
+        elif isinstance(attr, DocumentAttributeFilename):
+            doc.atrributes['file_name'] = attr.file_name
+
+    return doc
 
 
 class TelegramFsClient(TelegramClient):
@@ -137,62 +173,25 @@ class TelegramFsClient(TelegramClient):
 
         return result[offset - ranges[0]: offset - ranges[0] + limit]
 
-    def document_from_message(self, msg):
-        """
-        transforms a message containing a document to a dictionary
-        """
+    def get_reading_function(self, input_location):
+        return partial(self.get_file_chunk, input_location)
 
-        if not getattr(msg, 'media', None):
-            return None
+    def get_document_handle(self, msg):
+        document = document_from_message(msg)
 
-        if not getattr(msg.media, 'document', None):
-            return None
+        if document is None:
+            return
 
-        document = msg.media.document
-        document_data = dict.fromkeys([
-            'id',
-            'message_id',
-            'message_date',
-            'document_date',
-            'mime_type',
-            'size',
-            'attributes',
-            'download_func'])
+        read_func = self.get_reading_function(msg_to_inputlocation(msg))
 
-        document_atrributes = dict.fromkeys([
-            'file_name',
-            'title',
-            'performer',
-            'duration'])
+        return DocumentHandle(document=document, read_func=read_func)
 
-        document_data['attributes'] = document_atrributes
-        document_data['download_func'] = func_partial(
-            self.get_file_chunk, msg_to_inputlocation(msg))
-
-        document_data.update(id=document.id,
-                             message_date=msg.date,
-                             document_date=document.date,
-                             mime_type=document.mime_type,
-                             size=document.size, message_id=msg.id)
-
-        for attr in msg.media.document.attributes:
-            if isinstance(attr, DocumentAttributeAudio):
-                document_atrributes['title'] = getattr(attr, 'title', None)
-                document_atrributes['performer'] = getattr(
-                    attr, 'performer', None)
-                document_atrributes['duration'] = int(
-                    getattr(attr, 'duration', 0))
-
-            elif isinstance(attr, DocumentAttributeFilename):
-                document_atrributes['file_name'] = attr.file_name
-
-        return document_data
-
-    async def _get_documents(self, entity, limit=None, offset_id=0, reverse=False, filter_music=False, ids=None):
+    async def _get_documents_handles(self, entity, limit=None, offset_id=0, reverse=False, filter_music=False,
+                                     ids=None):
         """
         Returns two lists: list of processed messages and list of tuples (message, document)
         """
-        documents = []
+        handles = []
 
         logger.debug("_get_documents(entity=%s, limit=%s, offset_id=%s, reverse=%s, filter_music=%s, ids=%s)"
                      % (entity.id, limit, offset_id, reverse, filter_music, ids))
@@ -203,42 +202,45 @@ class TelegramFsClient(TelegramClient):
         logger.debug("Received %d messages" % len(messages))
 
         for msg in messages:
-            document = self.document_from_message(msg)
+            document = self.get_document_handle(msg)
             if document:
-                documents.append((msg, document))
+                handles.append(document)
 
-        return [messages, documents]
+        return messages, handles
 
-    async def get_documents(self, entity, limit=None, offset_id=0, reverse=False, filter_music=False, ids=None):
+    async def get_documents(self, entity, limit=None, offset_id=0, reverse=False, filter_music=False, ids=None) -> \
+            Tuple[List[MessageType], List[DocumentHandle]]:
         """
         Returns list of tuples (message, document)
         """
-        documents = []
 
         logger.debug("get_documents(entity=%s, limit=%s, offset_id=%s, reverse=%s, filter_music=%s, ids=%s)"
                      % (entity.id, limit, offset_id, reverse, filter_music, ids))
 
-        [messages, documents] = await self._get_documents(entity,
-                                                          limit=limit,
-                                                          offset_id=offset_id,
-                                                          reverse=reverse,
-                                                          filter_music=filter_music,
-                                                          ids=ids)
+        messages, documents_handles = \
+            await self._get_documents_handles(entity,
+                                              limit=limit,
+                                              offset_id=offset_id,
+                                              reverse=reverse,
+                                              filter_music=filter_music,
+                                              ids=ids)
 
-        logger.debug("Received %d documents" % len(documents))
+        logger.debug("Received %d documents" % len(documents_handles))
 
-        while not ids and limit and limit > len(documents):
+        while not ids and limit and limit > len(documents_handles):
             logger.debug("Loading more documents")
-            [messages, more] = await self._get_documents(entity,
-                                                         offset_id=messages[-1].id,
-                                                         limit=100,
-                                                         reverse=reverse,
-                                                         filter_music=filter_music)
-            logger.debug("Received %d documents" % len(more))
+            more_messages, more_documents_handles = \
+                await self._get_documents_handles(entity,
+                                                  offset_id=messages[-1].id,
+                                                  limit=100,
+                                                  reverse=reverse,
+                                                  filter_music=filter_music)
+            logger.debug("Received %d documents" % len(more_documents_handles))
 
             if len(messages) == 0:
                 break
 
-            documents.extend(more)
+            documents_handles.extend(more_documents_handles)
+            messages.extend(more_messages)
 
-        return documents[:limit]
+        return messages[:limit], documents_handles[:limit]

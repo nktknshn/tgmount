@@ -7,14 +7,14 @@ import sys
 from argparse import ArgumentParser
 
 import pyfuse3
-import socks
 
-from tgmount.functions import download, list_dialogs, list_documents, mount
+from tgmount.actions import download, list_dialogs, list_documents, mount
 from tgmount.logging import init_logging
 from tgmount.tgclient import TelegramFsClient
-from tgmount.util import (int_or_string, none_or_int)
+from tgmount.util import (int_or_string, none_or_int, proxy_arg)
 
 unmount_required = False
+
 
 async def main():
     global unmount_required
@@ -80,14 +80,9 @@ async def main():
         await download(await client(),
                        id=int_or_string(options.id),
                        destination=options.download,
-                       files=[int(id) for id in options.files.split(',')])
+                       files=[int(id) for id in options._files.split(',')])
     else:
         args_parser.print_help()
-
-
-def proxy_arg(value):
-    [proxy_host, proxy_port] = value.split(':')
-    return (socks.SOCKS5, proxy_host, int(proxy_port))
 
 
 def parse_args():

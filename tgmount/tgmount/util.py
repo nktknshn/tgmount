@@ -1,17 +1,8 @@
 import json
 from datetime import datetime
+from typing import List
 
-
-def document_to_dict(document):
-    return {
-        'id': str(document['id']),  # jq
-        'message_id': int(document['message_id']),
-        'message_date': document['message_date'],
-        'document_date': document['document_date'],
-        'mime_type': document['mime_type'],
-        'size': document['size'],
-        'attributes': document['attributes'],
-    }
+import socks
 
 
 def none_or_int(value):
@@ -38,3 +29,14 @@ class DateTimeEncoder(json.JSONEncoder):
             return o.isoformat()
 
         return super().default(o)
+
+
+def dict_exclude(d: dict, keys: List):
+    return {
+        k: v for k, v in d.items() if k not in keys
+    }
+
+
+def proxy_arg(value):
+    [proxy_host, proxy_port] = value.split(':')
+    return (socks.SOCKS5, proxy_host, int(proxy_port))
