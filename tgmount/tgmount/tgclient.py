@@ -189,10 +189,13 @@ class TelegramFsClient(TelegramClient):
                     raise
 
                 logger.debug(f'old file_reference={str(input_location.file_reference)}')
-                input_location.file_reference = msg.media.document.file_reference
+                logger.debug(f'received={str(refetched_msg.media.document.file_reference)}')
+
+                input_location.file_reference = refetched_msg.media.document.file_reference
+
                 logger.debug(f'new file_reference={str(input_location.file_reference)}')
 
-                chunk = await _inner(offset, limit, request_size=request_size)
+                chunk = await self.get_file_chunk(input_location, offset, limit, request_size=request_size)
 
             return chunk
 
