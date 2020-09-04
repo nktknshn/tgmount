@@ -74,6 +74,7 @@ def exception_handler(func):
             raise
         except Exception:
             logvfs.error(traceback.format_exc())
+            raise pyfuse3.FUSEError(errno.EIO)
 
     return inner_function
 
