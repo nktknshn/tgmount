@@ -9,14 +9,15 @@ from telethon.tl.custom import Message
 
 @dataclass
 class TgmountDocument:
-    document_id: str
+    chat_id: int
     message_id: int
+    document_id: str
     message_date: Optional[datetime]
     document_date: datetime
     mime_type: str
     size: int
 
-    atrributes: dict
+    attributes: dict
 
 
 @dataclass
@@ -38,7 +39,7 @@ class TgfsFile:
 
 
 def message_doc_filename_format(msg: Message, doc: TgmountDocument):
-    attr_file_name = doc.atrributes.get('file_name')
+    attr_file_name = doc.attributes.get('file_name')
 
     if attr_file_name:
         return ("%s %s" % (msg.id, attr_file_name)).encode()

@@ -1,5 +1,6 @@
 import getpass
 import logging
+from random import random
 from typing import Dict, Optional, List, Tuple
 
 from telethon import TelegramClient
@@ -78,13 +79,14 @@ def document_from_message(msg: Message) -> Optional[TgmountDocument]:
     document = msg.media.document
 
     doc = TgmountDocument(
+        chat_id=msg.chat_id,
         document_id=str(document.id),
         message_date=msg.date,
         document_date=document.date,
         mime_type=document.mime_type,
         size=document.size,
         message_id=msg.id,
-        atrributes=dict.fromkeys([
+        attributes=dict.fromkeys([
             'file_name',
             'title',
             'performer',
@@ -93,12 +95,12 @@ def document_from_message(msg: Message) -> Optional[TgmountDocument]:
 
     for attr in msg.media.document.attributes:
         if isinstance(attr, DocumentAttributeAudio):
-            doc.atrributes['title'] = getattr(attr, 'title', None)
-            doc.atrributes['performer'] = getattr(attr, 'performer', None)
-            doc.atrributes['duration'] = int(getattr(attr, 'duration', 0))
+            doc.attributes['title'] = getattr(attr, 'title', None)
+            doc.attributes['performer'] = getattr(attr, 'performer', None)
+            doc.attributes['duration'] = int(getattr(attr, 'duration', 0))
 
         elif isinstance(attr, DocumentAttributeFilename):
-            doc.atrributes['file_name'] = attr.file_name
+            doc.attributes['file_name'] = attr.file_name
 
     return doc
 
@@ -164,6 +166,9 @@ class TelegramFsClient(TelegramClient):
     async def get_file_chunk(self, input_location, offset, limit, *, request_size=BLOCK_SIZE):
         ranges = split_range(offset, limit, request_size)
         result = bytes()
+        #
+        # if random() > 0.1:
+        #     raise FileReferenceExpiredError(None)
 
         async for chunk in self.iter_download(input_location,
                                               offset=ranges[0],
@@ -175,19 +180,19 @@ class TelegramFsClient(TelegramClient):
 
     def get_reading_function(self, msg: Message, input_location: InputDocumentFileLocation):
 
-        async def _inner(offset, limit, *, request_size=BLOCK_SIZE):
+        async def _inner(offset, limit, *, request_size=BLOCK_SIZE, chat_id=msg.chat_id):
             try:
                 chunk = await self.get_file_chunk(input_location, offset, limit, request_size=request_size)
-
             except FileReferenceExpiredError:
-                logger.debug(f'FileReferenceExpiredError was caught. file_reference needs refetching')
-                refetched_msg = await self.get_messages(msg.chat, ids=msg.id)
+                logger.debug(f'FileReferenceExpiredError was caught. file_reference for msg={msg.id} from {chat_id} needs refetching')
+                refetched_msg = await self.get_messages(chat_id, ids=msg.id)
 
                 if not isinstance(refetched_msg, Message):
                     logger.error(f'refetched_msg isnt a Message')
                     logger.error(f'refetched_msg={refetched_msg}')
                     raise
 
+                logger.debug(f'refetched_msg={str(refetched_msg)}')
                 logger.debug(f'old file_reference={str(input_location.file_reference)}')
                 logger.debug(f'received={str(refetched_msg.media.document.file_reference)}')
 
@@ -217,9 +222,6 @@ class TelegramFsClient(TelegramClient):
         Returns two lists: list of processed messages and list of tuples (message, document)
         """
         handles = []
-
-        logger.debug("_get_documents(entity=%s, limit=%s, offset_id=%s, reverse=%s, filter_music=%s, ids=%s)"
-                     % (entity.id, limit, offset_id, reverse, filter_music, ids))
 
         messages = await self.get_messages(entity, limit=limit, offset_id=offset_id, reverse=reverse,
                                            filter=filter_music and InputMessagesFilterMusic, ids=ids)

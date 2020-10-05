@@ -5,6 +5,7 @@ from typing import List
 
 import pyfuse3
 import pyfuse3_asyncio
+from telethon.hints import Entity
 from telethon.tl import types
 from telethon.utils import get_display_name
 from tqdm import tqdm
@@ -54,16 +55,11 @@ async def list_documents(client, id, offset_id: int = 0, limit: int = None,
             print("%s\t%s" % (d['message_id'], d['attributes']['file_name']))
 
 
-def create_new_files_handler(client: TelegramFsClient, entity, telegram_fs):
+def create_new_files_handler(client: TelegramFsClient, telegram_fs, entity: Entity):
     async def new_files_handler(update):
-
-        # logging.debug("update: %s" % update)
-
         if not isinstance(update, (types.UpdateNewMessage, types.UpdateNewChannelMessage)):
             # logging.debug("Not instance UpdateNewMessage or UpdateNewChannelMessage")
             return
-
-        update_entity_id = None
 
         if isinstance(update, types.UpdateNewChannelMessage):
             if not update.message.to_id:
@@ -80,8 +76,6 @@ def create_new_files_handler(client: TelegramFsClient, entity, telegram_fs):
                 return
 
         msg = update.message
-        logging.debug("NewMessage = update_entity_id=%d" %
-                      (update_entity_id,))
 
         if not getattr(msg, 'media', None):
             return
@@ -94,8 +88,10 @@ def create_new_files_handler(client: TelegramFsClient, entity, telegram_fs):
         if not document_handle:
             return
 
+        logging.debug(f'new msg: {msg}')
+        logging.debug(f'new file: {document_handle.document}')
+
         telegram_fs.add_file(msg, document_handle)
-        logging.info("New file: %s" % document_handle)
 
     return new_files_handler
 
@@ -115,7 +111,7 @@ async def mount(client, id, destination: str, offset_id=0, limit=None,
 
     logging.debug("Querying entity %s" % id)
 
-    entity = await client.get_entity(id)
+    entity: Entity = await client.get_entity(id)
 
     logging.debug("Got '%s'" % get_display_name(entity))
 
@@ -138,7 +134,8 @@ async def mount(client, id, destination: str, offset_id=0, limit=None,
 
     if updates:
         client.add_event_handler(
-            create_new_files_handler(client, entity, telegram_fs))
+            create_new_files_handler(client, telegram_fs, entity),
+        )
 
     pyfuse3.init(telegram_fs, destination, fuse_options)
 

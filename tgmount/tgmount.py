@@ -4,6 +4,7 @@ import asyncio
 import logging
 import os
 import sys
+import traceback
 from argparse import ArgumentParser
 
 import pyfuse3
@@ -80,7 +81,7 @@ async def main():
         await download(await client(),
                        id=int_or_string(options.id),
                        destination=options.download,
-                       files=[int(id) for id in options._files.split(',')])
+                       files=[int(id) for id in options.files.split(',')])
     else:
         args_parser.print_help()
 
@@ -164,6 +165,8 @@ if __name__ == '__main__':
         loop.run_until_complete(main())
     except KeyboardInterrupt:
         print("Bye")
+    except Exception:
+        print(traceback.format_exc())
     finally:
         if unmount_required:
             pyfuse3.close(unmount=True)
