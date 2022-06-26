@@ -224,7 +224,7 @@ class TelegramFsClient(TelegramClient):
         handles = []
 
         messages = await self.get_messages(entity, limit=limit, offset_id=offset_id, reverse=reverse,
-                                           filter=filter_music and InputMessagesFilterMusic, ids=ids)
+                                           filter=InputMessagesFilterMusic if filter_music else None, ids=ids)
 
         messages_with_documents = []
         logger.debug("Received %d messages" % len(messages))
