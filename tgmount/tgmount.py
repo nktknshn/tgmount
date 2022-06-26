@@ -45,7 +45,7 @@ async def main():
     proxy = options.socks
 
     async def client():
-        client = TelegramFsClient(options.session, api_id, api_hash, proxy)
+        client = TelegramFsClient(options.session, api_id, api_hash, proxy, options.ipv6)
         await client.auth()
         return client
 
@@ -145,6 +145,9 @@ def parse_args():
 
     parser.add_argument('--socks', default=None,
                         help='SOCKS5 proxy i.e. 127.0.0.1:9050', type=proxy_arg)
+
+    parser.add_argument('--ipv6', action='store_true', default=False,
+                        help='enable IPv6')
 
     parser.add_argument('--debug', action='store_true', default=False,
                         help='enable debugging output')
