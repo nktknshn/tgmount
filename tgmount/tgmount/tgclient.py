@@ -106,12 +106,13 @@ def document_from_message(msg: Message) -> Optional[TgmountDocument]:
 
 
 class TelegramFsClient(TelegramClient):
-    def __init__(self, session_user_id, api_id, api_hash, proxy):
+    def __init__(self, session_user_id, api_id, api_hash, proxy, use_ipv6):
 
         super().__init__(
             session_user_id,
             api_id,
             api_hash,
+            use_ipv6=use_ipv6,
             proxy=proxy
         )
 
@@ -224,7 +225,7 @@ class TelegramFsClient(TelegramClient):
         handles = []
 
         messages = await self.get_messages(entity, limit=limit, offset_id=offset_id, reverse=reverse,
-                                           filter=filter_music and InputMessagesFilterMusic, ids=ids)
+                                           filter=InputMessagesFilterMusic if filter_music else None, ids=ids)
 
         messages_with_documents = []
         logger.debug("Received %d messages" % len(messages))
