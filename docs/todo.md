@@ -1,0 +1,3 @@
+- encrypted zips
+- file cache
+- messages cache

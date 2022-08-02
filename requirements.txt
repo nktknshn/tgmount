@@ -1,6 +1,12 @@
 telethon
 pysocks
-funcy
 pysqlite3
-pyfuse3
+# pyfuse3
 tqdm
+# cython
+typing_extensions
+pytest
+greenback
+aiofiles
+funcy
+pytest-asyncio
