@@ -18,6 +18,9 @@ def photo_get_max_type(item: telethon.types.Photo) -> int:
     return item.sizes
 
 
+InputSourceItem = telethon.types.Photo | telethon.types.Document
+
+
 @dataclass
 class TelegramMusicFile:
 

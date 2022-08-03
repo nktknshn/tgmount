@@ -43,7 +43,6 @@ Returns a `File <telethon.tl.custom.file.File>` wrapping the
 
 
 class MessageWithDocument(Message):
-    file: File
     document: Document
 
     @staticmethod
@@ -58,6 +57,19 @@ class MessageWithPhoto(Message):
     @staticmethod
     def guard(msg: Message) -> TypeGuard["MessageWithPhoto"]:
         return isinstance(msg.photo, Photo)
+
+
+class MessageWithDocumentImage(MessageWithDocument):
+    file: File
+    document: Document
+
+    @staticmethod
+    def guard(msg: Message) -> TypeGuard["MessageWithDocumentImage"]:
+        return (
+            msg.document is not None
+            and get_attribute(msg.document, types.DocumentAttributeImageSize)
+            is not None
+        )
 
 
 class MessageWithZip(MessageWithDocument):
@@ -99,14 +111,16 @@ class MessageWithVideo(MessageWithDocument):
         )
 
 
-class MessageWithMusic(MessageWithDocument):
+class MessageWithMusic(MessageWithFilename):
     file: File
     document: Document
 
     @staticmethod
     def guard(msg: Message) -> TypeGuard["MessageWithMusic"]:
         return (
-            msg.document is not None
+            msg.file is not None
+            and msg.file.name is not None
+            and msg.document is not None
             and get_attribute(
                 msg.document,
                 types.DocumentAttributeAudio,
@@ -115,12 +129,12 @@ class MessageWithMusic(MessageWithDocument):
         )
 
 
-class MessageWithMedia(Message):
-    media: MessageMedia
+# class MessageWithMedia(Message):
+#     media: MessageMedia
 
-    @staticmethod
-    def guard(msg: Message) -> TypeGuard["MessageWithMedia"]:
-        return msg.media is not None
+#     @staticmethod
+#     def guard(msg: Message) -> TypeGuard["MessageWithMedia"]:
+#         return msg.media is not None
 
 
 class MessageWithText(Message):
@@ -129,3 +143,17 @@ class MessageWithText(Message):
     @staticmethod
     def guard(msg: Message) -> TypeGuard["MessageWithText"]:
         return isinstance(msg.message, str) and len(msg.message) > 0
+
+
+class MessageWithOtherDocument(MessageWithDocument):
+    document: Document
+
+    @staticmethod
+    def guard(msg: Message) -> TypeGuard["MessageWithVideo"]:
+        return msg.document is not None and not (
+            MessageWithDocumentImage.guard(msg)
+            or MessageWithPhoto.guard(msg)
+            or MessageWithVideo.guard(msg)
+            or MessageWithMusic.guard(msg)
+            # or MessageWithMedia.guard(msg)
+        )

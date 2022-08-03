@@ -7,7 +7,6 @@ from tgmount.tg_vfs import TelegramFilesSource
 from tgmount.tg_vfs import TelegramFilesSourceBase, SourceItem
 from tgmount.tg_vfs.source import (
     ContentFunc,
-    FileContentProvider,
     FileFunc,
     InputSourceItem,
 )

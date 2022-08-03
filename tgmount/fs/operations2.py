@@ -71,7 +71,7 @@ class FileSystemOperations(pyfuse3.Operations):
         if isinstance(item, DirLike):
             return create_directory_attributes(
                 inode,
-                stamp=item.creation_time,
+                stamp=int(item.creation_time.timestamp() * 1e9),
             )
         else:
             return create_file_attributes(

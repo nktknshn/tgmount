@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import (
     Generic,
     Optional,
@@ -29,7 +30,7 @@ class DirLike:
     name: str
     content: "DirContentProto"
 
-    creation_time = time.time_ns()
+    creation_time: datetime = datetime.now()
 
     @property
     def is_directory(self):

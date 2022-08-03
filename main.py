@@ -3,12 +3,17 @@ import logging
 
 from tgmount import fs, vfs
 from tgmount import zip as z
+from tgmount import util
 
 from tgmount.cache import CacheFactoryMemory, FilesSourceCaching
 from tgmount.logging import init_logging
 from tgmount.main.util import mount_ops, read_tgapp_api, run_main
 from tgmount.tg_vfs import TelegramFilesSource
 from tgmount.tgclient import TelegramSearch, TgmountTelegramClient, guards
+from tgmount.tgclient.search.filtering.guards import (
+    MessageWithDocumentImage,
+    MessageWithPhoto,
+)
 from tgmount.vfs import FsSourceTree, text_content
 from tgmount.vfs.file import vfile
 
@@ -28,7 +33,7 @@ async def create_test(
     telegram_id: str,
     messages_source: TelegramSearch,
     tgfiles: TelegramFilesSource,
-    limit=None,
+    limit=1000,
 ) -> FsSourceTree:
 
     cache = CacheFactoryMemory(blocksize=256 * 1024)
@@ -49,9 +54,17 @@ async def create_test(
         if guards.MessageWithText.guard(msg)
     ]
 
-    photos = [
-        tgfiles.file(msg) for msg in messages if guards.MessageWithPhoto.guard(msg)
-    ]
+    photos = list(
+        map(
+            tgfiles.file,
+            filter(
+                util.compose_guards_or(
+                    MessageWithPhoto.guard, MessageWithDocumentImage.guard
+                ),
+                messages,
+            ),
+        ),
+    )
 
     videos = [
         tgfiles.file(msg) for msg in messages if guards.MessageWithVideo.guard(msg)
@@ -83,6 +96,11 @@ async def create_test(
 
     return {
         "texts": texts,
+        "docs": [
+            caching.file(msg)
+            for msg in messages
+            if guards.MessageWithOtherDocument.guard(msg)
+        ],
         "photos": photos,
         "videos": videos,
         "music": music,
