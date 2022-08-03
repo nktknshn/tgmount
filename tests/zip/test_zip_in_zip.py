@@ -1,20 +1,12 @@
-import io
-import logging
-import os
-import struct
-import zipfile
-from typing import IO, Any, Callable, Iterable, List, Optional, Tuple, Union
-from zipfile import Path as ZipPath
-from zipfile import ZipFile, ZipInfo
-
 import pytest
-from tgmount.vfs.dir import DirContentItem, dir_content, root
-from tgmount.vfs.file import FileLike, file_content_from_io, vfile
-from tgmount.vfs.lookup import get_dir_content_items, list_dir_by_path, napp
-from tgmount.vfs.types.dir import DirContentProto, DirLike
-from tgmount.zip.util import walk_values
-from tgmount.zip.zip_dir import zip_list_dir, zips_as_dirs
-from tgmount.zip.zzz import FileLikeTree, dir_content_get_tree, file_like_tree_map
+from tgmount.vfs import (
+    dir_content,
+    root,
+    vfile,
+    file_content_from_io,
+)
+from tgmount.vfs.dir import dir_content_get_tree, file_like_tree_map
+from tgmount.zip import zips_as_dirs
 
 from ..util import ZipSourceTree, create_zip_from_tree, get_file_content_str_utf8
 

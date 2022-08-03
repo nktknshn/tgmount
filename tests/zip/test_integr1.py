@@ -24,23 +24,15 @@ from tgmount.vfs.dir import (
     dir_content,
     root,
 )
-from tgmount.vfs.file import FileLike, file_content_from_io, vfile
-from tgmount.vfs.lookup import get_dir_content_items, list_dir_by_path, napp
-from tgmount.vfs.types.dir import DirContentProto, DirLike
-from tgmount.vfs.types.file import FileContentProto
+from tgmount.vfs.file import file_content_from_io, vfile
+from tgmount.vfs.lookup import list_dir_by_path, napp
+from tgmount.vfs.types.dir import DirLike
 
-from tgmount.zip.util import walk_values
-from tgmount.zip.zip_dir import (
-    zip_list_dir,
-    zips_as_dirs,
-)
+from tgmount.vfs.dir import dir_content_get_tree, file_like_tree_map
 from tgmount.zip.zzz import (
-    DirTree,
-    FileLikeTree,
-    dir_content_get_tree,
-    read_file_content_bytes,
-    file_like_tree_map,
+    zip_list_dir,
 )
+from tgmount.zip import zips_as_dirs
 
 from ..util import (
     ZipSourceTree,

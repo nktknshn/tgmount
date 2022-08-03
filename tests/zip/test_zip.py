@@ -4,7 +4,7 @@ import zipfile
 from typing import Optional
 from zipfile import ZipFile, ZipInfo
 
-from tgmount.zip.util import build_dirs_tree
+# from tgmount.zip.util import build_dirs_tree
 
 
 def decodeExtra(zinfo: ZipInfo) -> Optional[str]:
@@ -26,21 +26,6 @@ def decodeExtra(zinfo: ZipInfo) -> Optional[str]:
             #     zinfo.filename = up_unicode_name
 
         extra = extra[ln + 4 :]
-
-
-def test_build_dict():
-    print(
-        build_dirs_tree(
-            [
-                ["a", "b1", "c"],
-                ["a", "b1", "d"],
-                ["a", "b1", "e"],
-                ["a", "b2", "a"],
-                ["a", "b2", "b"],
-                ["a", "b2", "c"],
-            ]
-        )
-    )
 
 
 def test_zip():

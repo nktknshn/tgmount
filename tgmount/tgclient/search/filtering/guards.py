@@ -51,19 +51,6 @@ class MessageWithDocument(Message):
         return msg.document is not None
 
 
-class FileWithName(File):
-    name: str
-
-
-class MessageWithFilename(Message):
-    file: FileWithName
-    document: Document
-
-    @staticmethod
-    def guard(msg: Message) -> TypeGuard["MessageWithFilename"]:
-        return msg.file is not None and msg.file.name is not None
-
-
 class MessageWithPhoto(Message):
     file: File
     photo: Photo
@@ -73,7 +60,34 @@ class MessageWithPhoto(Message):
         return isinstance(msg.photo, Photo)
 
 
-class MessageWithVideo(Message):
+class MessageWithZip(MessageWithDocument):
+    file: File
+    document: Document
+
+    @staticmethod
+    def guard(msg: Message) -> TypeGuard["MessageWithZip"]:
+        return (
+            msg.document is not None
+            and msg.file is not None
+            and msg.file.name is not None
+            and msg.file.name.endswith(".zip")
+        )
+
+
+class FileWithName(File):
+    name: str
+
+
+class MessageWithFilename(MessageWithDocument):
+    file: FileWithName
+    document: Document
+
+    @staticmethod
+    def guard(msg: Message) -> TypeGuard["MessageWithFilename"]:
+        return msg.file is not None and msg.file.name is not None
+
+
+class MessageWithVideo(MessageWithDocument):
     file: File
     document: Document
 
@@ -85,7 +99,7 @@ class MessageWithVideo(Message):
         )
 
 
-class MessageWithMusic(Message):
+class MessageWithMusic(MessageWithDocument):
     file: File
     document: Document
 

@@ -98,46 +98,6 @@ def group_dirs_into_tree(dirs: list[list]):
     return res
 
 
-async def read_file_content_bytes(fc: FileContentProto) -> bytes:
-    handle = await fc.open_func()
-    data = await fc.read_func(handle, 0, fc.size)
-    await fc.close_func(handle)
-
-    return data
-
-
-async def dir_content_get_tree(d: DirContentProto) -> FileLikeTree:
-    res: FileLikeTree = {}
-
-    items = await get_dir_content_items(d)
-
-    for item in items:
-        if isinstance(item, DirLike):
-            res[item.name] = await dir_content_get_tree(item.content)
-
-        else:
-            res[item.name] = item
-
-    return res
-
-
-async def file_like_tree_map(
-    tree: FileLikeTree, f: Callable[[FileLike], Awaitable[Any]]
-):
-    res = {}
-
-    for k, v in tree.items():
-        if isinstance(v, FileLike):
-            res[k] = await f(v)
-        else:
-            res[k] = await file_like_tree_map(v, f)
-
-    return res
-    # return walk_values(
-    #     lambda v: f(v) if isinstance(v, FileLike) else tree_map(v, f), tree
-    # )
-
-
 def ls_zip_tree(zt: ZipTree, path: list[str] = []) -> Optional[ZipTree]:
     if path == ["/"] or path == []:
         return zt

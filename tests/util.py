@@ -1,24 +1,12 @@
 import io
 import os
 from typing import (
-    IO,
-    Any,
-    Awaitable,
-    ByteString,
-    Callable,
-    Iterable,
     List,
-    Optional,
     Tuple,
-    Union,
 )
 from zipfile import ZipFile
-from tgmount.vfs import FileLike
-
-from tgmount.zip.zzz import (
-    DirTree,
-    read_file_content_bytes,
-)
+from tgmount.vfs import FileLike, DirTree
+from tgmount.vfs.file import read_file_content_bytes
 
 
 def tree_to_list(

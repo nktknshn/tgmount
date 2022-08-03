@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Any, Awaitable, Callable, Iterable, List, Optional, Union, overload
 
 from tgmount.vfs.file import file_content_from_file, text_content, vfile
+from tgmount.vfs.types import FileLikeTree
 from tgmount.vfs.types.dir import (
     DirContent,
     DirContentProto,
@@ -106,3 +107,43 @@ def create_dir_content_from_tree(tree: FsSourceTree) -> DirContent:
             content.append(vfile(k, v))
 
     return dir_content(*content)
+
+
+async def get_dir_content_items(content: DirContentProto) -> Iterable[DirContentItem]:
+    handle = await content.opendir_func()
+    items = await content.readdir_func(handle, 0)
+    await content.releasedir_func(handle)
+
+    return items
+
+
+async def dir_content_get_tree(d: DirContentProto) -> FileLikeTree:
+    res: FileLikeTree = {}
+
+    items = await get_dir_content_items(d)
+
+    for item in items:
+        if isinstance(item, DirLike):
+            res[item.name] = await dir_content_get_tree(item.content)
+
+        else:
+            res[item.name] = item
+
+    return res
+
+
+async def file_like_tree_map(
+    tree: FileLikeTree, f: Callable[[FileLike], Awaitable[Any]]
+):
+    res = {}
+
+    for k, v in tree.items():
+        if isinstance(v, FileLike):
+            res[k] = await f(v)
+        else:
+            res[k] = await file_like_tree_map(v, f)
+
+    return res
+    # return walk_values(
+    #     lambda v: f(v) if isinstance(v, FileLike) else tree_map(v, f), tree
+    # )

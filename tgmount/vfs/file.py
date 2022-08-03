@@ -116,3 +116,11 @@ def file_content_from_file(src_path: str) -> FileContentProto:
         seek_func=_seek,
         tell_func=_tell,
     )
+
+
+async def read_file_content_bytes(fc: FileContentProto) -> bytes:
+    handle = await fc.open_func()
+    data = await fc.read_func(handle, 0, fc.size)
+    await fc.close_func(handle)
+
+    return data

@@ -14,7 +14,10 @@ from tgmount.vfs import FsSourceTree, text_content
 logger = logging.getLogger("tgvfs")
 
 
-async def tgclient(tgapp_api: tuple[int, str], session_name="tgfs"):
+async def tgclient(
+    tgapp_api: tuple[int, str],
+    session_name="tgfs",
+):
     client = TgmountTelegramClient(session_name, tgapp_api[0], tgapp_api[1])
     await client.auth()
     return client
@@ -36,7 +39,7 @@ async def create_test(
     )
 
     texts = [
-        (f"{msg.id}.txt", text_content(msg.message))
+        (f"{msg.id}.txt", text_content(msg.message + "\n"))
         for msg in messages
         if guards.MessageWithText.guard(msg)
     ]
@@ -65,9 +68,7 @@ async def create_test(
     zips = [
         (f"{msg.id}_{msg.file.name}", caching.content(msg))
         for msg in messages
-        if guards.MessageWithDocument.guard(msg)
-        and msg.file.name is not None
-        and msg.file.name.endswith(".zip")
+        if guards.MessageWithZip.guard(msg)
     ]
 
     # sadly files seeking inside a zip works by reading the offset bytes so it's slow
@@ -76,9 +77,15 @@ async def create_test(
     # also id3v1 tags are stored in the end of a file :)
     # https://github.com/quodlibet/mutagen/blob/master/mutagen/id3/_id3v1.py#L34
 
-    # and most of the players try to read it. So just adding an mp3 or flac to a player will fetch the whole file from the archive
+    # and most of the players try to read it. So just adding an mp3 or flac
+    # to a player will fetch the whole file from the archive
 
-    # setting hacky_handle_mp3_id3v1 will patch reading function so it always returns 4096 zero bytes when reading a block of 4096 bytes (usually players read this amount looking for id3v1 (requires investigation to find a less hacky way)) from an mp3 or flac file inside a zip archive
+    # setting hacky_handle_mp3_id3v1 will patch reading function so it
+    # always returns 4096 zero bytes when reading a block of 4096 bytes
+    # (usually players read this amount looking for id3v1 (requires
+    # investigation to find a less hacky way)) from an mp3 or flac file
+    # inside a zip archive
+
     return {
         "texts": texts,
         "photos": photos,
@@ -86,6 +93,19 @@ async def create_test(
         "music": music,
         "zips": z.zips_as_dirs(
             dict(zips),
+            hacky_handle_mp3_id3v1=True,
+            skip_folder_if_single_subfolder=True,
+        ),
+        "all_that": z.zips_as_dirs(
+            dict(
+                [
+                    *texts,
+                    *photos,
+                    *videos,
+                    *music,
+                    *zips,
+                ]
+            ),
             hacky_handle_mp3_id3v1=True,
             skip_folder_if_single_subfolder=True,
         ),

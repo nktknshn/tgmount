@@ -1,25 +1,13 @@
 import os
 from typing import Iterable, List, Optional
 
-import pytest
-from tgmount.vfs.dir import dir_content_from_dir, file_content_from_file, root, vdir
-from tgmount.vfs.file import file_content_from_file, text_content, text_file, vfile
 from tgmount.vfs.types.dir import (
-    DirContent,
     DirContentItem,
-    DirContentProto,
     DirLike,
     is_directory,
 )
 from tgmount.vfs.util import norm_and_parse_path, napp
-
-
-async def get_dir_content_items(content: DirContentProto) -> Iterable[DirContentItem]:
-    handle = await content.opendir_func()
-    items = await content.readdir_func(handle, 0)
-    await content.releasedir_func(handle)
-
-    return items
+from .dir import get_dir_content_items
 
 
 async def get_subitem_by_name(d: DirLike, name: str) -> Optional[DirContentItem]:
