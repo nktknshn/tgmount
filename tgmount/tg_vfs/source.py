@@ -221,7 +221,7 @@ class TelegramFilesSource(
     ) -> bytes:
 
         logger.debug(
-            f"TelegramDocumentsStorage.document_read_function(Message(id={message.id},chat_id={message.chat_id}), item({message.file.name}, {item.id}, offset={offset}, limit={limit})"  # type: ignore
+            f"TelegramFilesSource._item_read_function(Message(id={message.id},chat_id={message.chat_id}), item({message.file.name}, {item.id}, offset={offset}, limit={limit})"  # type: ignore
         )
 
         input_location = await self._get_item_input_location(item)
@@ -249,7 +249,7 @@ class TelegramFilesSource(
                 request_size=self.request_size,
             )
         logger.debug(
-            f"TelegramDocumentsStorage.document_read_function() = {len(chunk)} bytes"
+            f"TelegramFilesSource.document_read_function() = {len(chunk)} bytes"
         )
         return chunk
 

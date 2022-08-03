@@ -14,7 +14,7 @@ from .reader import CacheBlockReaderWriter
 logger = logging.getLogger("tgmount-cache")
 
 
-class CachingDocumentsSource(
+class FilesSourceCaching(
     TelegramFilesSourceBase[InputSourceItem],
     ContentFunc
     # CachingDocumentsStorageProto[CacheBlockReaderWriter]

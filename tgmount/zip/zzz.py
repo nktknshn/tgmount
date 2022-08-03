@@ -8,6 +8,7 @@ from tgmount.vfs.dir import DirContentProto
 from tgmount.vfs.types import FileLikeTree
 from tgmount.vfs.types.dir import DirLike
 from tgmount.vfs.types.file import FileContentProto
+from tgmount.vfs.util import norm_and_parse_path
 from tgmount.zip.util import (
     cmap,
     compose,
@@ -19,6 +20,8 @@ from tgmount.zip.util import (
     walk_values,
 )
 from tgmount.vfs.lookup import get_dir_content_items, list_dir_by_path, napp
+
+ZipTree = DirTree[ZipInfo]
 
 
 def is_file(zi: ZipInfo):
@@ -37,6 +40,25 @@ def get_filelist(zf: ZipFile, *, filter_non_relative=True) -> list[ZipInfo]:
         filelist = list_filter(lambda f: not f.filename.startswith("/"), filelist)
 
     return filelist
+
+
+def get_zip_tree(filelist: list[ZipInfo]) -> ZipTree:
+    dirs = [norm_and_parse_path(f.filename) for f in filelist]
+    dirs = [[*ds[:-1], zi] for zi, ds in zip(filelist, dirs)]
+
+    return group_dirs_into_tree(dirs)
+
+
+def zip_list_dir(zf: ZipFile, path: list[str] = []) -> (ZipTree | None):
+    """
+    ignores global paths (paths starting with `/`).
+    to get zip's root listing use `path = '/'` which is default
+    """
+
+    filelist = get_filelist(zf)
+    zt = get_zip_tree(filelist)
+
+    return ls_zip_tree(zt, path)
 
 
 def group_dirs_into_tree(dirs: list[list]):
@@ -74,9 +96,6 @@ def group_dirs_into_tree(dirs: list[list]):
             res[os.path.basename(k.filename)] = k
 
     return res
-
-
-ZipTree = DirTree[ZipInfo]
 
 
 async def read_file_content_bytes(fc: FileContentProto) -> bytes:
@@ -117,3 +136,23 @@ async def file_like_tree_map(
     # return walk_values(
     #     lambda v: f(v) if isinstance(v, FileLike) else tree_map(v, f), tree
     # )
+
+
+def ls_zip_tree(zt: ZipTree, path: list[str] = []) -> Optional[ZipTree]:
+    if path == ["/"] or path == []:
+        return zt
+
+    item_name = path[0]
+
+    item = zt.get(item_name)
+
+    if item is None:
+        return
+
+    if isinstance(item, ZipInfo):
+        # if len(path) > 1:
+        return
+
+        # return item
+
+    return ls_zip_tree(item, path[1:])

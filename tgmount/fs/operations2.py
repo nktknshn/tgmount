@@ -348,7 +348,7 @@ class FileSystemOperations(pyfuse3.Operations):
 
     @exception_handler
     async def read(self, fh, off, size):
-        logger.debug(f"= read(fh={fh},off={off},size={size}). total: {off + size}; ")
+        logger.debug(f"= read(fh={fh},off={off},size={size}).")
 
         item, handle = self._handlers.get_by_fh(fh)
 

@@ -1,16 +1,10 @@
-import argparse
 import logging
-from typing import Any, Awaitable, Callable, Optional, Protocol, TypeGuard, TypeVar
 
-from telethon import types
-from telethon.tl.custom import message
-from telethon.tl.custom.file import File
-from typing_extensions import Required
 
 from tgmount import fs, vfs
 from tgmount import zip as z
 
-from tgmount.cache import CacheFactoryMemory, CachingDocumentsSource
+from tgmount.cache import CacheFactoryMemory, FilesSourceCaching
 from tgmount.logging import init_logging
 from tgmount.main.util import mount_ops, read_tgapp_api, run_main
 from tgmount.tg_vfs import TelegramFilesSource
@@ -29,12 +23,12 @@ async def tgclient(tgapp_api: tuple[int, str], session_name="tgfs"):
 async def create_test(
     telegram_id: str,
     messages_source: TelegramSearch,
-    documents: TelegramFilesSource,
+    tgfiles: TelegramFilesSource,
     limit=3000,
 ) -> FsSourceTree:
 
     cache = CacheFactoryMemory(blocksize=128 * 1024)
-    caching = CachingDocumentsSource(documents, cache)
+    caching = FilesSourceCaching(tgfiles, cache)
 
     messages = await messages_source.get_messages_typed(
         telegram_id,
@@ -48,23 +42,34 @@ async def create_test(
     ]
 
     photos = [
-        (f"{msg.id}_photo.jpeg", documents.content(msg))
+        (f"{msg.id}_photo.jpeg", tgfiles.content(msg))
         for msg in messages
         if guards.MessageWithPhoto.guard(msg)
     ]
 
     videos = [
-        (f"{msg.id}_document{msg.file.ext}", documents.content(msg))
+        (f"{msg.id}_document{msg.file.ext}", tgfiles.content(msg))
         for msg in messages
         if guards.MessageWithVideo.guard(msg)
     ]
 
     music = [
-        (f"{msg.id}_{msg.file.name}", documents.content(msg))
+        (f"{msg.id}_{msg.file.name}", tgfiles.content(msg))
         for msg in messages
         if guards.MessageWithMusic.guard(msg)
     ]
 
+    # it's recommended to use cache with zip archives since
+    # OS cache will not be applied to the archive file itself
+
+    # sadly files seeking works by reading the offset bytes in zip archives
+    # https://github.com/python/cpython/blob/main/Lib/zipfile.py#L1116
+
+    # and sadly id3v1 tags are stored in the end of an mp3 file :)
+    # https://github.com/quodlibet/mutagen/blob/master/mutagen/id3/_id3v1.py#L34
+
+    # and most of the players try to read it. So just adding an mp3 to a player will fetch the whole file
+    # setting hacky_handle_mp3_id3v1 will patch reading function so it always return 4096 zero bytes when trying to read block 4096 from an mp3 file inside a zip archive
     zips = [
         (f"{msg.id}_{msg.file.name}", caching.content(msg))
         for msg in messages
@@ -78,7 +83,10 @@ async def create_test(
         "photos": photos,
         "videos": videos,
         "music": music,
-        "zips": z.zips_as_dirs(dict(zips)),
+        "zips": z.zips_as_dirs(
+            dict(zips),
+            hacky_handle_mp3_id3v1=True,
+        ),
     }
 
 

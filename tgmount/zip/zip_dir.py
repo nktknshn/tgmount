@@ -2,9 +2,7 @@ import io
 import logging
 import os
 import zipfile
-from dataclasses import dataclass
-from functools import partial
-from typing import Any, Awaitable, Callable, Iterable, List, Optional, Tuple, Union
+from typing import Iterable, List, Tuple
 
 import greenback
 from tgmount.vfs.dir import DirContentList, DirContentProto, DirLike
@@ -12,11 +10,16 @@ from tgmount.vfs.file import FileLike
 from tgmount.vfs.io import FileContentIOGreenlet
 from tgmount.vfs.types.dir import DirContentItem
 from tgmount.vfs.types.file import FileContentHandle, FileContentProto
-from tgmount.vfs.util import norm_and_parse_path
 from tgmount.zip.types import ZipFileAsyncThunk
 
 from tgmount.zip.zip_file import create_filelike_from_zipinfo
-from tgmount.zip.zzz import ZipTree, get_filelist, group_dirs_into_tree
+from tgmount.zip.zzz import (
+    ZipTree,
+    get_filelist,
+    get_zip_tree,
+    ls_zip_tree,
+)
+from tgmount import vfs
 
 """ 
 
@@ -42,10 +45,11 @@ class DirContentFromZipFileContent(DirContentProto[DirContentProto]):
         self,
         file_content: FileContentProto,
         path: List[str] = [],
+        hacky_handle_mp3_id3v1=False,
     ):
-        logger.debug("DirContentFromZipFileContent()")
 
         self._file_content = file_content
+        self._hacky_handle_mp3_id3v1 = hacky_handle_mp3_id3v1
         self.path = path
 
     # async thunk so workers can spawn their own handles
@@ -74,7 +78,11 @@ class DirContentFromZipFileContent(DirContentProto[DirContentProto]):
         if zt is None:
             raise ValueError(f"invalid path: {self.path}")
 
-        return create_dir_content_from_ziptree(zt, self.get_zipfile)
+        return create_dir_content_from_ziptree(
+            zt,
+            self.get_zipfile,
+            self._hacky_handle_mp3_id3v1,
+        )
         # XXX await h.close()
 
     async def readdir_func(
@@ -91,6 +99,8 @@ class DirContentFromZipFileContent(DirContentProto[DirContentProto]):
 def create_dir_content_from_ziptree(
     zt: ZipTree,
     zipfile_async_thunk: ZipFileAsyncThunk,
+    # super rude way to handle id3v1 tags
+    hacky_handle_mp3_id3v1=False
     # path: Optional[List[str]] = None,
 ) -> DirContentList:
     """
@@ -107,54 +117,35 @@ def create_dir_content_from_ziptree(
         create_filelike_from_zipinfo(zipfile_async_thunk, zinfo) for zinfo in subfiles
     ]
 
+    if hacky_handle_mp3_id3v1:
+        for zinfo, item in zip(subfiles, subfilelikes):
+            if zinfo.filename.endswith(".mp3") or zinfo.filename.endswith(".flac"):
+                _read = item.content.read_func
+
+                async def _fixed(handle, off: int, size: int):
+                    if size == 4096:
+                        return b"\x00" * 4096
+                    else:
+                        return await _read(handle, off, size)
+
+                item.content.read_func = _fixed
+
     subdirlikes = [
         DirLike(
             dir_name,
-            ZipsAsDirs(create_dir_content_from_ziptree(dir_zt, zipfile_async_thunk)),
+            ZipsAsDirs(
+                create_dir_content_from_ziptree(
+                    dir_zt,
+                    zipfile_async_thunk,
+                    hacky_handle_mp3_id3v1=hacky_handle_mp3_id3v1,
+                ),
+                hacky_handle_mp3_id3v1=hacky_handle_mp3_id3v1,
+            ),
         )
         for dir_name, dir_zt in subdirs
     ]
 
     return DirContentList([*subfilelikes, *subdirlikes])
-
-
-def get_zip_tree(filelist: list[zipfile.ZipInfo]) -> ZipTree:
-    dirs = [norm_and_parse_path(f.filename) for f in filelist]
-    dirs = [[*ds[:-1], zi] for zi, ds in zip(filelist, dirs)]
-
-    return group_dirs_into_tree(dirs)
-
-
-def ls_zip_tree(zt: ZipTree, path: list[str] = []) -> Optional[ZipTree]:
-    if path == ["/"] or path == []:
-        return zt
-
-    item_name = path[0]
-
-    item = zt.get(item_name)
-
-    if item is None:
-        return
-
-    if isinstance(item, zipfile.ZipInfo):
-        # if len(path) > 1:
-        return
-
-        # return item
-
-    return ls_zip_tree(item, path[1:])
-
-
-def zip_list_dir(zf: zipfile.ZipFile, path: list[str] = []) -> (ZipTree | None):
-    """
-    ignores global paths (paths starting with `/`).
-    to get zip's root listing use `path = '/'` which is default
-    """
-
-    filelist = get_filelist(zf)
-    zt = get_zip_tree(filelist)
-
-    return ls_zip_tree(zt, path)
 
 
 class ZipsAsDirs(DirContentProto[list[DirContentItem]]):
@@ -169,21 +160,26 @@ class ZipsAsDirs(DirContentProto[list[DirContentItem]]):
         hide_sources=True,
         skip_folder_if_single_subfolder=False,
         zip_file_like_to_dir_name=lambda item: f"{item.name}_unzipped",
+        hacky_handle_mp3_id3v1=False
         # zip_dir_from_file_factory=ZipDirContentFromFile,
     ):
+        print(f"ZipsAsDirs.hacky_handle_mp3_id3v1={hacky_handle_mp3_id3v1}")
         self.source_dir_content = source_dir_content
 
         self.hide_sources = hide_sources
         self.skip_folder_if_single_subfolder = skip_folder_if_single_subfolder
         self.zip_file_like_to_dir_name = zip_file_like_to_dir_name
-
+        self._hacky_handle_mp3_id3v1 = hacky_handle_mp3_id3v1
         # self.zip_dir_from_file_factory = zip_dir_from_file_factory
 
     async def _mount_zip(self, item: FileLike, content: List[DirContentItem]):
         """
         prcoesses zip archive's FileLike
         """
-        zfc = DirContentFromZipFileContent(item.content)
+        zfc = DirContentFromZipFileContent(
+            item.content,
+            hacky_handle_mp3_id3v1=self._hacky_handle_mp3_id3v1,
+        )
 
         h, zf = await zfc.get_zipfile()
 
@@ -212,7 +208,10 @@ class ZipsAsDirs(DirContentProto[list[DirContentItem]]):
                     if self.hide_sources
                     else self.zip_file_like_to_dir_name(item.name),
                     self._zips_as_dirs(
-                        DirContentFromZipFileContent(item.content),
+                        DirContentFromZipFileContent(
+                            item.content,
+                            hacky_handle_mp3_id3v1=self._hacky_handle_mp3_id3v1,
+                        ),
                     ),
                 )
             )
@@ -223,7 +222,11 @@ class ZipsAsDirs(DirContentProto[list[DirContentItem]]):
                     if self.hide_sources
                     else self.zip_file_like_to_dir_name(root_dir_name),
                     self._zips_as_dirs(
-                        DirContentFromZipFileContent(item.content, [root_dir_name])
+                        DirContentFromZipFileContent(
+                            item.content,
+                            [root_dir_name],
+                            hacky_handle_mp3_id3v1=self._hacky_handle_mp3_id3v1,
+                        )
                     ),
                 )
             )
@@ -234,6 +237,7 @@ class ZipsAsDirs(DirContentProto[list[DirContentItem]]):
             hide_sources=self.hide_sources,
             skip_folder_if_single_subfolder=self.skip_folder_if_single_subfolder,
             zip_file_like_to_dir_name=self.zip_file_like_to_dir_name,
+            hacky_handle_mp3_id3v1=self._hacky_handle_mp3_id3v1,
         )
 
     async def opendir_func(self):
@@ -267,11 +271,6 @@ class ZipsAsDirs(DirContentProto[list[DirContentItem]]):
 
     async def releasedir_func(self, handle: list[DirContentItem]):
         pass
-
-
-from tgmount import vfs
-
-vfs.create_dir_content_from_tree
 
 
 def zips_as_dirs(

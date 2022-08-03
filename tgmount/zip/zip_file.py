@@ -25,6 +25,8 @@ class FileContentImpl:
         self.zinfo = zinfo
         self.z_factory: ZipFileAsyncThunk = z_factory
 
+        self._total_read = 0
+
     @property
     def size(self):
         return self.zinfo.file_size
@@ -44,9 +46,14 @@ class FileContentImpl:
 
         logger.debug(f"zipinfo_to_filelike.read(off={off}, size={size})")
         zf, zext = handle
+
         async with self.read_lock:
             zext.seek(off)
-            return zext.read(size)
+            bs = zext.read(size)
+
+            self._total_read += size
+
+            return bs
 
     async def seek(self, handle: ZipFileHandle2, c, w=0):
         await greenback.ensure_portal()  # type: ignore
