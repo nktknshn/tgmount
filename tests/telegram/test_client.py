@@ -67,7 +67,7 @@ async def test_tg2(event_loop, tmpdir: str, tgclient: Client):
             print(msg)
             continue
 
-        fc = await storage.item_to_file_content(mf.message, mf.document)
+        fc = await storage.file_content(mf.message, mf.document)
 
         mfs.append((f"{mf.message.chat_id}_{mf.message.id}_{mf.file_name}", mf))
         files.append((f"{mf.message.chat_id}_{mf.message.id}_{mf.file_name}", fc))

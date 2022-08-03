@@ -1,4 +1,4 @@
-from .client import TelegramSearch
+from .search import TelegramSearch
 from .client import TgmountTelegramClient
 from .types import (
     Message,
@@ -9,5 +9,6 @@ from .types import (
     Photo,
     TypeInputFileLocation,
 )
+from .search import guards
 
 # from .caps import Cap

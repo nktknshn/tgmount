@@ -5,6 +5,7 @@ _O = TypeVar("_O")
 _O2 = TypeVar("_O2")
 
 AsyncTypeGuard = Callable[[_I], Awaitable[TypeGuard[_O]]]
+SyncTypeGuard = Callable[[_I], TypeGuard[_O]]
 
 
 def compose_async_guards(
@@ -17,7 +18,7 @@ def compose_async_guards(
     return _inner
 
 
-def compose_guards(
+def compose_guards_or(
     g1: Callable[[_I], TypeGuard[_O]],
     g2: Callable[[_I], TypeGuard[_O2]],
 ) -> Callable[[_I], TypeGuard[_O | _O2]]:

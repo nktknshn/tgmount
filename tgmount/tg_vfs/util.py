@@ -12,22 +12,6 @@ import telethon
 from .types import TelegramDocument, TelegramMusicFile
 
 
-def get_document(message: telethon.tl.custom.Message) -> Optional[TelegramDocument]:
-    if message.document is None:
-        return None
-
-    if message.file.name is None:
-        return
-
-    return TelegramDocument(
-        file_name=message.file.name,
-        message=message,
-        document=message.document,
-        document_id=message.document.id,
-        file_reference=message.document.file_reference,
-        access_hash=message.document.access_hash,
-    )
-
 
 def get_music_file(msg: telethon.tl.custom.Message) -> Optional[TelegramMusicFile]:
     if msg.document is None:

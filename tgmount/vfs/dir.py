@@ -16,7 +16,14 @@ from tgmount.vfs import DirTree
 
 root_name = "<root>"
 
-FsSourceTree = DirTree[str | FileContentProto | DirContentProto]
+FsSourceTree = DirTree[
+    Union[
+        str,
+        list[tuple[str, FileContent]],
+        FileContentProto,
+        DirContentProto,
+    ]
+]
 
 
 @overload
@@ -91,6 +98,8 @@ def create_dir_content_from_tree(tree: FsSourceTree) -> DirContent:
             content.append(vdir(k, create_dir_content_from_tree(v)))
         elif isinstance(v, str):
             content.append(vfile(k, text_content(v)))
+        elif isinstance(v, list):
+            content.append(vdir(k, create_dir_content_from_tree(dict(v))))
         elif DirContentProto.guard(v):
             content.append(vdir(k, v))
         elif FileContentProto.guard(v):

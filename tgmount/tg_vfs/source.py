@@ -1,4 +1,4 @@
-from typing import Any, Awaitable, Callable, Optional, TypeVar
+from typing import Any, Awaitable, Callable, Optional, Protocol, TypeVar, overload
 
 import telethon
 from telethon.errors import FileReferenceExpiredError
@@ -11,6 +11,12 @@ from tgmount.tgclient import (
     InputDocumentFileLocation,
 )
 from tgmount.tgclient import TypeInputFileLocation
+from tgmount.tgclient.search.filtering.guards import (
+    MessageWithDocument,
+    MessageWithMusic,
+    MessageWithPhoto,
+    MessageWithVideo,
+)
 from .util import BLOCK_SIZE, split_range
 from telethon.tl.custom.file import File
 from ._source import (
@@ -28,13 +34,111 @@ InputSourceItem = telethon.types.Photo | telethon.types.Document
 T = TypeVar("T")
 
 
-class TelegramFilesSource(TelegramFilesSourceBase[InputSourceItem]):
+class FileContentProvider(Protocol):
+    def file_content(
+        self, message: Message, input_item: InputSourceItem
+    ) -> vfs.FileContent:
+        ...
+
+
+class ContentFunc:
+    @overload
+    def content(
+        self: FileContentProvider,
+        message: MessageWithDocument,
+    ) -> vfs.FileContent:
+        ...
+
+    @overload
+    def content(
+        self: FileContentProvider,
+        message: MessageWithPhoto,
+    ) -> vfs.FileContent:
+        ...
+
+    @overload
+    def content(
+        self: FileContentProvider,
+        message: MessageWithVideo,
+    ) -> vfs.FileContent:
+        ...
+
+    @overload
+    def content(
+        self: FileContentProvider,
+        message: MessageWithMusic,
+    ) -> vfs.FileContent:
+        ...
+
+    def content(
+        self: FileContentProvider,
+        message: MessageWithPhoto
+        | MessageWithDocument
+        | MessageWithVideo
+        | MessageWithMusic,
+    ) -> vfs.FileContent:
+        if MessageWithPhoto.guard(message):
+            return self.file_content(message, message.photo)
+        elif MessageWithDocument.guard(message):
+            return self.file_content(message, message.document)
+
+        raise ValueError("incorret input message")
+
+
+class TelegramFilesSource(
+    TelegramFilesSourceBase[InputSourceItem],
+    ContentFunc,
+):
     def __init__(
-        self, client: TgmountTelegramClient, request_size: int = BLOCK_SIZE
+        self,
+        client: TgmountTelegramClient,
+        request_size: int = BLOCK_SIZE,
     ) -> None:
         self.client = client
         self.items_file_references: dict[int, bytes] = {}
         self.request_size = request_size
+
+    def _item_to_inner_object(self, input_item: InputSourceItem) -> SourceItem:
+        if isinstance(input_item, telethon.types.Photo):
+            item = SourceItemPhoto(input_item)
+        else:
+            item = SourceItemDocument(input_item)
+
+        return item
+
+    def file_content(
+        self, message: Message, input_item: InputSourceItem
+    ) -> vfs.FileContent:
+
+        item = self._item_to_inner_object(input_item)
+
+        async def read_func(handle: Any, off: int, size: int) -> bytes:
+            return await self.item_read_function(message, input_item, off, size)
+
+        fc = vfs.FileContent(size=item.size, read_func=read_func)
+
+        return fc
+
+    def get_read_function(
+        self,
+        message: Message,
+        input_item: InputSourceItem,
+    ) -> Callable[[int, int], Awaitable[bytes]]:
+        async def _inn(offset: int, limit: int) -> bytes:
+            return await self.item_read_function(message, input_item, offset, limit)
+
+        return _inn
+
+    async def item_read_function(
+        self,
+        message: Message,
+        input_item: InputSourceItem,
+        offset: int,
+        limit: int,
+    ) -> bytes:
+        item: SourceItem = self._item_to_inner_object(input_item)
+
+        return await self._item_read_function(message, item, offset, limit)
 
     async def _get_item_input_location(self, item: SourceItem) -> TypeInputFileLocation:
         return item.input_location(
@@ -107,48 +211,6 @@ class TelegramFilesSource(TelegramFilesSourceBase[InputSourceItem]):
             result += chunk
 
         return result[offset - ranges[0] : offset - ranges[0] + limit]
-
-    def _item_to_inner_object(self, input_item: InputSourceItem) -> SourceItem:
-        if isinstance(input_item, telethon.types.Photo):
-            item = SourceItemPhoto(input_item)
-        else:
-            item = SourceItemDocument(input_item)
-
-        return item
-
-    async def item_to_file_content(
-        self, message: Message, input_item: InputSourceItem
-    ) -> vfs.FileContent:
-
-        item = self._item_to_inner_object(input_item)
-
-        async def read_func(handle: Any, off: int, size: int) -> bytes:
-            return await self.item_read_function(message, input_item, off, size)
-
-        fc = vfs.FileContent(size=item.size, read_func=read_func)
-
-        return fc
-
-    def get_read_function(
-        self,
-        message: Message,
-        input_item: InputSourceItem,
-    ) -> Callable[[int, int], Awaitable[bytes]]:
-        async def _inn(offset: int, limit: int) -> bytes:
-            return await self.item_read_function(message, input_item, offset, limit)
-
-        return _inn
-
-    async def item_read_function(
-        self,
-        message: Message,
-        input_item: InputSourceItem,
-        offset: int,
-        limit: int,
-    ) -> bytes:
-        item: SourceItem = self._item_to_inner_object(input_item)
-
-        return await self._item_read_function(message, item, offset, limit)
 
     async def _item_read_function(
         self,

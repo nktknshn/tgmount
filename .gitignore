@@ -1,0 +1,11 @@
+tgfs.session
+tgfs.session-journal
+.pytest_cache
+**/.pytest_cache
+.idea
+**/__pycache__
+__pycache__
+tests/fixtures
+tgapp.txt
+.mypy_cache
+.vscode

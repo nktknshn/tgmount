@@ -31,7 +31,7 @@ async def messages_to_files_tree(
         [
             (
                 msg.file.name,
-                await source.item_to_file_content(msg, msg.document),
+                await source.file_content(msg, msg.document),
             )
             for msg in messages
             if msg.file.name is not None

@@ -5,7 +5,7 @@ import telethon
 from tgmount import vfs
 from tgmount.tg_vfs import TelegramFilesSource
 from tgmount.tg_vfs import TelegramFilesSourceBase, SourceItem
-from tgmount.tg_vfs.source import InputSourceItem
+from tgmount.tg_vfs.source import ContentFunc, FileContentProvider, InputSourceItem
 from tgmount.tgclient import Message
 
 from ._factory import CacheFactoryProto
@@ -16,6 +16,7 @@ logger = logging.getLogger("tgmount-cache")
 
 class CachingDocumentsSource(
     TelegramFilesSourceBase[InputSourceItem],
+    ContentFunc
     # CachingDocumentsStorageProto[CacheBlockReaderWriter]
 ):
     def __init__(
@@ -26,7 +27,7 @@ class CachingDocumentsSource(
         self._source = source
         self._document_cache_factory = document_cache_factory
 
-    async def item_to_file_content(self, message: Message, input_item: InputSourceItem):
+    def file_content(self, message: Message, input_item: InputSourceItem):
         item = self._source._item_to_inner_object(input_item)
 
         async def read_func(handle: Any, off: int, size: int) -> bytes:

@@ -1,43 +1,23 @@
 import argparse
 import logging
-from typing import Awaitable, Callable, Optional, TypeVar, Protocol
+from typing import Any, Awaitable, Callable, Optional, Protocol, TypeGuard, TypeVar
 
 from telethon import types
+from telethon.tl.custom import message
+from telethon.tl.custom.file import File
+from typing_extensions import Required
 
 from tgmount import fs, vfs
 from tgmount import zip as z
+
+from tgmount.cache import CacheFactoryMemory, CachingDocumentsSource
 from tgmount.logging import init_logging
 from tgmount.main.util import mount_ops, read_tgapp_api, run_main
-from tgmount.tg_vfs.source import (
-    TelegramFilesSource,
-)
-
-# from tgmount.cache.factory import DocumentsCacheFactory
-from tgmount.cache.source import (
-    CachingDocumentsSource,
-)
-from tgmount.tg_vfs.util import get_document
-from tgmount.tgclient import TgmountTelegramClient, Message, Document, DocId
-
-from tgmount.cache import (
-    CacheBlockStorageMemory,
-    CacheBlockReaderWriter,
-    CacheFactoryProto,
-    CacheBlockStorageFile,
-)
-from tgmount.tgclient.search import TelegramSearch
-from tgmount.tgclient.types import TotalListTyped
-from tgmount.vfs.dir import FsSourceTree
-from tgmount.vfs.types.file import FileContent
+from tgmount.tg_vfs import TelegramFilesSource
+from tgmount.tgclient import TelegramSearch, TgmountTelegramClient, guards
+from tgmount.vfs import FsSourceTree, text_content
 
 logger = logging.getLogger("tgvfs")
-
-# def get_parser():
-#     parser = argparse.ArgumentParser()
-#     # parser.add_argument('--config', 'mount config', required=True)
-#     parser.add_argument("--max-tasks", type=int, default=2)
-
-#     return parser
 
 
 async def tgclient(tgapp_api: tuple[int, str], session_name="tgfs"):
@@ -46,166 +26,64 @@ async def tgclient(tgapp_api: tuple[int, str], session_name="tgfs"):
     return client
 
 
-T = TypeVar("T")
-
-
-class DocumentsCacheFactoryMemory(CacheFactoryProto[CacheBlockReaderWriter]):
-    """This class is gonna decide how to store documents cache if needed"""
-
-    def __init__(self, blocksize: int) -> None:
-        self._blocksize = blocksize
-        self._caches: dict[
-            DocId, tuple[CacheBlockStorageMemory, CacheBlockReaderWriter]
-        ] = {}
-
-    async def total_stored(self) -> int:
-        total = 0
-        for k, (storage, reader) in self._caches.items():
-            total += await storage.total_stored()
-
-        return total
-
-    async def get_cache(
-        self,
-        message: Message,
-        document: Document,
-    ) -> CacheBlockReaderWriter:
-
-        if document.id in self._caches:
-            return self._caches[document.id][1]
-
-        blocks_storage = CacheBlockStorageMemory(
-            blocksize=self._blocksize,
-            total_size=document.size,
-        )
-
-        reader = CacheBlockReaderWriter(
-            blocks_storage=blocks_storage,
-        )
-
-        self._caches[document.id] = (blocks_storage, reader)
-
-        return reader
-
-
-class DocumentsCacheFactoryFiles(CacheFactoryProto):
-    """This class is gonna decide how to store documents cache if needed"""
-
-    def __init__(self) -> None:
-        self.caches: dict[
-            DocId, tuple[CacheBlockStorageMemory, CacheBlockReaderWriter]
-        ] = {}
-
-    async def total_stored(self) -> int:
-        total = 0
-        for k, (storage, reader) in self.caches.items():
-            total += await storage.total_stored()
-
-        return total
-
-    async def get_cache_files(
-        self,
-        message: Message,
-        document: Document,
-    ) -> CacheBlockReaderWriter:
-
-        if document.id in self.caches:
-            return self.caches[document.id][1]
-
-        blocksize = 256 * 1024
-
-        storage = CacheBlockStorageMemory(
-            blocksize=blocksize,
-            total_size=document.size,
-        )
-        reader = CacheBlockReaderWriter(
-            blocks_storage=storage,
-        )
-
-        self.caches[document.id] = (storage, reader)
-
-        return reader
-
-
-async def get_testing_channel(
+async def create_test(
+    telegram_id: str,
     messages_source: TelegramSearch,
-    documents_source: TelegramFilesSource,
+    documents: TelegramFilesSource,
+    limit=3000,
 ) -> FsSourceTree:
 
-    cache = DocumentsCacheFactoryMemory(blocksize=256 * 1024)
-    cached_documents_source = CachingDocumentsSource(documents_source, cache)
+    cache = CacheFactoryMemory(blocksize=128 * 1024)
+    caching = CachingDocumentsSource(documents, cache)
 
-    messages_music = await messages_source.get_messages_typed(
-        "tgmounttestingchannel",
-        filter=types.InputMessagesFilterMusic,  # filter=types.InputMessagesFilterDocument
+    messages = await messages_source.get_messages_typed(
+        telegram_id,
+        limit=limit,
     )
 
-    messages_docs = await messages_source.get_messages_typed(
-        "tgmounttestingchannel",
-        filter=types.InputMessagesFilterDocument,
-    )
+    texts = [
+        (f"{msg.id}.txt", text_content(msg.message))
+        for msg in messages
+        if guards.MessageWithText.guard(msg)
+    ]
 
-    # zips_archives = [msg for msg in messages_docs if msg.file.name.endswith(".zip")]
+    photos = [
+        (f"{msg.id}_photo.jpeg", documents.content(msg))
+        for msg in messages
+        if guards.MessageWithPhoto.guard(msg)
+    ]
+
+    videos = [
+        (f"{msg.id}_document{msg.file.ext}", documents.content(msg))
+        for msg in messages
+        if guards.MessageWithVideo.guard(msg)
+    ]
+
+    music = [
+        (f"{msg.id}_{msg.file.name}", documents.content(msg))
+        for msg in messages
+        if guards.MessageWithMusic.guard(msg)
+    ]
+
+    zips = [
+        (f"{msg.id}_{msg.file.name}", caching.content(msg))
+        for msg in messages
+        if guards.MessageWithDocument.guard(msg)
+        and msg.file.name is not None
+        and msg.file.name.endswith(".zip")
+    ]
 
     return {
-        "music": {
-            f"{msg.id}_{msg.file.name}": await documents_source.item_to_file_content(
-                msg, msg.document
-            )
-            for msg in messages_music
-            if msg.document is not None and msg.file is not None
-        },
-        "zips": z.zips_as_dirs(
-            {
-                f"{msg.id}_{msg.file.name}": await cached_documents_source.item_to_file_content(
-                    msg, msg.document
-                )
-                for msg in messages_docs
-                if msg.document is not None and msg.file is not None
-            }
-        ),
-    }
-
-
-async def create_sanek(
-    messages_source: TelegramSearch,
-    documents_source: TelegramFilesSource,
-) -> FsSourceTree:
-    cache = DocumentsCacheFactoryMemory(blocksize=256 * 1024)
-    cached_documents_source = CachingDocumentsSource(documents_source, cache)
-
-    music: TotalListTyped[Message] = await messages_source.get_messages_typed(
-        "johnjohndoedoe",
-        filter=types.InputMessagesFilterMusic,  # filter=types.InputMessagesFilterDocument
-    )
-
-    photos: TotalListTyped[Message] = await messages_source.get_messages_typed(
-        "johnjohndoedoe",
-        filter=types.InputMessagesFilterPhotos,
-    )
-
-    return {
-        "music": {
-            f"{msg.id}_{msg.file.name}": await documents_source.item_to_file_content(
-                msg, msg.document
-            )
-            for msg in music
-            if msg.document is not None and msg.file is not None
-        },
-        "photos": {
-            f"{msg.id}_photo.jpeg": await cached_documents_source.item_to_file_content(
-                msg, msg.photo
-            )
-            for msg in photos
-            if isinstance(msg.photo, types.Photo)
-        },
+        "texts": texts,
+        "photos": photos,
+        "videos": videos,
+        "music": music,
+        "zips": z.zips_as_dirs(dict(zips)),
     }
 
 
 async def mount():
     init_logging(debug=True)
-
-    count = 10
 
     client = await tgclient(read_tgapp_api())
 
@@ -214,11 +92,8 @@ async def mount():
 
     vfs_root = vfs.root(
         {
-            "tgmounttestingchannel": await get_testing_channel(
-                messages_source,
-                documents_source,
-            ),
-            "sanek": await create_sanek(
+            "test": await create_test(
+                "tgmounttestingchannel",
                 messages_source,
                 documents_source,
             ),
