@@ -27,7 +27,7 @@ async def create_test(
     limit=3000,
 ) -> FsSourceTree:
 
-    cache = CacheFactoryMemory(blocksize=128 * 1024)
+    cache = CacheFactoryMemory(blocksize=256 * 1024)
     caching = FilesSourceCaching(tgfiles, cache)
 
     messages = await messages_source.get_messages_typed(
@@ -62,14 +62,6 @@ async def create_test(
     # it's recommended to use cache with zip archives since
     # OS cache will not be applied to the archive file itself
 
-    # sadly files seeking works by reading the offset bytes in zip archives
-    # https://github.com/python/cpython/blob/main/Lib/zipfile.py#L1116
-
-    # and sadly id3v1 tags are stored in the end of an mp3 file :)
-    # https://github.com/quodlibet/mutagen/blob/master/mutagen/id3/_id3v1.py#L34
-
-    # and most of the players try to read it. So just adding an mp3 to a player will fetch the whole file
-    # setting hacky_handle_mp3_id3v1 will patch reading function so it always return 4096 zero bytes when trying to read block 4096 from an mp3 file inside a zip archive
     zips = [
         (f"{msg.id}_{msg.file.name}", caching.content(msg))
         for msg in messages
@@ -78,6 +70,15 @@ async def create_test(
         and msg.file.name.endswith(".zip")
     ]
 
+    # sadly files seeking inside a zip works by reading the offset bytes so it's slow
+    # https://github.com/python/cpython/blob/main/Lib/zipfile.py#L1116
+
+    # also id3v1 tags are stored in the end of a file :)
+    # https://github.com/quodlibet/mutagen/blob/master/mutagen/id3/_id3v1.py#L34
+
+    # and most of the players try to read it. So just adding an mp3 or flac to a player will fetch the whole file from the archive
+
+    # setting hacky_handle_mp3_id3v1 will patch reading function so it always returns 4096 zero bytes when reading a block of 4096 bytes (usually players read this amount looking for id3v1 (requires investigation to find a less hacky way)) from an mp3 or flac file inside a zip archive
     return {
         "texts": texts,
         "photos": photos,
@@ -86,6 +87,7 @@ async def create_test(
         "zips": z.zips_as_dirs(
             dict(zips),
             hacky_handle_mp3_id3v1=True,
+            skip_folder_if_single_subfolder=True,
         ),
     }
 

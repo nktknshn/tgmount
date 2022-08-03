@@ -65,7 +65,7 @@ class CacheBlockReaderWriter:
         for block_number in self.range_blocks(offset, limit):
             if block := await self._blocks_storage.get(block_number):
                 logger.debug(
-                    f"CacheBlockReaderWriter.read_range({offset}, {limit} ({limit//1024} kb)): block {block_number} hit"
+                    f"CacheBlockReaderWriter(blocksize={self._blocks_storage.blocksize}).read_range({offset}, {limit} ({limit//1024} kb)): block {block_number} hit"
                 )
             else:
                 logger.debug(
