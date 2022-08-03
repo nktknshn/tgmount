@@ -34,7 +34,10 @@ def create_file_attributes(
     inode: Optional[int] = None,
 ):
     return create_attributes(
-        size=size, stamp=stamp, st_mode=(stat.S_IFREG | perms), inode=inode
+        size=size,
+        stamp=stamp,
+        st_mode=(stat.S_IFREG | perms),
+        inode=inode,
     )
 
 

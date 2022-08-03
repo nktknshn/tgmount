@@ -11,6 +11,8 @@ from typing import (
     Any,
     Awaitable,
 )
+
+import time
 from dataclasses import dataclass
 
 from tgmount.vfs.types.file import FileLike
@@ -26,6 +28,8 @@ def is_directory(item: DirContentItem) -> TypeGuard["DirLike"]:
 class DirLike:
     name: str
     content: "DirContentProto"
+
+    creation_time = time.time_ns()
 
     @property
     def is_directory(self):

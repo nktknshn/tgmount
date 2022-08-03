@@ -21,6 +21,7 @@ FsSourceTree = DirTree[
     Union[
         str,
         list[tuple[str, FileContent]],
+        list[FileLike],
         FileContentProto,
         DirContentProto,
     ]
@@ -100,7 +101,13 @@ def create_dir_content_from_tree(tree: FsSourceTree) -> DirContent:
         elif isinstance(v, str):
             content.append(vfile(k, text_content(v)))
         elif isinstance(v, list):
-            content.append(vdir(k, create_dir_content_from_tree(dict(v))))
+            items = []
+            for item in v:
+                if isinstance(item, tuple):
+                    items.append(vfile(item[0], item[1]))
+                elif FileLike.guard(item):
+                    items.append(item)
+            content.append(vdir(k, items))
         elif DirContentProto.guard(v):
             content.append(vdir(k, v))
         elif FileContentProto.guard(v):

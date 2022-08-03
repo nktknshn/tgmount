@@ -274,12 +274,17 @@ class ZipsAsDirs(DirContentProto[list[DirContentItem]]):
 
 
 def zips_as_dirs(
-    tree_or_content: vfs.FsSourceTree | vfs.DirContentProto,
+    tree_or_content: vfs.FsSourceTree | vfs.DirContentProto | list[FileLike],
     **kwargs,
 ):
     if isinstance(tree_or_content, dict):
         return ZipsAsDirs(
             vfs.create_dir_content_from_tree(tree_or_content),
+            **kwargs,
+        )
+    elif isinstance(tree_or_content, list):
+        return ZipsAsDirs(
+            vfs.dir_content(*tree_or_content),
             **kwargs,
         )
 

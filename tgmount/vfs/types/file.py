@@ -1,25 +1,29 @@
+import time
+from dataclasses import dataclass
 from typing import (
+    Any,
+    Awaitable,
     ByteString,
+    Callable,
     Generic,
+    Iterable,
+    List,
     Optional,
     Protocol,
     TypeGuard,
     TypeVar,
     Union,
-    Callable,
-    Iterable,
-    List,
-    Any,
-    Awaitable,
 )
-from dataclasses import dataclass
+
+from datetime import datetime
 
 
 @dataclass
 class FileLike:
     name: str
     content: "FileContentProto"
-    created = None
+
+    creation_time: datetime = datetime.now()
 
     def __str__(self):
         return f"FileLike({self.name})"

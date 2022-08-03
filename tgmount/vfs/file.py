@@ -1,3 +1,4 @@
+from datetime import datetime
 from io import BytesIO
 import logging
 import os
@@ -36,8 +37,15 @@ def text_file(fname: str, text_str: str):
     return FileLike(fname, text_content(text_str))
 
 
-def vfile(fname: str, content: FileContentProto):
-    return FileLike(fname, content)
+def vfile(
+    fname: str,
+    content: FileContentProto,
+    creation_time: Optional[datetime] = None,
+):
+    if creation_time is None:
+        creation_time = datetime.now()
+
+    return FileLike(fname, content, creation_time)
 
 
 def file_content_from_io(b: BytesIO) -> FileContent:

@@ -1,18 +1,19 @@
-from dataclasses import dataclass
 import errno
+import logging
 import os
+import time
+from dataclasses import dataclass
 
 import pyfuse3
-
-import logging
-
-from tgmount.vfs import DirLike, DirContentItem
-from tgmount.vfs import FileLike
 from tgmount.fs.fh import FileSystemHandlers
 from tgmount.fs.inode2 import InodesRegistry, RegistryItem, RegistryRoot
-from tgmount.fs.util import exception_handler
-from tgmount.fs.util import create_directory_attributes, create_file_attributes
 from tgmount.fs.types import OpendirContext
+from tgmount.fs.util import (
+    create_directory_attributes,
+    create_file_attributes,
+    exception_handler,
+)
+from tgmount.vfs import DirContentItem, DirLike, FileLike
 
 # XXX
 # try:
@@ -23,13 +24,6 @@ from tgmount.fs.types import OpendirContext
 #     faulthandler.enable()
 
 logger = logging.getLogger("tgvfs-ops")
-
-
-def _create_attributes_for_item(item: DirContentItem, inode: int):
-    if isinstance(item, DirLike):
-        return create_directory_attributes(inode)
-    else:
-        return create_file_attributes(size=item.content.size)
 
 
 @dataclass
@@ -52,14 +46,38 @@ class FileSystemOperations(pyfuse3.Operations):
 
         # self._mount_point = mount_point
         self._inodes = InodesRegistry[FileSystemItem](
-            FileSystemItem(
-                root, _create_attributes_for_item(root, InodesRegistry.ROOT_INODE)
+            self.create_FileSystemItem(
+                root,
+                self._create_attributes_for_item(root, InodesRegistry.ROOT_INODE),
             )
         )
         self._handlers = FileSystemHandlers[InodesRegistryItem]()
 
     def _str_to_bytes(self, s: str) -> bytes:
         return s.encode("utf-8")
+
+    def create_FileSystemItem(
+        self,
+        structure_item: DirContentItem,
+        attrs: pyfuse3.EntryAttributes,
+    ):
+        return FileSystemItem(structure_item, attrs)
+
+    def _create_attributes_for_item(
+        self,
+        item: DirContentItem,
+        inode: int,
+    ):
+        if isinstance(item, DirLike):
+            return create_directory_attributes(
+                inode,
+                stamp=item.creation_time,
+            )
+        else:
+            return create_file_attributes(
+                size=item.content.size,
+                stamp=int(item.creation_time.timestamp() * 1e9),
+            )
 
     @exception_handler
     async def getattr(self, inode: int, ctx=None):
@@ -91,8 +109,9 @@ class FileSystemOperations(pyfuse3.Operations):
         for child_item in await structure_item.content.readdir_func(handle, 0):
             item = self._inodes.add_item_to_inodes(
                 self._str_to_bytes(child_item.name),
-                FileSystemItem(
-                    child_item, _create_attributes_for_item(child_item, inode=0)
+                self.create_FileSystemItem(
+                    child_item,
+                    self._create_attributes_for_item(child_item, inode=0),
                 ),
                 parent_inode=parent_item.inode,
             )
@@ -262,9 +281,9 @@ class FileSystemOperations(pyfuse3.Operations):
             if fs_item is None:
                 fs_item = self._inodes.add_item_to_inodes(
                     str.encode(sub_item.name),
-                    FileSystemItem(
+                    self.create_FileSystemItem(
                         sub_item,
-                        _create_attributes_for_item(sub_item, inode=0),
+                        self._create_attributes_for_item(sub_item, inode=0),
                     ),
                     parent_inode=parent_item.inode,
                 )

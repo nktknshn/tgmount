@@ -10,6 +10,7 @@ from tgmount.main.util import mount_ops, read_tgapp_api, run_main
 from tgmount.tg_vfs import TelegramFilesSource
 from tgmount.tgclient import TelegramSearch, TgmountTelegramClient, guards
 from tgmount.vfs import FsSourceTree, text_content
+from tgmount.vfs.file import vfile
 
 logger = logging.getLogger("tgvfs")
 
@@ -27,7 +28,7 @@ async def create_test(
     telegram_id: str,
     messages_source: TelegramSearch,
     tgfiles: TelegramFilesSource,
-    limit=3000,
+    limit=None,
 ) -> FsSourceTree:
 
     cache = CacheFactoryMemory(blocksize=256 * 1024)
@@ -39,37 +40,31 @@ async def create_test(
     )
 
     texts = [
-        (f"{msg.id}.txt", text_content(msg.message + "\n"))
+        vfile(
+            fname=f"{msg.id}.txt",
+            content=text_content(msg.message + "\n"),
+            creation_time=msg.date,
+        )
         for msg in messages
         if guards.MessageWithText.guard(msg)
     ]
 
     photos = [
-        (f"{msg.id}_photo.jpeg", tgfiles.content(msg))
-        for msg in messages
-        if guards.MessageWithPhoto.guard(msg)
+        tgfiles.file(msg) for msg in messages if guards.MessageWithPhoto.guard(msg)
     ]
 
     videos = [
-        (f"{msg.id}_document{msg.file.ext}", tgfiles.content(msg))
-        for msg in messages
-        if guards.MessageWithVideo.guard(msg)
+        tgfiles.file(msg) for msg in messages if guards.MessageWithVideo.guard(msg)
     ]
 
     music = [
-        (f"{msg.id}_{msg.file.name}", tgfiles.content(msg))
-        for msg in messages
-        if guards.MessageWithMusic.guard(msg)
+        tgfiles.file(msg) for msg in messages if guards.MessageWithMusic.guard(msg)
     ]
 
     # it's recommended to use cache with zip archives since
     # OS cache will not be applied to the archive file itself
 
-    zips = [
-        (f"{msg.id}_{msg.file.name}", caching.content(msg))
-        for msg in messages
-        if guards.MessageWithZip.guard(msg)
-    ]
+    zips = [caching.file(msg) for msg in messages if guards.MessageWithZip.guard(msg)]
 
     # sadly files seeking inside a zip works by reading the offset bytes so it's slow
     # https://github.com/python/cpython/blob/main/Lib/zipfile.py#L1116
@@ -92,20 +87,18 @@ async def create_test(
         "videos": videos,
         "music": music,
         "zips": z.zips_as_dirs(
-            dict(zips),
+            zips,
             hacky_handle_mp3_id3v1=True,
             skip_folder_if_single_subfolder=True,
         ),
         "all_that": z.zips_as_dirs(
-            dict(
-                [
-                    *texts,
-                    *photos,
-                    *videos,
-                    *music,
-                    *zips,
-                ]
-            ),
+            [
+                *texts,
+                *photos,
+                *videos,
+                *music,
+                *zips,
+            ],
             hacky_handle_mp3_id3v1=True,
             skip_folder_if_single_subfolder=True,
         ),
