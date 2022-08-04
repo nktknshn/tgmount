@@ -1,9 +1,18 @@
+##
 - DONE correct creation date
 - updates
+- albums as folders
+- skip same docs
+- group messages
+    - author
+    - audio performer
+    - repost source
 - file cache
 - messages cache
 - encrypted zips
+- reactions
 
+## issues
 -  Way to specify file types to mount #8 
 -  timeout raises IOError #10 
 -  new file detection doesn't work in non-supergroup groups #4 

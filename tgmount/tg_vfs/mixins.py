@@ -1,10 +1,21 @@
 from datetime import datetime
-from typing import Any, Awaitable, Callable, Optional, Protocol, overload
+from typing import (
+    Any,
+    Awaitable,
+    Callable,
+    Generic,
+    Optional,
+    Protocol,
+    TypeGuard,
+    TypeVar,
+    overload,
+)
 
 import telethon
 from tgmount import vfs
 from tgmount.tgclient import Document, Message
 from tgmount.tgclient.search.filtering.guards import (
+    MessageDownloadable,
     MessageWithAnimated,
     MessageWithCircle,
     MessageWithDocument,
@@ -33,137 +44,35 @@ def message_to_str(m: Message):
     return f"Message(id={m.id}, file={m.file}, media={m.media}, document={m.document})"
 
 
-class FileFunc:
-    # @overload
-    # def file(
-    #     self: FileContentProvider,
-    #     message: MessageWithDocument,
-    # ) -> vfs.FileLike:
-    #     ...
-
-    # @overload
-    # def file(
-    #     self: FileContentProvider,
-    #     message: MessageWithPhoto,
-    # ) -> vfs.FileLike:
-    #     ...
-
-    # @overload
-    # def file(
-    #     self: FileContentProvider,
-    #     message: MessageWithDocumentImage,
-    # ) -> vfs.FileLike:
-    #     ...
-
-    # @overload
-    # def file(
-    #     self: FileContentProvider,
-    #     message: MessageWithVideo,
-    # ) -> vfs.FileLike:
-    #     ...
-
-    def file(
-        self: FileContentProvider,
-        message: MessageWithCompressedPhoto
-        | MessageWithVideo
-        | MessageWithDocument
-        | MessageWithFilename
-        | MessageWithDocumentImage
-        | MessageWithVoice
-        | MessageWithCircle
-        | MessageWithZip
-        | MessageWithMusic
-        | MessageWithOtherDocument,
-    ) -> vfs.FileLike:
-
-        creation_time = getattr(message, "date", datetime.now())
-
-        if MessageWithCompressedPhoto.guard(message):
-            return vfs.FileLike(
-                f"{message.id}_photo.jpeg",
-                content=self.file_content(message, message.photo),
-                creation_time=creation_time,
-            )
-        elif MessageWithVoice.guard(message):
-            return vfs.FileLike(
-                f"{message.id}_voice{message.file.ext}",
-                content=self.file_content(message, message.document),
-                creation_time=creation_time,
-            )
-        elif MessageWithSticker.guard(message):
-            return vfs.FileLike(
-                f"{message.id}_sticker_{message.file.name}",
-                content=self.file_content(message, message.document),
-                creation_time=creation_time,
-            )
-        elif MessageWithAnimated.guard(message):
-            return vfs.FileLike(
-                f"{message.id}_gif{message.file.ext}",
-                content=self.file_content(message, message.document),
-                creation_time=creation_time,
-            )
-        elif MessageWithCircle.guard(message):
-            return vfs.FileLike(
-                f"{message.id}_circle{message.file.ext}",
-                content=self.file_content(message, message.document),
-                creation_time=creation_time,
-            )
-        elif MessageWithFilename.guard(message):
-            return vfs.FileLike(
-                f"{message.id}_{message.file.name}",
-                content=self.file_content(message, message.document),
-                creation_time=creation_time,
-            )
-        elif MessageWithVideo.guard(message):
-            return vfs.FileLike(
-                f"{message.id}_video{message.file.ext}",
-                content=self.file_content(message, message.document),
-                creation_time=creation_time,
-            )
-        elif MessageWithMusic.guard(message):
-            return vfs.FileLike(
-                f"{message.id}_{message.file.name}",
-                content=self.file_content(message, message.document),
-                creation_time=creation_time,
-            )
-        raise ValueError(f"incorret input message: {message_to_str(message)}")
+T = TypeVar("T")
 
 
-class ContentFunc:
-    @overload
-    def content(
-        self: FileContentProvider,
-        message: MessageWithDocument,
-    ) -> vfs.FileContent:
+class FileFuncProto(Protocol, Generic[T]):
+    def file(self, message: T) -> vfs.FileLike:
         ...
 
-    @overload
-    def content(
-        self: FileContentProvider,
-        message: MessageWithCompressedPhoto,
-    ) -> vfs.FileContent:
+    def supports(self, message: Message) -> TypeGuard[T]:
         ...
 
-    @overload
-    def content(
-        self: FileContentProvider,
-        message: MessageWithVideo,
-    ) -> vfs.FileContent:
-        ...
 
-    @overload
-    def content(
-        self: FileContentProvider,
-        message: MessageWithMusic,
-    ) -> vfs.FileContent:
-        ...
+FileFuncSupported = (
+    MessageWithCompressedPhoto
+    | MessageWithVideo
+    | MessageWithDocument
+    | MessageWithFilename
+    | MessageWithDocumentImage
+    | MessageWithVoice
+    | MessageWithCircle
+    | MessageWithZip
+    | MessageWithMusic
+    | MessageWithOtherDocument
+)
 
+
+class ContentFunc(Protocol):
     def content(
         self: FileContentProvider,
-        message: MessageWithCompressedPhoto
-        | MessageWithDocument
-        | MessageWithVideo
-        | MessageWithMusic,
+        message: MessageDownloadable,
     ) -> vfs.FileContent:
         if MessageWithCompressedPhoto.guard(message):
             return self.file_content(message, message.photo)
@@ -171,3 +80,65 @@ class ContentFunc:
             return self.file_content(message, message.document)
 
         raise ValueError("incorret input message")
+
+
+class FileFunc(
+    FileFuncProto[FileFuncSupported],
+    ContentFunc,
+    FileContentProvider,
+    Protocol,
+):
+    def supports(self, message: Message) -> TypeGuard[FileFuncSupported]:
+        return any(
+            map(
+                lambda f: f(message),
+                [
+                    MessageWithCompressedPhoto.guard,
+                    MessageWithVideo.guard,
+                    MessageWithFilename.guard,
+                    MessageWithDocumentImage.guard,
+                    MessageWithVoice.guard,
+                    MessageWithCircle.guard,
+                    MessageWithZip.guard,
+                    MessageWithMusic.guard,
+                    MessageWithDocument.guard,
+                    MessageWithOtherDocument.guard,
+                ],
+            )
+        )
+
+    def filename(
+        self,
+        message: FileFuncSupported,
+    ) -> str:
+        if MessageWithCompressedPhoto.guard(message):
+            return MessageWithCompressedPhoto.filename(message)
+        elif MessageWithVoice.guard(message):
+            return f"{message.id}_voice{message.file.ext}"
+        elif MessageWithSticker.guard(message):
+            return MessageWithSticker.filename(message)
+        elif MessageWithAnimated.guard(message):
+            return f"{message.id}_gif{message.file.ext}"
+        elif MessageWithCircle.guard(message):
+            return f"{message.id}_circle{message.file.ext}"
+        elif MessageWithVideo.guard(message):
+            return f"{message.id}_video{message.file.ext}"
+        elif MessageWithMusic.guard(message):
+            return f"{message.id}_{message.file.name}"
+        elif MessageWithFilename.guard(message):
+            return f"{message.id}_{message.file.name}"
+
+        raise ValueError(f"incorret input message: {message_to_str(message)}")
+
+    def file(
+        self,
+        message: FileFuncSupported,
+    ) -> vfs.FileLike:
+
+        creation_time = getattr(message, "date", datetime.now())
+
+        return vfs.FileLike(
+            self.filename(message),
+            content=self.content(message),
+            creation_time=creation_time,
+        )

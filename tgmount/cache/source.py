@@ -20,8 +20,6 @@ logger = logging.getLogger("tgmount-cache")
 
 class FilesSourceCaching(
     TelegramFilesSourceBase[InputSourceItem],
-    ContentFunc,
-    FileFunc,
     # CachingDocumentsStorageProto[CacheBlockReaderWriter]
 ):
     def __init__(

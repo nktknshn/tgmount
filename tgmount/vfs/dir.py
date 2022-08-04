@@ -17,15 +17,42 @@ from tgmount.vfs import DirTree
 
 root_name = "<root>"
 
-FsSourceTree = DirTree[
-    Union[
-        str,
-        list[tuple[str, FileContent]],
-        list[FileLike],
-        FileContentProto,
-        DirContentProto,
-    ]
+
+FsSourceTreeValue = Union[
+    str,
+    Iterable[FileLike],
+    Iterable[DirLike],
+    Iterable[DirLike | FileLike],
+    # file
+    FileContentProto,
+    # dir
+    DirContentProto,
+    # dir
+    # list["FsSourceTreeValue"]
+    # FileLike,
 ]
+
+FsSourceTree = DirTree[FsSourceTreeValue]
+
+
+def create_dir_content_from_tree(tree: FsSourceTree) -> DirContent:
+    content: list[DirContentItem] = []
+
+    for k, v in tree.items():
+        # DirTree case
+        if isinstance(v, dict):
+            content.append(vdir(k, create_dir_content_from_tree(v)))
+        # text content
+        elif isinstance(v, str):
+            content.append(vfile(k, text_content(v)))
+        elif isinstance(v, (list, Iterable)):
+            content.append(vdir(k, list(v)))
+        elif DirContentProto.guard(v):
+            content.append(vdir(k, v))
+        elif FileContentProto.guard(v):
+            content.append(vfile(k, v))
+
+    return dir_content(*content)
 
 
 @overload
@@ -84,36 +111,15 @@ def dir_content(*items: DirContentItem) -> DirContent:
 
 
 def vdir(
-    fname: str, content: Union[List[DirContentItem], DirContentProto], *, plugins=None
+    fname: str,
+    content: Union[List[DirContentItem], DirContentProto | Iterable],
+    *,
+    plugins=None
 ) -> DirLike:
-    if isinstance(content, list):
-        return DirLike(fname, DirContentList(content))
+    if isinstance(content, (list, Iterable)):
+        return DirLike(fname, DirContentList(list(content)))
     else:
         return DirLike(fname, content)
-
-
-def create_dir_content_from_tree(tree: FsSourceTree) -> DirContent:
-    content: list[DirContentItem] = []
-
-    for k, v in tree.items():
-        if isinstance(v, dict):
-            content.append(vdir(k, create_dir_content_from_tree(v)))
-        elif isinstance(v, str):
-            content.append(vfile(k, text_content(v)))
-        elif isinstance(v, list):
-            items = []
-            for item in v:
-                if isinstance(item, tuple):
-                    items.append(vfile(item[0], item[1]))
-                elif FileLike.guard(item):
-                    items.append(item)
-            content.append(vdir(k, items))
-        elif DirContentProto.guard(v):
-            content.append(vdir(k, v))
-        elif FileContentProto.guard(v):
-            content.append(vfile(k, v))
-
-    return dir_content(*content)
 
 
 async def get_dir_content_items(content: DirContentProto) -> Iterable[DirContentItem]:

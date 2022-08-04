@@ -1,13 +1,13 @@
 from typing import Any, Optional, Type, TypeGuard, TypeVar, overload
+
+import telethon
+from telethon import types
 from telethon.tl.custom import message
 from telethon.tl.custom.file import File
-from telethon import types
 from telethon.tl.types import TypeDocumentAttribute
-from ...types import (
-    Document,
-    Message,
-    Photo,
-)
+
+from ....util import func
+from ...types import Document, Message, Photo
 
 MessageMedia = (
     types.MessageMediaContact
@@ -45,6 +45,49 @@ Returns a `File <telethon.tl.custom.file.File>` wrapping the
 """
 
 
+class MessageForwarded(Message):
+    forward: telethon.tl.custom.forward.Forward
+
+    @staticmethod
+    def guard(msg: Message) -> TypeGuard["MessageForwarded"]:
+        return msg.forward is not None
+
+    @staticmethod
+    async def group_by_forw(
+        forwarded_messages: list["MessageForwarded"],
+    ):
+        fws = {}
+
+        for m in forwarded_messages:
+
+            chat = await m.forward.get_chat()
+            sender = await m.forward.get_sender()
+            from_name = m.forward.from_name
+
+            dirname = (
+                chat.title
+                if chat is not None
+                else from_name
+                if from_name is not None
+                else "None"
+            )
+
+            if not dirname in fws:
+                fws[dirname] = []
+
+            fws[dirname].append(m)
+
+        return fws
+
+
+# class MessageWithReactions(Message):
+#     reactions: telethon.tl.custom.forward.Forward
+
+#     @staticmethod
+#     def guard(msg: Message) -> TypeGuard["MessageForwarded"]:
+#         return msg.forward is not None
+
+
 class MessageWithDocument(Message):
     document: Document
 
@@ -67,6 +110,10 @@ class MessageWithFilename(Message):
     def guard(msg: Message) -> TypeGuard["MessageWithFilename"]:
         return msg.file is not None and msg.file.name is not None
 
+    @staticmethod
+    def filename(msg: "MessageWithFilename"):
+        return f"{msg.id}_{msg.file.name}"
+
 
 class MessageWithCompressedPhoto(Message):
     """message with compressed image"""
@@ -77,6 +124,19 @@ class MessageWithCompressedPhoto(Message):
     @staticmethod
     def guard(msg: Message) -> TypeGuard["MessageWithCompressedPhoto"]:
         return isinstance(msg.photo, Photo) and not MessageWithSticker.guard(msg)
+
+    @staticmethod
+    def filename(msg: "MessageWithCompressedPhoto"):
+        return f"{msg.id}_photo.jpeg"
+
+
+MessageDownloadable = MessageWithDocument | MessageWithCompressedPhoto
+
+
+def downloadable(
+    msg: Message,
+) -> TypeGuard["MessageDownloadable"]:
+    return MessageWithDocument.guard(msg) or MessageWithCompressedPhoto.guard(msg)
 
 
 class MessageWithDocumentImage(Message):
@@ -94,6 +154,10 @@ class MessageWithDocumentImage(Message):
             and not MessageWithSticker.guard(msg)
         )
 
+    @staticmethod
+    def filename(msg: "MessageWithDocumentImage"):
+        return f"{msg.id}_{msg.file.name}"
+
 
 class MessageWithZip(Message):
     """message with a zip file"""
@@ -109,6 +173,10 @@ class MessageWithZip(Message):
             and msg.file.name is not None
             and msg.file.name.endswith(".zip")
         )
+
+    @staticmethod
+    def filename(msg: "MessageWithZip"):
+        return f"{msg.id}_{msg.file.name}"
 
 
 class MessageWithVideo(Message):
@@ -129,6 +197,10 @@ class MessageWithVideo(Message):
             video is not None or MessageWithVideoDocument.guard(msg)
         )
 
+    @staticmethod
+    def filename(msg: "MessageWithVideo"):
+        return f"{msg.id}_video{msg.file.ext}"
+
 
 class MessageWithSticker(Message):
     """video documents"""
@@ -139,12 +211,10 @@ class MessageWithSticker(Message):
     @staticmethod
     def guard(msg: Message) -> TypeGuard["MessageWithSticker"]:
         return bool(msg.sticker)
-        # if msg.document is None:
-        #     return False
 
-        # sticker_attr = get_attribute(msg.document, types.DocumentAttributeSticker)
-
-        # return sticker_attr is not None
+    @staticmethod
+    def filename(msg: "MessageWithSticker"):
+        return f"{msg.id}_sticker_{msg.file.name}"
 
 
 class MessageWithCircle(Message):
@@ -167,6 +237,10 @@ class MessageWithCircle(Message):
             and video.round_message is True
         )
 
+    @staticmethod
+    def filename(msg: "MessageWithCircle"):
+        return f"{msg.id}_circle{msg.file.ext}"
+
 
 class MessageWithVideoCompressed(Message):
     """compressed video documents"""
@@ -180,7 +254,7 @@ class MessageWithVideoCompressed(Message):
             MessageWithVideo.guard(msg)
             and not MessageWithCircle.guard(msg)
             and not MessageWithAnimated.guard(msg)
-            and not MessageWithVideoDocument.guard(msg)
+            # and not MessageWithVideoDocument.guard(msg)
         )
 
 
@@ -268,6 +342,29 @@ class MessageWithMusic(Message):
             and audio is not None
             and audio.voice is False
         )
+
+    @staticmethod
+    def group_by_performer(
+        messages: list["MessageWithMusic"],
+        minimum=2,
+    ) -> tuple[dict[str, list["MessageWithMusic"]], list["MessageWithMusic"]]:
+        no_performer = [t for t in messages if t.file.performer is None]
+        with_performer = [t for t in messages if t.file.performer is not None]
+
+        tracks = func.group_by(
+            lambda t: t.file.performer.lower(),
+            with_performer,
+        )
+
+        result = []
+
+        for perf, tracks in tracks.items():
+            if len(tracks) < minimum:
+                no_performer.extend(tracks)
+            else:
+                result.append((perf, tracks))
+
+        return dict(result), no_performer
 
 
 class MessageWithText(Message):

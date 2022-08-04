@@ -33,8 +33,8 @@ def text_content(text: str):
     return FileContent(size=len(text), read_func=simple_read(text))
 
 
-def text_file(fname: str, text_str: str):
-    return FileLike(fname, text_content(text_str))
+def text_file(fname: str, text_str: str, creation_time=None):
+    return FileLike(fname, text_content(text_str), creation_time)
 
 
 def vfile(

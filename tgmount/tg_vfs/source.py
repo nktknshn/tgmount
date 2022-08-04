@@ -37,8 +37,6 @@ T = TypeVar("T")
 
 class TelegramFilesSource(
     TelegramFilesSourceBase[InputSourceItem],
-    ContentFunc,
-    FileFunc,
 ):
     def __init__(
         self,

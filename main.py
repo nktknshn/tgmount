@@ -1,23 +1,33 @@
 import logging
 
 import argparse
+from typing import Callable, TypeGuard, TypeVar
 from telethon import events, types
-from telethon.client.updates import EventBuilder
 
-from tgmount import fs, util, vfs
+from tgmount import fs, vfs
 from tgmount import zip as z
 from tgmount.cache import CacheFactoryMemory, FilesSourceCaching
 from tgmount.logging import init_logging
 from tgmount.main.util import mount_ops, read_tgapp_api, run_main
 from tgmount.tg_vfs import TelegramFilesSource
-from tgmount.tgclient import TelegramSearch, TgmountTelegramClient, guards
+from tgmount.tg_vfs.mixins import (
+    ContentFunc,
+    FileContentProvider,
+    FileFunc,
+    FileFuncSupported,
+)
+from tgmount.tg_vfs.types import InputSourceItem
+from tgmount.tgclient import TelegramSearch, TgmountTelegramClient
 from tgmount.tgclient.search.filtering.guards import (
     MessageWithCompressedPhoto,
     MessageWithDocumentImage,
 )
 from tgmount.tgclient.types import Message
-from tgmount.vfs import FsSourceTree, text_content
+from tgmount.vfs import FsSourceTree
 from tgmount.vfs.file import vfile
+from tgmount.util import func
+
+from tgmount.tgclient.search.filtering.guards import *
 
 logger = logging.getLogger("tgvfs")
 
@@ -27,6 +37,8 @@ def get_parser():
 
     # parser.add_argument('--config', 'mount config', required=True)
     parser.add_argument("--id", type=str, default="tgmounttestingchannel")
+    parser.add_argument("--debug", type=bool, default=False)
+    parser.add_argument("--limit", type=int, default=3000)
 
     return parser
 
@@ -40,8 +52,33 @@ async def tgclient(
     return client
 
 
-def print_message(m: Message, verbosity):
-    pass
+class FileFactory(
+    FileFunc,
+    ContentFunc,
+):
+    def __init__(self, files_source: FileContentProvider) -> None:
+        self._files_source = files_source
+
+    def file(
+        self,
+        message: FileFuncSupported | MessageForwarded,
+    ) -> vfs.FileLike:
+
+        if MessageForwarded.guard(message) and downloadable(message):
+            return vfile(
+                f"forward_{FileFunc.filename(self, message)}",
+                self.content(message),
+            )
+        else:
+            return FileFunc.file(self, message)
+
+    def file_content(
+        self, message: Message, input_item: InputSourceItem
+    ) -> vfs.FileContent:
+        return self._files_source.file_content(message, input_item)
+
+
+T = TypeVar("T")
 
 
 async def create_test(
@@ -65,64 +102,80 @@ async def create_test(
     cache = CacheFactoryMemory(blocksize=256 * 1024)
     caching = FilesSourceCaching(tgfiles, cache)
 
+    files = FileFactory(tgfiles)
+    cached_files = FileFactory(caching)
+
     messages = await messages_source.get_messages_typed(
         telegram_id,
         limit=limit,
     )
 
-    for msg in messages:
-        if guards.MessageWithOtherDocument.guard(msg):
-            print(msg)
-            print()
+    def fm(guard):
+        return [
+            files.file(msg) for msg in messages if files.supports(msg) and guard(msg)
+        ]
+
+    def f(guard: Callable[[Message], TypeGuard[T]]) -> list[T]:
+        return [msg for msg in messages if guard(msg)]
 
     texts = [
-        vfile(
-            fname=f"{msg.id}.txt",
-            content=text_content(msg.message + "\n"),
-            creation_time=msg.date,
-        )
+        vfs.text_file(f"{msg.id}.txt", msg.message + "\n", creation_time=msg.date)
         for msg in messages
-        if guards.MessageWithText.guard(msg)
+        if MessageWithText.guard(msg)
     ]
-
-    print("zips")
-    zips = [caching.file(msg) for msg in messages if guards.MessageWithZip.guard(msg)]
-
-    def fm(guard):
-        return [tgfiles.file(msg) for msg in messages if guard(msg)]
 
     # it's recommended to use cache with zip archives since
     # OS cache will not be applied to the archive file itself
 
-    docs = [
-        caching.file(msg)
-        for msg in messages
-        if guards.MessageWithOtherDocument.guard(msg)
-    ]
+    zips = [cached_files.file(msg) for msg in messages if MessageWithZip.guard(msg)]
+
+    docs = [files.file(msg) for msg in messages if MessageWithOtherDocument.guard(msg)]
 
     photos = fm(
         lambda msg: MessageWithCompressedPhoto.guard(msg)
         or MessageWithDocumentImage.guard(msg)
     )
 
-    videos = fm(guards.MessageWithVideo.guard)
-    music = fm(guards.MessageWithMusic.guard)
-    voices = fm(guards.MessageWithVoice.guard)
-    circles = fm(guards.MessageWithCircle.guard)
-    animated = fm(guards.MessageWithAnimated.guard)
+    videos = fm(MessageWithVideo.guard)
+    music = fm(MessageWithMusic.guard)
+    voices = fm(MessageWithVoice.guard)
+    circles = fm(MessageWithCircle.guard)
+    animated = fm(MessageWithAnimated.guard)
+
+    perf, noperf = MessageWithMusic.group_by_performer(
+        f(MessageWithMusic.guard),
+        minimum=2,
+    )
+
+    fwd = func.walk_values(
+        func.cmap(files.file),
+        await MessageForwarded.group_by_forw(
+            f(lambda m: MessageForwarded.guard(m) and files.supports(m))
+        ),
+    )
+
+    print(fwd)
 
     return {
         "animated": animated,
+        "forwarded-by-source": fwd,
         "stickers": animated,
         # "texts": texts,
         "voices": voices,
         "docs": docs,
         "photos": photos,
-        "videos": fm(guards.MessageWithVideoCompressed.guard),
-        "all_videos": videos,
-        "stickers": fm(guards.MessageWithSticker.guard),
+        "videos": fm(MessageWithVideoCompressed.guard),
+        "all-videos": videos,
+        "stickers": fm(MessageWithSticker.guard),
         "circles": circles,
         "music": music,
+        "music-by-performer": [
+            *[
+                vfs.vdir(performer, map(files.file, tracks))
+                for performer, tracks in perf.items()
+            ],
+            *map(files.file, noperf),
+        ],
         "zips": z.zips_as_dirs(
             zips,
             hacky_handle_mp3_id3v1=True,
@@ -132,9 +185,10 @@ async def create_test(
 
 
 async def mount():
-    init_logging(debug=True)
     parser = get_parser()
     args = parser.parse_args()
+
+    init_logging(debug=args.debug)
 
     client = await tgclient(read_tgapp_api())
 
@@ -148,7 +202,7 @@ async def mount():
                 messages_source,
                 documents_source,
                 client,
-                limit=1000,
+                limit=args.limit,
             ),
         }
     )

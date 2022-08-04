@@ -9,15 +9,10 @@ from tgmount.vfs.types import FileLikeTree
 from tgmount.vfs.types.dir import DirLike
 from tgmount.vfs.types.file import FileContentProto
 from tgmount.vfs.util import norm_and_parse_path
-from tgmount.zip.util import (
-    cmap,
-    compose,
+from tgmount.util.func import (
     fst,
     group_by,
     list_filter,
-    list_map,
-    set_map,
-    walk_values,
 )
 from tgmount.vfs.lookup import get_dir_content_items, list_dir_by_path, napp
 
