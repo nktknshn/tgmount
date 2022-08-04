@@ -277,6 +277,22 @@ def zips_as_dirs(
     tree_or_content: vfs.FsSourceTree | vfs.DirContentProto | list[FileLike],
     **kwargs,
 ):
+    """
+    sadly files seeking inside a zip works by reading the offset bytes so it's slow
+    https://github.com/python/cpython/blob/main/Lib/zipfile.py#L1116
+
+    also id3v1 tags are stored in the end of a file :)
+    https://github.com/quodlibet/mutagen/blob/master/mutagen/id3/_id3v1.py#L34
+
+    and most of the players try to read it. So just adding an mp3 or flac
+    to a player will fetch the whole file from the archive
+
+    setting hacky_handle_mp3_id3v1 will patch reading function so it
+    always returns 4096 zero bytes when reading a block of 4096 bytes
+    (usually players read this amount looking for id3v1 (requires
+    investigation to find a less hacky way)) from an mp3 or flac file
+    inside a zip archive
+    """
     if isinstance(tree_or_content, dict):
         return ZipsAsDirs(
             vfs.create_dir_content_from_tree(tree_or_content),
