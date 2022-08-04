@@ -136,7 +136,7 @@ async def create_test(
         or MessageWithDocumentImage.guard(msg)
     )
 
-    videos = fm(MessageWithVideo.guard)
+    all_videos = fm(MessageWithVideo.guard)
     music = fm(MessageWithMusic.guard)
     voices = fm(MessageWithVoice.guard)
     circles = fm(MessageWithCircle.guard)
@@ -165,15 +165,12 @@ async def create_test(
         "docs": docs,
         "photos": photos,
         "videos": fm(MessageWithVideoCompressed.guard),
-        "all-videos": videos,
+        "all-videos": all_videos,
         "stickers": fm(MessageWithSticker.guard),
         "circles": circles,
         "music": music,
         "music-by-performer": [
-            *[
-                vfs.vdir(performer, map(files.file, tracks))
-                for performer, tracks in perf.items()
-            ],
+            *[vfs.vdir(perf, map(files.file, tracks)) for perf, tracks in perf.items()],
             *map(files.file, noperf),
         ],
         "zips": z.zips_as_dirs(
@@ -197,8 +194,15 @@ async def mount():
 
     vfs_root = vfs.root(
         {
-            "test": await create_test(
+            args.id: await create_test(
                 args.id,
+                messages_source,
+                documents_source,
+                client,
+                limit=args.limit,
+            ),
+            "tgmounttestingchannel": await create_test(
+                "tgmounttestingchannel",
                 messages_source,
                 documents_source,
                 client,

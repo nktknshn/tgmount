@@ -1,6 +1,7 @@
 ##
 - DONE correct creation date
 - updates
+- sanitize file names
 - albums as folders
 - skip same docs
 - group messages

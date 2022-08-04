@@ -165,7 +165,7 @@ class FileSystemOperations(pyfuse3.Operations):
 
     @exception_handler
     async def opendir(self, inode: int, ctx):
-        logger.info("f= opendir({inode}")
+        logger.debug("f= opendir({inode}")
 
         item = self._inodes.get_item_by_inode(inode)
 
