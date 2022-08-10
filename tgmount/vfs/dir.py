@@ -1,6 +1,20 @@
 import os
 from dataclasses import dataclass
-from typing import Any, Awaitable, Callable, Iterable, List, Optional, Union, overload
+from typing import (
+    Any,
+    Awaitable,
+    Callable,
+    Coroutine,
+    Iterable,
+    List,
+    Mapping,
+    Optional,
+    TypeGuard,
+    TypeVar,
+    Union,
+    overload,
+)
+from typing_extensions import reveal_type
 
 from tgmount.vfs.file import file_content_from_file, text_content, vfile
 from tgmount.vfs.types import FileLikeTree
@@ -19,20 +33,23 @@ root_name = "<root>"
 
 
 FsSourceTreeValue = Union[
-    str,
+    # dir
+    DirContentProto,
     Iterable[FileLike],
     Iterable[DirLike],
     Iterable[DirLike | FileLike],
     # file
+    # str,
     FileContentProto,
-    # dir
-    DirContentProto,
-    # dir
-    # list["FsSourceTreeValue"]
-    # FileLike,
 ]
 
 FsSourceTree = DirTree[FsSourceTreeValue]
+
+VfsRoot = DirLike
+
+
+def is_tree(v) -> TypeGuard[FsSourceTree]:
+    return isinstance(v, Mapping)
 
 
 def create_dir_content_from_tree(tree: FsSourceTree) -> DirContent:
@@ -40,7 +57,8 @@ def create_dir_content_from_tree(tree: FsSourceTree) -> DirContent:
 
     for k, v in tree.items():
         # DirTree case
-        if isinstance(v, dict):
+
+        if is_tree(v):
             content.append(vdir(k, create_dir_content_from_tree(v)))
         # text content
         elif isinstance(v, str):
@@ -56,35 +74,33 @@ def create_dir_content_from_tree(tree: FsSourceTree) -> DirContent:
 
 
 @overload
-def root(*content: DirContentItem) -> DirLike:
+def root(*content: DirContentItem) -> VfsRoot:
     ...
     # return root(DirContentList(list(content)))
 
 
 @overload
-def root(content: DirContentProto) -> DirLike:
+def root(content: DirContentProto) -> VfsRoot:
     ...
     # return DirLike(name=root_name, content=content)
 
 
 @overload
-def root(content: FsSourceTree) -> DirLike:
+def root(content: FsSourceTree) -> VfsRoot:
     ...
     # return DirLike(name=root_name, content=content)
 
 
-def root(*content) -> DirLike:  # type: ignore
+def root(*content) -> VfsRoot:  # type: ignore
     # if isinstance(content, tuple):
     if len(content) == 1:
         if DirLike.guard(content[0]) or FileLike.guard(content[0]):
-            return DirLike(name=root_name, content=DirContentList(list(content)))
+            return VfsRoot(root_name, DirContentList(list(content)))
         elif isinstance(content[0], dict):
-            return DirLike(
-                name=root_name, content=create_dir_content_from_tree(content[0])
-            )
-        return DirLike(name=root_name, content=content[0])
+            return VfsRoot(root_name, create_dir_content_from_tree(content[0]))
+        return VfsRoot(root_name, content[0])
 
-    return DirLike(name=root_name, content=DirContentList(list(content)))
+    return VfsRoot(root_name, DirContentList(list(content)))
 
 
 def dir_content_from_dir(src_path: str) -> DirContent:
@@ -104,10 +120,28 @@ def dir_content_from_dir(src_path: str) -> DirContent:
 
 
 def dir_content(*items: DirContentItem) -> DirContent:
-    async def f(off):
+    async def f(handle, off):
         return items[off:]
 
     return DirContent(readdir_func=f)
+
+
+def map_dir_content(
+    mapper: Callable[[DirContentItem], DirContentItem], dir_content: DirContentProto
+) -> DirContent:
+    async def f(handle, off):
+        return map(mapper, await dir_content.readdir_func(handle, off))
+
+    return DirContent(
+        opendir_func=dir_content.opendir_func,
+        releasedir_func=dir_content.releasedir_func,
+        readdir_func=f,
+    )
+
+
+import functools
+
+map_dir_content_f = lambda mapper: functools.partial(map_dir_content, mapper)
 
 
 def vdir(

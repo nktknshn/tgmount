@@ -6,8 +6,12 @@ from .dir import (
     DirContent,
     DirContentProto,
     DirContentItem,
+    DirContentList,
     create_dir_content_from_tree,
     FsSourceTree,
+    VfsRoot,
+    FsSourceTree,
+    FsSourceTreeValue,
 )
 from .dir import (
     root,
@@ -17,6 +21,9 @@ from .dir import (
     dir_content_from_dir,
     dir_content,
     vdir,
+    is_tree,
+    map_dir_content,
+    map_dir_content_f,
 )
 from .file import (
     vfile,

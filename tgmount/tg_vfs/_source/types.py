@@ -1,4 +1,4 @@
-from typing import Any, Awaitable, Callable, Generic, TypeVar
+from typing import Any, Awaitable, Callable, Generic, Protocol, TypeVar
 
 from tgmount import vfs
 from tgmount.tgclient import Message
@@ -11,12 +11,7 @@ ItemReadFactory = Callable[[T], Awaitable[ReadFunctionAsync]]
 ItemReadFunctionAsync = Callable[[Message, T, int, int], Awaitable[bytes]]
 
 
-class TelegramFilesSourceProto(Generic[T]):
-    # open
-    # close
-    # seek
-    # tell
-
+class TelegramFilesSourceProto(Protocol[T]):
     async def item_read_function(
         self,
         message: Message,
@@ -25,10 +20,3 @@ class TelegramFilesSourceProto(Generic[T]):
         limit: int,
     ) -> bytes:
         raise NotImplementedError()
-
-    # async def item_to_file_content(
-    #     self: "TelegramFilesSourceProto[T]",
-    #     message: Message,
-    #     item: T,
-    # ) -> vfs.FileContent:
-    #     raise NotImplementedError()

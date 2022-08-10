@@ -2,10 +2,11 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Callable, Any, Optional, Protocol, TypeGuard, TypeVar, Union
 
+from telethon.tl.custom import Message
+
 import telethon
 
 DocId = int
-Message = telethon.tl.custom.Message
 Document = telethon.types.Document
 Photo = telethon.types.Photo
 TypeMessagesFilter = telethon.types.TypeMessagesFilter

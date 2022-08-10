@@ -1,33 +1,24 @@
+import logging
 from datetime import datetime
+from random import random
 from time import time
-from typing import (
-    Any,
-    Awaitable,
-    Callable,
-    TypeVar,
-)
+from typing import Any, Awaitable, Callable, TypeVar
 
 import telethon
+from telethon.tl.custom import Message
 from telethon.errors import FileReferenceExpiredError
-
-import logging
 from tgmount import vfs
 from tgmount.tg_vfs.mixins import ContentFunc, FileFunc
-from tgmount.tgclient import (
-    TgmountTelegramClient,
-    Message,
-)
-from tgmount.tgclient import TypeInputFileLocation
+from tgmount.tgclient import TgmountTelegramClient, TypeInputFileLocation
 
-from .util import BLOCK_SIZE, split_range
 from ._source import (
-    TelegramFilesSourceBase,
     SourceItem,
-    SourceItemPhoto,
     SourceItemDocument,
+    SourceItemPhoto,
+    TelegramFilesSourceBase,
 )
-
 from .types import InputSourceItem
+from .util import BLOCK_SIZE, split_range
 
 logger = logging.getLogger("tgclient")
 
@@ -107,6 +98,7 @@ class TelegramFilesSource(
         self, message: Message, item: SourceItem
     ) -> TypeInputFileLocation:
         refetched_msg: Message
+
         [refetched_msg] = await self.client.get_messages(
             message.chat_id, ids=[message.id]
         )
@@ -115,8 +107,11 @@ class TelegramFilesSource(
             logger.error(f"refetched_msg isnt a Message")
             logger.error(f"refetched_msg={refetched_msg}")
             raise ValueError(f"refetched_msg isnt a Message")
+            # XXX what should i do if refetched_msg is None
 
+        # XXX handle photo
         if refetched_msg.document is None:
+            # if refetched_msg.document is None:
             raise ValueError(f"missing document")
 
         self._set_item_file_reference(item, refetched_msg.document.file_reference)
@@ -197,6 +192,7 @@ class TelegramFilesSource(
                 item.size,
                 request_size=self.request_size,
             )
+
         logger.debug(
             f"TelegramFilesSource.document_read_function() = {len(chunk)} bytes"
         )

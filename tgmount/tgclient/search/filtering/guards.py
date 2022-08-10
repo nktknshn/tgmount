@@ -1,13 +1,16 @@
-from typing import Any, Optional, Type, TypeGuard, TypeVar, overload
+from typing import Any, Iterable, Optional, Type, TypeGuard, TypeVar, overload
 
 import telethon
 from telethon import types
-from telethon.tl.custom import message
+from telethon.tl.custom import Message
 from telethon.tl.custom.file import File
 from telethon.tl.types import TypeDocumentAttribute
 
 from ....util import func
-from ...types import Document, Message, Photo
+from ...types import Document
+
+
+from tgmount import util
 
 MessageMedia = (
     types.MessageMediaContact
@@ -24,13 +27,22 @@ MessageMedia = (
     | types.MessageMediaWebPage
 )
 
-TAttr = TypeVar("TAttr")
-
 
 def get_attribute(doc: Document, attr_cls) -> Optional[Any]:
     for attr in doc.attributes:
         if isinstance(attr, attr_cls):
             return attr
+
+
+def document_or_photo_id(
+    m: "MessageDownloadable",
+) -> int:
+    if MessageWithDocument.guard(m):
+        return m.document.id
+    elif MessageWithCompressedPhoto.guard(m):
+        return m.photo.id
+
+    raise ValueError(f"incorrect input message: {m}")
 
 
 """
@@ -119,11 +131,13 @@ class MessageWithCompressedPhoto(Message):
     """message with compressed image"""
 
     file: File
-    photo: Photo
+    photo: telethon.types.Photo
 
     @staticmethod
     def guard(msg: Message) -> TypeGuard["MessageWithCompressedPhoto"]:
-        return isinstance(msg.photo, Photo) and not MessageWithSticker.guard(msg)
+        return isinstance(
+            msg.photo, telethon.types.Photo
+        ) and not MessageWithSticker.guard(msg)
 
     @staticmethod
     def filename(msg: "MessageWithCompressedPhoto"):
@@ -133,7 +147,7 @@ class MessageWithCompressedPhoto(Message):
 MessageDownloadable = MessageWithDocument | MessageWithCompressedPhoto
 
 
-def downloadable(
+def is_downloadable(
     msg: Message,
 ) -> TypeGuard["MessageDownloadable"]:
     return MessageWithDocument.guard(msg) or MessageWithCompressedPhoto.guard(msg)
@@ -203,7 +217,7 @@ class MessageWithVideo(Message):
 
 
 class MessageWithSticker(Message):
-    """video documents"""
+    """stickers"""
 
     file: File
     document: Document
@@ -319,7 +333,7 @@ class MessageWithVoice(Message):
         return bool(msg.voice)
 
 
-class MessageWithMusic(Message):
+class MessageWithMusic(MessageWithDocument):
     """message with document audio tacks (without voices)"""
 
     file: File
@@ -344,17 +358,26 @@ class MessageWithMusic(Message):
         )
 
     @staticmethod
+    def filename(msg: "MessageWithMusic"):
+        return f"{msg.id}_{msg.file.name}"
+
+    @staticmethod
+    def peformer(msg: "MessageWithMusic"):
+        return msg.file.performer
+
+    @staticmethod
+    def title(msg: "MessageWithMusic"):
+        return msg.file.title
+
+    @staticmethod
     def group_by_performer(
-        messages: list["MessageWithMusic"],
+        messages: Iterable["MessageWithMusic"],
         minimum=2,
     ) -> tuple[dict[str, list["MessageWithMusic"]], list["MessageWithMusic"]]:
         no_performer = [t for t in messages if t.file.performer is None]
         with_performer = [t for t in messages if t.file.performer is not None]
 
-        tracks = func.group_by(
-            lambda t: t.file.performer.lower(),
-            with_performer,
-        )
+        tracks = func.group_by0(lambda t: t.file.performer.lower(), with_performer)
 
         result = []
 

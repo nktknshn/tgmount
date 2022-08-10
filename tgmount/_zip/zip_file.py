@@ -10,7 +10,8 @@ from tgmount.vfs.types.file import FileContentProto
 from tgmount.vfs.util import MyLock
 from tgmount.zip.types import ZipFileAsyncThunk
 
-ZipFileHandle = Tuple[zipfile.ZipFile, zipfile.ZipExtFile]
+ZipFileHandle = Tuple[zipfile.ZipExtFile, IO[bytes]]
+ZipFileHandle2 = Tuple[zipfile.ZipFile, zipfile.ZipExtFile]
 
 
 logger = logging.getLogger("tgmount-zip")
@@ -102,7 +103,7 @@ class FileContentZip(FileContentProto):
     def size(self):
         return self.zinfo.file_size
 
-    async def open_func(self) -> ZipFileHandle:
+    async def open_func(self) -> ZipFileHandle2:
         # XXX
         await greenback.ensure_portal()  # type: ignore
 
@@ -112,7 +113,7 @@ class FileContentZip(FileContentProto):
         async with self.read_lock:
             return zf, zf.open(self.zinfo)  # type: ignore
 
-    async def read_func(self, handle: ZipFileHandle, off, size):
+    async def read_func(self, handle: ZipFileHandle2, off, size):
         await greenback.ensure_portal()  # type: ignore
 
         logger.debug(f"zipinfo_to_filelike.read(off={off}, size={size})")
@@ -126,7 +127,7 @@ class FileContentZip(FileContentProto):
 
             return bs
 
-    async def seek_func(self, handle: ZipFileHandle, c, w=0):
+    async def seek_func(self, handle: ZipFileHandle2, c, w=0):
         await greenback.ensure_portal()  # type: ignore
 
         zf, zext = handle
@@ -134,7 +135,7 @@ class FileContentZip(FileContentProto):
         async with self.read_lock:
             zext.seek(c, w)
 
-    async def close_func(self, handle: ZipFileHandle):
+    async def close_func(self, handle: ZipFileHandle2):
         await greenback.ensure_portal()  # type: ignore
 
         zf, zext = handle
@@ -143,10 +144,19 @@ class FileContentZip(FileContentProto):
             zext.close()
             zf.close()
 
-    async def tell_func(self, handle: ZipFileHandle):
+    async def tell_func(self, handle: ZipFileHandle2):
         await greenback.ensure_portal()  # type: ignore
 
         zf, zext = handle
         logger.debug(f"zipinfo_to_filelike.tell()")
         async with self.read_lock:
             return zext.tell()
+
+
+# def create_filelike_from_zipinfo(
+#     z_factory: ZipFileAsyncThunk, zinfo: zipfile.ZipInfo
+# ) -> FileLike:
+#     return FileLike(
+#         os.path.basename(zinfo.filename),
+#         create_file_content_from_zipinfo(z_factory, zinfo),
+#     )

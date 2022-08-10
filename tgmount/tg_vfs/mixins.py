@@ -13,7 +13,9 @@ from typing import (
 
 import telethon
 from tgmount import vfs
-from tgmount.tgclient import Document, Message
+from tgmount.tgclient import Document
+from telethon.tl.custom import Message
+
 from tgmount.tgclient.search.filtering.guards import (
     MessageDownloadable,
     MessageWithAnimated,
@@ -59,13 +61,15 @@ FileFuncSupported = (
     MessageWithCompressedPhoto
     | MessageWithVideo
     | MessageWithDocument
-    | MessageWithFilename
+    # | MessageWithFilename
     | MessageWithDocumentImage
     | MessageWithVoice
     | MessageWithCircle
     | MessageWithZip
     | MessageWithMusic
+    | MessageWithAnimated
     | MessageWithOtherDocument
+    | MessageWithSticker
 )
 
 
@@ -103,6 +107,8 @@ class FileFunc(
                     MessageWithMusic.guard,
                     MessageWithDocument.guard,
                     MessageWithOtherDocument.guard,
+                    MessageWithAnimated.guard,
+                    MessageWithSticker.guard,
                 ],
             )
         )
@@ -130,15 +136,12 @@ class FileFunc(
 
         raise ValueError(f"incorret input message: {message_to_str(message)}")
 
-    def file(
-        self,
-        message: FileFuncSupported,
-    ) -> vfs.FileLike:
+    def file(self, message: FileFuncSupported, name=None) -> vfs.FileLike:
 
         creation_time = getattr(message, "date", datetime.now())
 
         return vfs.FileLike(
-            self.filename(message),
+            name if name is not None else self.filename(message),
             content=self.content(message),
             creation_time=creation_time,
         )

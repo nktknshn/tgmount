@@ -46,7 +46,7 @@ T = TypeVar("T")
 # XXX make handle type generic?
 
 
-class DirContentProto(Protocol, Generic[T]):
+class DirContentProto(Protocol[T]):
     """
     intended to be stateless
     lazy
@@ -62,7 +62,7 @@ class DirContentProto(Protocol, Generic[T]):
         raise NotImplementedError()
 
     @staticmethod
-    def guard(item: Any) -> TypeGuard["DirContentProto"]:
+    def guard(item: Any) -> TypeGuard["DirContentProto[Any]"]:
         return hasattr(item, "readdir_func")
 
 
@@ -116,7 +116,7 @@ class DirContent(DirContentProto):
         self._opendir_func: Optional[OpenDirFunc] = opendir_func
 
     async def readdir_func(self, handle, off: int) -> Iterable[DirContentItem]:
-        return await self._readdir_func(off)
+        return await self._readdir_func(handle, off)
 
     async def opendir_func(self):
         if self._opendir_func:
@@ -124,4 +124,4 @@ class DirContent(DirContentProto):
 
     async def releasedir_func(self, handle):
         if self._releasedir_func:
-            return await self._releasedir_func()
+            return await self._releasedir_func(handle)

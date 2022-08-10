@@ -6,6 +6,8 @@ import asyncio
 import warnings
 import traceback
 
+from tgmount.tgclient import TgmountTelegramClient
+
 logger = logging.getLogger("tgvfs")
 
 
@@ -70,3 +72,12 @@ def run_main(main):
     finally:
         # if mounted:
         pyfuse3.close(unmount=True)
+
+
+async def get_tgclient(
+    tgapp_api: tuple[int, str],
+    session_name="tgfs",
+):
+    client = TgmountTelegramClient(session_name, tgapp_api[0], tgapp_api[1])
+    await client.auth()
+    return client

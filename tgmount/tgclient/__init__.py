@@ -10,5 +10,6 @@ from .types import (
     TypeInputFileLocation,
 )
 from .search import guards
+from .search.filtering.guards import *
 
 # from .caps import Cap

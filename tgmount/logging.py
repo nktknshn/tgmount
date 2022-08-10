@@ -13,7 +13,7 @@ class ContextFilter(logging.Filter):
         return True
 
 
-def init_logging(debug=False):
+def init_logging(debug=False, debugs=[]):
     f = ContextFilter()
     formatter = logging.Formatter(
         "%(task_name)s\t%(levelname)s\t[%(name)s]\t%(message)s",
@@ -50,3 +50,6 @@ def init_logging(debug=False):
         logging.getLogger("tgmount-cache").setLevel(logging.DEBUG)
         logging.getLogger("tgclient").setLevel(logging.INFO)
         logging.getLogger("telethon").setLevel(logging.ERROR)
+
+    for d in debugs:
+        logging.getLogger(d).setLevel(logging.DEBUG)

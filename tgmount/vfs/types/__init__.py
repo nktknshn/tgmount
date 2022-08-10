@@ -1,4 +1,4 @@
-from typing import TypeVar, Union
+from typing import Mapping, TypeVar, Union
 
 from tgmount.vfs.types.dir import DirLike
 from tgmount.vfs.types.file import FileLike
@@ -6,6 +6,6 @@ from tgmount.vfs.types.file import FileLike
 
 T = TypeVar("T")
 
-DirTree = dict[str, Union["DirTree[T]", T]]
+DirTree = Mapping[str, Union["DirTree[T]", T]]
 
 FileLikeTree = DirTree[FileLike]

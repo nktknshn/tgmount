@@ -1,20 +1,13 @@
 import os
-from typing import Any, Awaitable, ByteString, Callable, Optional, TypeVar, Union
-from zipfile import Path as ZipPath
+from typing import Optional
 from zipfile import ZipFile, ZipInfo
 from tgmount.vfs import DirTree
-from tgmount.vfs.file import FileLike
-from tgmount.vfs.dir import DirContentProto
-from tgmount.vfs.types import FileLikeTree
-from tgmount.vfs.types.dir import DirLike
-from tgmount.vfs.types.file import FileContentProto
 from tgmount.vfs.util import norm_and_parse_path
 from tgmount.util.func import (
     fst,
     group_by,
     list_filter,
 )
-from tgmount.vfs.lookup import get_dir_content_items, list_dir_by_path, napp
 
 ZipTree = DirTree[ZipInfo]
 

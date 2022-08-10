@@ -25,6 +25,7 @@ class FilesSourceCaching(
     def __init__(
         self,
         source: TelegramFilesSource,
+        *,
         document_cache_factory: CacheFactoryProto[CacheBlockReaderWriter],
     ) -> None:
         self._source = source
