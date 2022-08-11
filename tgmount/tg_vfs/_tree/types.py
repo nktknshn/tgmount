@@ -9,12 +9,21 @@ from telethon.tl.custom import Message
 
 _T = TypeVar("_T")
 
-MessagesTreeValueDir = Union[
-    Iterable[_T],
-    Iterable["Virt.Dir[_T]"],
-    Iterable["Virt.Dir[_T]" | _T],
+MessagesTreeValueDirItem = Union[
+    _T,
+    "Virt.Dir[_T]",
+    "Virt.Dir[_T]" | _T,
+    vfs.DirLike,
+    vfs.FileLike,
+]
+
+MessagesTreeValue = Union[
+    Iterable[MessagesTreeValueDirItem[_T]],
+    # Iterable["Virt.Dir[_T]"],
+    # Iterable["Virt.Dir[_T]" | _T],
     "Virt.MapContent[_T]",
     "Virt.MapContext[_T]",
+    vfs.DirContentProto
     # _T,
 ]
 
@@ -24,7 +33,7 @@ MessagesTreeValueDir = Union[
 #     MessagesTreeValueDirContent[_T],
 # ]
 
-MessagesTreeValue = MessagesTreeValueDir[_T]
+# MessagesTreeValue = MessagesTreeValueDir
 
 # MessagesTreeValue is what a value of tree may be
 MessagesTree = vfs.DirTree[
@@ -48,7 +57,7 @@ class Virt:
     @dataclass
     class Dir(Generic[_T]):
         name: str
-        content: MessagesTree | MessagesTreeValueDir[_T]
+        content: MessagesTree | MessagesTreeValue[_T]
 
     @dataclass
     class File(Generic[_T]):
@@ -58,12 +67,12 @@ class Virt:
     @dataclass
     class MapContent(Generic[_T]):
         mapper: Callable[[vfs.DirContentProto], vfs.DirContentProto]
-        content: MessagesTreeValueDir[_T]
+        content: MessagesTreeValue[_T]
 
     @dataclass
     class MapContext(Generic[_T]):
         mapper: Callable[[WalkTreeContext], WalkTreeContext]
-        tree: MessagesTree | MessagesTreeValue
+        tree: MessagesTreeValue[_T]
 
 
 class MessagesTreeHandlerProto(Protocol[_T]):

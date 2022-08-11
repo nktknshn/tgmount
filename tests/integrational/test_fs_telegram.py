@@ -14,7 +14,8 @@ from tgmount.logging import init_logging
 from tgmount.tg_vfs.source import TelegramFilesSource
 from tgmount.vfs.dir import FsSourceTree
 
-from .util import get_client_source, spawn_root, mnt_dir
+from .util import get_client_with_source, mnt_dir
+from .spawn import spawn_vfs_root
 
 Message = telethon.tl.custom.Message
 Document = telethon.types.Document
@@ -41,7 +42,7 @@ async def messages_to_files_tree(
 
 async def main_test1(debug):
     init_logging(debug)
-    client, storage = await get_client_source()
+    client, storage = await get_client_with_source()
     messages = await client.get_messages_typed(
         "tgmounttestingchannel",
         limit=3,
@@ -64,7 +65,7 @@ async def test_fs_tg_test1(mnt_dir, caplog):
     f = await af.open("tests/fixtures/bandcamp1.zip", "rb")
     bc1 = await f.read1(amount)
 
-    for m in spawn_root(main_test1, False, mnt_dir=mnt_dir):
+    for m in spawn_vfs_root(main_test1, False, mnt_dir=mnt_dir):
 
         subfiles = os.listdir(m.path("tmtc/"))
         assert len(subfiles) == 3
@@ -122,7 +123,7 @@ class TackingSource(TelegramFilesSource):
 async def main_test2(debug):
     init_logging(debug)
 
-    client, storage = await get_client_source(Source=TackingSource)
+    client, storage = await get_client_with_source(Source=TackingSource)
 
     messages = await client.get_messages_typed(
         "tgmounttestingchannel",
@@ -154,7 +155,7 @@ async def test_fs_tg_test2(mnt_dir, caplog):
     await f0.seek(4376046 // 2)
     bs0 = await f0.read(1024 * 256)
 
-    for m in spawn_root(main_test2, False, mnt_dir=mnt_dir):
+    for m in spawn_vfs_root(main_test2, False, mnt_dir=mnt_dir):
 
         with open(
             m.path(

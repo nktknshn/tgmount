@@ -4,10 +4,12 @@ from typing import Dict, Generic, Tuple, Any, Optional, TypeVar
 T = TypeVar("T")
 
 
-class FileSystemHandlers(Generic[T]):
-    def __init__(self):
+class FileSystemHanders(Generic[T]):
+    LAST_FH = 10
+
+    def __init__(self, last_fh=None):
         self._fhs: Dict[int, Tuple[T, Any]] = {}
-        self._last_fh = 10
+        self._last_fh = last_fh if last_fh is not None else FileSystemHanders.LAST_FH
 
     def open_fh(self, item: T, data=None):
         fh = self._new_fh()

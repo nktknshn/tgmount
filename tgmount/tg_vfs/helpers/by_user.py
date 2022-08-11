@@ -2,7 +2,10 @@ import telethon
 from typing import Callable, Iterable, Mapping, TypeVar, TypedDict
 
 # from tgmount.tgclient.types import Message
-from tgmount.tg_vfs._tree.types import MessagesTree, MessagesTreeValue
+from tgmount.tg_vfs._tree.types import (
+    MessagesTree,
+    MessagesTreeValue,
+)
 from tgmount.util import func
 
 from telethon.tl.custom import Message
@@ -58,7 +61,7 @@ async def messages_by_user(messages: Iterable[_M], *, minimum=1) -> MessagesTree
 def messages_by_user_func(
     func: Callable[
         [Mapping[str, list[_M]], list[_M], list[_M]],
-        MessagesTree | MessagesTreeValue,
+        MessagesTree[_M] | MessagesTreeValue[_M],
     ]
 ):
     async def _inner(messages: Iterable[_M], *, minimum=1):

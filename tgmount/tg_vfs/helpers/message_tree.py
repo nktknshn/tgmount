@@ -30,8 +30,9 @@ def messages_tree_walker(messages_tree_walker: MessagesTreeWalkerProto) -> TreeM
 def walk_messages_tree_value(
     ctx: WalkTreeContext,
     messages_tree_walker: MessagesTreeWalkerProto,
-    tree_value: MessagesTreeValue,
+    tree_value: MessagesTree | MessagesTreeValue,
 ) -> vfs.DirContentProto:
+    print(f"walk_messages_tree_value(path={ctx.path}")
 
     if isinstance(tree_value, Virt.MapContent):
         return tree_value.mapper(
@@ -49,9 +50,6 @@ def walk_messages_tree_value(
             tree_value.tree,
         )
 
-    # iterable is dir content
-    content = []
-
     if is_tree(tree_value):
         return vfs.create_dir_content_from_tree(
             {
@@ -63,6 +61,12 @@ def walk_messages_tree_value(
                 for k, v in tree_value.items()
             }
         )
+    # iterable is dir content
+
+    if vfs.DirContentProto.guard(tree_value):
+        return tree_value
+
+    content = []
 
     for idx, item in enumerate(tree_value):
         # "Virt.Dir[_T]" | _T
@@ -70,10 +74,12 @@ def walk_messages_tree_value(
             # Virt.Dir
             content.append(
                 messages_tree_walker.walk_dir(
-                    ctx,
+                    ctx.push_path(item.name),
                     item,
                 ),
             )
+        elif isinstance(item, (vfs.DirLike, vfs.FileLike)):
+            content.append(item)
         else:
             # item:  _FT
             content.append(
@@ -100,9 +106,10 @@ class MessagesTreeWalker(MessagesTreeWalkerProto):
         return self.factory
 
     def walk_dir(self, ctx: WalkTreeContext, dir: Virt.Dir) -> vfs.DirLike:
-        print(ctx)
+        print(f"walk_dir: {ctx} dir.name={dir.name} dir.content={dir.content}")
+
         content = walk_messages_tree_value(
-            ctx.push_path(dir.name),
+            ctx,
             self,
             dir.content,
         )
@@ -113,5 +120,5 @@ class MessagesTreeWalker(MessagesTreeWalkerProto):
         )
 
     def walk_message(self, ctx: WalkTreeContext, message: Message) -> vfs.FileLike:
-        print(ctx)
+        print(f"walk_message: {ctx}")
         return self.get_file_factory(ctx).file(message)

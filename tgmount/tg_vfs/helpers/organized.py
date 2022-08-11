@@ -1,7 +1,7 @@
 from typing import Callable, TypedDict, TypeGuard, TypeVar, Union
 
 from telethon.tl.custom import Message
-from tgmount.tg_vfs._tree.types import MessagesTree, MessagesTreeValueDir
+from tgmount.tg_vfs._tree.types import MessagesTree, MessagesTreeValue
 from tgmount.tgclient.search.filtering.guards import *
 from tgmount.tgclient.search.filtering.guards import (
     MessageWithCompressedPhoto,
@@ -16,7 +16,7 @@ T = TypeVar("T")
 OrganizedTree = TypedDict(
     "OrganizedTree",
     music=Iterable[MessageWithMusic],
-    music_by_performer=MessagesTreeValueDir[MessageWithMusic],
+    music_by_performer=MessagesTreeValue[MessageWithMusic],
     videos=Iterable[MessageWithVideoCompressed],
     animated=Iterable[MessageWithAnimated],
     voices=Iterable[MessageWithVoice],
@@ -29,14 +29,17 @@ OrganizedTree = TypedDict(
 
 
 def organize_messages(
-    messages: Iterable[Message],
+    messages: Iterable[Message], *, music_by_performer_minimum=2
 ) -> OrganizedTree:
     def f(guard: Callable[[Message], TypeGuard[T]]) -> Iterable[T]:
         return filter(guard, messages)
 
     return {
         "music": f(MessageWithMusic.guard),
-        "music_by_performer": music_by_performer(f(MessageWithMusic.guard)),
+        "music_by_performer": music_by_performer(
+            f(MessageWithMusic.guard),
+            minimum=music_by_performer_minimum,
+        ),
         "videos": f(MessageWithVideoCompressed.guard),
         "animated": f(MessageWithAnimated.guard),
         "voices": f(MessageWithVoice.guard),
@@ -52,11 +55,18 @@ def organize_messages(
 
 
 def organized(
-    func: Callable[[OrganizedTree], MessagesTree[Message]],
+    func: Callable[[OrganizedTree], MessagesTree[T] | MessagesTreeValue[T]],
+    *,
+    music_by_performer_minimum=2
 ):
     def _inner(
-        messages: list[Message],
+        messages: Iterable[Message],
     ):
-        return func(organize_messages(messages))
+        return func(
+            organize_messages(
+                messages,
+                music_by_performer_minimum=music_by_performer_minimum,
+            )
+        )
 
     return _inner

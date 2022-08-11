@@ -1,4 +1,6 @@
-from typing import TypeVar, Callable, Awaitable, TypeGuard
+from typing import Any, TypeVar, Callable, Awaitable, TypeGuard, overload
+
+from telethon.tl.custom import Message
 
 _I = TypeVar("_I")
 _O = TypeVar("_O")
@@ -26,3 +28,16 @@ def compose_guards_or(
         return g1(inp) or g2(inp)
 
     return _inner
+
+
+# @overload
+# def guards(
+#     g: Callable[[Message], TypeGuard[Any]],
+# ) -> Callable[[Message], bool]:
+#     ...
+
+
+def guards(
+    *gs: Callable[[Message], TypeGuard[Any]]
+) -> Callable[[Message], TypeGuard[Message]]:
+    return lambda m: any(map(lambda g: g(m), gs))

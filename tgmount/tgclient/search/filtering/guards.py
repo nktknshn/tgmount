@@ -374,6 +374,8 @@ class MessageWithMusic(MessageWithDocument):
         messages: Iterable["MessageWithMusic"],
         minimum=2,
     ) -> tuple[dict[str, list["MessageWithMusic"]], list["MessageWithMusic"]]:
+
+        messages = list(messages)
         no_performer = [t for t in messages if t.file.performer is None]
         with_performer = [t for t in messages if t.file.performer is not None]
 

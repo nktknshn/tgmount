@@ -16,7 +16,8 @@ from telethon import types
 from telethon.client.messages import RequestIter
 from telethon.hints import EntityLike, DateLike
 from telethon.client import TelegramClient
-from tgmount.util import AsyncTypeGuard
+
+# from tgmount.util import AsyncTypeGuard
 from tgmount.tgclient.types import Message, TypeMessagesFilter
 from tgmount.util.guards import SyncTypeGuard
 
@@ -56,8 +57,8 @@ class GetMessages(Protocol):
 
 G = TypeVar("G")
 
-MessagesFilterAsyncGuard = AsyncTypeGuard[Message, G]
+# MessagesFilterAsyncGuard = AsyncTypeGuard[Message, G]
 MessagesFilterAsync = Callable[[Message], Awaitable[bool]]
 
-MessagesFilterGuard = SyncTypeGuard[Message, G]
+# MessagesFilterGuard = SyncTypeGuard[Message, G]
 MessagesFilter = Callable[[Message], bool]

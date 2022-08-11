@@ -9,3 +9,5 @@ tests/fixtures
 tgapp.txt
 .mypy_cache
 .vscode
+*.session
+*.session-journal

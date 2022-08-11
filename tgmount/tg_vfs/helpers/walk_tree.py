@@ -32,6 +32,7 @@ def _walk_tree(
     tree: vfs.DirTree[T],
     mapper: Mapper[T, R],
 ):
+    print(f"_walk_tree={list(tree.keys())}, path={context.path}")
     res = {}
 
     for k, tree_value in tree.items():

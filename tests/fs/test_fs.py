@@ -7,23 +7,14 @@ import pytest
 from dataclasses import dataclass
 
 from tgmount.fs import FileSystemOperations
-from tgmount.vfs import DirLike, FileContentProto, root, vdir, vfile
-from tgmount.vfs.dir import create_dir_content_from_tree, dir_content
-from tgmount.vfs.file import text_content
-from tgmount.vfs.types.dir import DirContent, DirContentItem, DirContentProto
-from tgmount.vfs.types.file import FileContent
+from tgmount import vfs
 
-import multiprocessing
-import threading
-import subprocess
-
-from .util import wait_for_mount, cleanup, umount
 from .run import mountfs
 
 
 @pytest.fixture()
 def fs1():
-    content: DirContent = create_dir_content_from_tree(
+    content: vfs.DirContent = vfs.create_dir_content_from_tree(
         {
             "dir1": {
                 "file1.txt": "file1.txt content",
@@ -36,13 +27,13 @@ def fs1():
                     "file5.txt": "file5.txt content",
                 },
             },
-            "dir3": dir_content(
-                vfile("dir3_file1.txt", text_content("dir3_file1.txt content"))
+            "dir3": vfs.dir_content(
+                vfs.vfile("dir3_file1.txt", vfs.text_content("dir3_file1.txt content"))
             ),
         }
     )
 
-    structure = root(content)
+    structure = vfs.root(content)
 
     return FileSystemOperations(structure)
 

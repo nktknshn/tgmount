@@ -10,6 +10,28 @@ def remove_event_handler(
         event: EventBuilder = None) -> int:
 ```
 
+```python
+class NewMessage
+
+Args:
+"""
+incoming (`bool`, optional):
+from_users (`entity`, optional):
+        Unlike `chats`, this parameter filters the *senders* of the
+        message
+forwards (`bool`, optional):
+            Whether forwarded messages should be handled or not. By default,
+            both forwarded and normal messages are included
+pattern (`str`, `callable`, `Pattern`, optional):
+            If set, only messages matching this pattern will be handled.
+"""
+
+class MessageDeleted(EventBuilder):
+class MessageEdited(NewMessage):
+
+
+```
+
 EventBuilder
 
 Args:

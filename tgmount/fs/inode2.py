@@ -50,6 +50,9 @@ class InodesRegistry(Generic[T]):
 
         # self._children_by_inode: Dict[int, Optional[dict[bytes, RegistryItem[T]]]] = {}
 
+    def get_inodes(self):
+        return list([InodesRegistry.ROOT_INODE, *self._inodes.keys()])
+
     def get_root(self):
         return self._root_item
 

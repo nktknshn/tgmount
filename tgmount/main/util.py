@@ -54,7 +54,7 @@ async def mount_ops(
     await pyfuse3.main(min_tasks=min_tasks)
 
 
-def run_main(main):
+def run_main(main, unmount=True):
     loop = asyncio.new_event_loop()
     # loop.set_debug(True)
     # warnings.simplefilter('always', ResourceWarning)
@@ -71,7 +71,7 @@ def run_main(main):
         print(str(traceback.format_exc()))
     finally:
         # if mounted:
-        pyfuse3.close(unmount=True)
+        pyfuse3.close(unmount=unmount)
 
 
 async def get_tgclient(
