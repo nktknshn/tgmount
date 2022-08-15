@@ -9,7 +9,6 @@ from .types import (
     Photo,
     TypeInputFileLocation,
 )
-from .search import guards
-from .search.filtering.guards import *
+from .message_source import MessageSource
 
 # from .caps import Cap

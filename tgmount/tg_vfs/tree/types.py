@@ -2,7 +2,7 @@ from dataclasses import dataclass, field, replace
 from typing import Callable, Generic, Mapping, Protocol, TypeGuard, TypeVar, Union, cast
 
 from tgmount import vfs
-from tgmount.tgclient.search.filtering.guards import *
+from tgmount.tgclient.guards import *
 
 from telethon.tl.custom import Message
 

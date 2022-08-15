@@ -1,4 +1,4 @@
-from .file import FileLike, FileContent, FileContentProto
+from .file import FileLike, FileContent, FileContentProto, read_file_content_bytes
 from .types.dir import DirContentListUpdatable
 from .types import DirTree
 from .dir import (
@@ -22,8 +22,10 @@ from .dir import (
     dir_content,
     vdir,
     is_tree,
-    map_dir_content,
+    map_dir_content_items,
     map_dir_content_f,
+    read_dir_content,
+    filter_dir_content_items,
 )
 from .file import (
     vfile,

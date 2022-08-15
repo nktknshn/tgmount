@@ -16,7 +16,7 @@ from tgmount import vfs
 from tgmount.tgclient import Document
 from telethon.tl.custom import Message
 
-from tgmount.tgclient.search.filtering.guards import (
+from tgmount.tgclient.guards import (
     MessageDownloadable,
     MessageWithAnimated,
     MessageWithCircle,

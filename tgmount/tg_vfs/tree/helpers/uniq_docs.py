@@ -1,6 +1,6 @@
 from typing import Iterable, TypeVar
 from tgmount.util import func
-from tgmount.tgclient import MessageDownloadable, document_or_photo_id
+from tgmount.tgclient.guards import MessageDownloadable, document_or_photo_id
 
 T = TypeVar("T", bound=MessageDownloadable)
 

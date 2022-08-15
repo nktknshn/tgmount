@@ -6,8 +6,8 @@ from telethon.tl.custom import Message
 from telethon.tl.custom.file import File
 from telethon.tl.types import TypeDocumentAttribute
 
-from ....util import func
-from ...types import Document
+from ..util import func
+from .types import Document
 
 
 from tgmount import util

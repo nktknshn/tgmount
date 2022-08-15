@@ -1,13 +1,9 @@
 from typing import Callable, TypedDict, TypeGuard, TypeVar, Union
 
 from telethon.tl.custom import Message
-from tgmount.tg_vfs._tree.types import MessagesTree, MessagesTreeValue
-from tgmount.tgclient.search.filtering.guards import *
-from tgmount.tgclient.search.filtering.guards import (
-    MessageWithCompressedPhoto,
-    MessageWithDocumentImage,
-)
+from tgmount.tgclient.guards import *
 
+from ..types import MessagesTree, MessagesTreeValue
 from .music import music_by_performer
 
 T = TypeVar("T")
@@ -57,7 +53,7 @@ def organize_messages(
 def organized(
     func: Callable[[OrganizedTree], MessagesTree[T] | MessagesTreeValue[T]],
     *,
-    music_by_performer_minimum=2
+    music_by_performer_minimum=2,
 ):
     def _inner(
         messages: Iterable[Message],

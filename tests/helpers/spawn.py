@@ -8,8 +8,8 @@ import tgmount.fs as fs
 from tgmount.main.util import mount_ops
 from tgmount.vfs.types.dir import DirLike
 
-from ..fs.util import cleanup, umount, wait_for_mount
-from ..fs.run import Fixtures
+from ..helpers.mount import cleanup, umount, wait_for_mount
+from ..helpers.mountfs import MountContext
 
 
 async def __inner_main_root(
@@ -127,7 +127,7 @@ def spawn_mount_process(
 
         try:
             wait_for_mount(mount_process, mnt_dir)
-            yield ev, Fixtures(None, mnt_dir)
+            yield ev, MountContext(mnt_dir)
             # ev.set()
             # mount_process.join()
             # mount_process.close()

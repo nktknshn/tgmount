@@ -3,9 +3,14 @@ from typing import Callable, Iterable, Mapping, Protocol, TypedDict, TypeGuard, 
 from telethon.tl.custom import Message
 from tgmount import vfs
 
-from .._tree.types import MessagesTree, MessagesTreeValue, Virt
-from .walk_tree import WalkTreeContext, Mapper as TreeMaper, is_tree
-
+from .types import MessagesTree, MessagesTreeValue, Virt
+from .walk_tree import (
+    WalkTreeContext,
+    Mapper as TreeMaper,
+    is_tree,
+    walk_tree,
+    walk_value,
+)
 from ..mixins import FileFunc
 
 
@@ -32,7 +37,7 @@ def walk_messages_tree_value(
     messages_tree_walker: MessagesTreeWalkerProto,
     tree_value: MessagesTree | MessagesTreeValue,
 ) -> vfs.DirContentProto:
-    print(f"walk_messages_tree_value(path={ctx.path}")
+    # print(f"walk_messages_tree_value(path={ctx.path}")
 
     if isinstance(tree_value, Virt.MapContent):
         return tree_value.mapper(
@@ -106,7 +111,7 @@ class MessagesTreeWalker(MessagesTreeWalkerProto):
         return self.factory
 
     def walk_dir(self, ctx: WalkTreeContext, dir: Virt.Dir) -> vfs.DirLike:
-        print(f"walk_dir: {ctx} dir.name={dir.name} dir.content={dir.content}")
+        # print(f"walk_dir: {ctx} dir.name={dir.name} dir.content={dir.content}")
 
         content = walk_messages_tree_value(
             ctx,
@@ -120,5 +125,21 @@ class MessagesTreeWalker(MessagesTreeWalkerProto):
         )
 
     def walk_message(self, ctx: WalkTreeContext, message: Message) -> vfs.FileLike:
-        print(f"walk_message: {ctx}")
+        # print(f"walk_message: {ctx}")
         return self.get_file_factory(ctx).file(message)
+
+
+class TreeCreator:
+    def create_tree(
+        self: FileFunc, tree: MessagesTree | MessagesTreeValue
+    ) -> vfs.FsSourceTree | vfs.FsSourceTreeValue:
+
+        walker = MessagesTreeWalker(self)
+
+        if is_tree(tree):
+            return walk_tree(
+                tree,
+                messages_tree_walker(walker),
+            )
+
+        return walk_value(tree, messages_tree_walker(walker))

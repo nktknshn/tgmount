@@ -40,7 +40,7 @@ def zip_as_dir(
 def zip_as_dir_in_content(
     content: vfs.DirContentProto,
 ):
-    return vfs.map_dir_content(
+    return vfs.map_dir_content_items(
         lambda item: zip_as_dir(item)
         if vfs.FileLike.guard(item) and item.name.endswith(".zip")
         else item,

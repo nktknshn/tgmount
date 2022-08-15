@@ -1,14 +1,11 @@
-import telethon
-from typing import Callable, Iterable, Mapping, TypeVar, TypedDict
+from typing import Callable, Iterable, Mapping, TypedDict, TypeVar
 
-# from tgmount.tgclient.types import Message
-from tgmount.tg_vfs._tree.types import (
-    MessagesTree,
-    MessagesTreeValue,
-)
+import telethon
+from telethon.tl.custom import Message
 from tgmount.util import func
 
-from telethon.tl.custom import Message
+# from tgmount.tgclient.types import Message
+from ..types import MessagesTree, MessagesTreeValue
 
 _M = TypeVar("_M", bound=Message)
 

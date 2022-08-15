@@ -34,7 +34,11 @@ def text_content(text: str):
 
 
 def text_file(fname: str, text_str: str, creation_time=None):
-    return FileLike(fname, text_content(text_str), creation_time)
+    return FileLike(
+        fname,
+        text_content(text_str),
+        creation_time if creation_time is not None else datetime.now(),
+    )
 
 
 def vfile(

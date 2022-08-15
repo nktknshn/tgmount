@@ -1,6 +1,6 @@
 from typing import Optional, TypeVar
 from tgmount.fs.inode2 import InodesRegistry, RegistryItem, RegistryRoot
-from tgmount.vfs.util import napp, nappb
+from tgmount.vfs.util import nappb
 
 T = TypeVar("T")
 
@@ -40,15 +40,15 @@ def test_inode_registry1():
     assert reg.get_by_path(nappb("/item1/subitem2")) == subitem2
     assert reg.get_by_path(nappb("/item1/subitem1/subsubitem1")) == subsubitem1
 
-    assert reg.get_path(subsubitem1) == [
+    assert reg.get_item_path(subsubitem1) == [
         b"/",
         item1.name,
         subitem1.name,
         subsubitem1.name,
     ]
 
-    assert reg.get_path(item1) == [b"/", item1.name]
+    assert reg.get_item_path(item1) == [b"/", item1.name]
 
-    assert reg.get_path(root_item) == [
+    assert reg.get_item_path(root_item) == [
         b"/",
     ]

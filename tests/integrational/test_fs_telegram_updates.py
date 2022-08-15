@@ -1,10 +1,9 @@
 import asyncio
-import io
 import logging
 import os
-from typing import Iterable
+import threading
+from typing import Iterable, Mapping, TypedDict
 
-import aiofiles as af
 import pyfuse3
 import pytest
 import pytest_asyncio
@@ -12,14 +11,20 @@ import telethon
 import tgmount.fs as fs
 import tgmount.tgclient as tg
 import tgmount.vfs as vfs
-import tgmount.zip as z
 from telethon import events, types
+from tests.helpers.mountfs import MountContext
 from tgmount.logging import init_logging
 from tgmount.tg_vfs import FileFactory
-from tgmount.vfs.dir import FsSourceTree
 
-from .spawn import spawn_fs_ops
-from .util import get_client_with_source, mnt_dir, tgapp_api, tgclient, tgclient_second
+from ..helpers.fixtures import (
+    get_client_with_source,
+    mnt_dir,
+    tgapp_api,
+    tgclient_second,
+)
+
+from ..helpers.spawn2 import spawn_fs_ops
+from ..helpers.asyncio import wait_ev, task_from_blocking, wait_ev_async
 
 Message = telethon.tl.custom.Message
 Document = telethon.types.Document
@@ -30,45 +35,17 @@ InputMessagesFilterDocument = telethon.tl.types.InputMessagesFilterDocument
 TESTING_CHANNEL = "tgmounttestingchannel"
 
 
-class FileSystemOperationsUpdatable(fs.FileSystemOperations):
-    def __init__(self, root: vfs.DirLike):
-        super().__init__(root)
-
-    def print_stats(self):
-        print("inodes")
-        print(self._inodes._inodes.keys())
-
-        print("fhs")
-        print(self._handers._fhs.keys())
-
-    async def update_root(self, root: vfs.DirLike):
-
-        for inode in reversed(self._inodes.get_inodes()):
-            # print(f"inode={inode}")
-            kids = self._inodes.get_items_by_parent_dict(inode)
-
-            if kids is None:
-                continue
-
-            for k, v in kids.items():
-                print(f"invalidate_entry({inode}, {k})")
-                pyfuse3.invalidate_entry_async(inode, k)
-
-        # pyfuse3.invalidate_inode(pyfuse3.ROOT_INODE)
-
-        # for inode in self._inodes._inodes.keys():
-        #     pyfuse3.invalidate_inode(inode)
-
-        self._init_handers(self._handers._last_fh + 1)
-        self._init_root(root)
-
-        print("update_root() done")
+# Props = Mapping
+Props = TypedDict("Props", debug=bool, ev0=threading.Event)
 
 
-async def main_test1(debug):
-    init_logging(debug)
+async def main_test1(
+    props: Props,
+):
+    init_logging(props["debug"])
     client, source = await get_client_with_source()
     files = FileFactory(source)
+
     messages = await client.get_messages_typed(
         TESTING_CHANNEL,
         limit=100,
@@ -86,10 +63,13 @@ async def main_test1(debug):
 
     vfs_root = create_root(messages[:])
 
-    ops = FileSystemOperationsUpdatable(vfs_root)
+    ops = fs.FileSystemOperationsUpdatable(vfs_root)
 
     @client.on(events.NewMessage(chats=TESTING_CHANNEL))
     async def event_handler_new_message(event: events.NewMessage.Event):
+
+        # await wait_ev_async(props["ev0"])
+
         messages.append(event.message)
         await ops.update_root(create_root(messages[:]))
         # ops.print_stats()
@@ -117,10 +97,21 @@ async def test_fs_tg_test1(mnt_dir, caplog, tgclient_second: Client):
 
     assert len(messages) == 10
 
-    for ctx in spawn_fs_ops(main_test1, True, mnt_dir=mnt_dir):
+    def get_props(ctx: MountContext) -> Props:
+        return {
+            "debug": True,
+            "ev0": ctx.mgr.Event(),
+        }
+
+    for ctx in spawn_fs_ops(
+        main_test1,
+        props=get_props,
+        mnt_dir=mnt_dir,
+    ):
 
         subfiles = os.listdir(ctx.path("tmtc/"))
         len1 = len(subfiles)
+
         assert len1 > 0
 
         msg0 = await tgclient_second.send_message(
@@ -128,6 +119,8 @@ async def test_fs_tg_test1(mnt_dir, caplog, tgclient_second: Client):
             file="tests/fixtures/Hummingbird.jpg",
             force_document=True,
         )
+
+        # ctx.props["ev0"].set()
 
         await asyncio.sleep(3)
 

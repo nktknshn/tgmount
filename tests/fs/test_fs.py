@@ -9,47 +9,28 @@ from dataclasses import dataclass
 from tgmount.fs import FileSystemOperations
 from tgmount import vfs
 
-from .run import mountfs
+from ..helpers.mountfs2 import mountfs
+from .fixtures import fs_tree1
 
 
-@pytest.fixture()
-def fs1():
-    content: vfs.DirContent = vfs.create_dir_content_from_tree(
-        {
-            "dir1": {
-                "file1.txt": "file1.txt content",
-                "file2.txt": "file2.txt content",
-            },
-            "dir2": {
-                "file3.txt": "file3.txt content",
-                "file4.txt": "file4.txt content",
-                "dir2_dir3": {
-                    "file5.txt": "file5.txt content",
-                },
-            },
-            "dir3": vfs.dir_content(
-                vfs.vfile("dir3_file1.txt", vfs.text_content("dir3_file1.txt content"))
-            ),
-        }
-    )
-
-    structure = vfs.root(content)
-
-    return FileSystemOperations(structure)
+def fs1_main(fs_tree1):
+    content: vfs.DirContent = vfs.create_dir_content_from_tree(fs_tree1)
+    root = vfs.root(content)
+    return FileSystemOperations(root)
 
 
-def test_fs1(tmpdir, fs1):
+def test_fs1(tmpdir, fs_tree1):
     print("test_fs1()")
 
-    for f in mountfs(tmpdir, fs1):
-        s = os.stat(f.tmpdir)
+    for ctx in mountfs(fs1_main, mnt_dir=tmpdir):
+        s = os.stat(ctx.tmpdir)
 
         print(f"ino={s.st_ino}")
 
-        assert os.listdir(f.path(".")) == ["dir1", "dir2", "dir3"]
-        assert os.listdir(f.path("dir1")) == ["file1.txt", "file2.txt"]
-        assert os.listdir(f.path("dir2")) == ["file3.txt", "file4.txt", "dir2_dir3"]
-        assert os.listdir(f.path("dir2", "dir2_dir3")) == [
+        assert os.listdir(ctx.path(".")) == ["dir1", "dir2", "dir3"]
+        assert os.listdir(ctx.path("dir1")) == ["file1.txt", "file2.txt"]
+        assert os.listdir(ctx.path("dir2")) == ["file3.txt", "file4.txt", "dir2_dir3"]
+        assert os.listdir(ctx.path("dir2", "dir2_dir3")) == [
             "file5.txt",
         ]
-        assert os.listdir(f.path("dir3")) == ["dir3_file1.txt"]
+        assert os.listdir(ctx.path("dir3")) == ["dir3_file1.txt"]

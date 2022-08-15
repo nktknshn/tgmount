@@ -3,7 +3,7 @@ from typing import Any, Awaitable, Callable, Optional, Protocol, Generic, TypeVa
 import telethon
 from telethon.tl.custom import Message
 from tgmount import vfs
-from tgmount.tgclient.search.filtering.guards import (
+from tgmount.tgclient.guards import (
     MessageDownloadable,
     MessageWithCompressedPhoto,
     MessageWithDocument,

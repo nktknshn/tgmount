@@ -10,3 +10,4 @@ greenback
 aiofiles
 funcy
 pytest-asyncio
+pyyaml

@@ -46,13 +46,14 @@ class FileSystemOperations(pyfuse3.Operations):
         self._init_root(root)
         self._init_handers()
 
-    def _init_root(self, root: vfs.DirLike):
+    def _init_root(self, root: vfs.DirLike, last_inode=None):
         logger.debug(f"_init_root")
         self._inodes = InodesRegistry[FileSystemItem](
             self.create_FileSystemItem(
                 root,
                 self._create_attributes_for_item(root, InodesRegistry.ROOT_INODE),
-            )
+            ),
+            last_inode=last_inode,
         )
 
     def _init_handers(self, last_fh=None):
@@ -60,6 +61,10 @@ class FileSystemOperations(pyfuse3.Operations):
 
     def _str_to_bytes(self, s: str) -> bytes:
         return s.encode("utf-8")
+
+    @property
+    def inodes(self) -> InodesRegistry[FileSystemItem]:
+        return self._inodes
 
     def create_FileSystemItem(
         self,
@@ -167,7 +172,7 @@ class FileSystemOperations(pyfuse3.Operations):
 
     @exception_handler
     async def forget(self, inode_list):
-        logger.info(f"= forget({inode_list}")
+        logger.debug(f"= forget({inode_list}")
 
     @exception_handler
     async def opendir(self, inode: int, ctx):
@@ -193,7 +198,7 @@ class FileSystemOperations(pyfuse3.Operations):
         #     logger.error('missing item.structure_item.content')
         #     return
 
-        path = self._inodes.get_path(item.inode)
+        path = self._inodes.get_item_path(item.inode)
 
         if path is not None:
             vfs_path = InodesRegistry.join_path(path)

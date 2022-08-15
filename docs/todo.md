@@ -1,9 +1,10 @@
 ##
-- DONE correct creation date
-- updates
+- tests
+- yaml config
+- reorganize modules
+- issues
 - sanitize file names
 - albums as folders
-- skip same docs
 - group messages
     - author
     - audio performer
@@ -12,8 +13,12 @@
 - messages cache
 - encrypted zips
 - reactions
+- DONE correct creation date
+- KINDA DONE updates
+- KINDA DONE skip same docs
 
-## issues
+## issue
+-  PR
 -  Way to specify file types to mount #8 
 -  timeout raises IOError #10 
 -  new file detection doesn't work in non-supergroup groups #4 

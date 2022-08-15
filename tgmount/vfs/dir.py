@@ -126,8 +126,18 @@ def dir_content(*items: DirContentItem) -> DirContent:
     return DirContent(readdir_func=f)
 
 
-def map_dir_content(
-    mapper: Callable[[DirContentItem], DirContentItem], dir_content: DirContentProto
+async def read_dir_content(content: DirContentProto) -> Iterable[DirContentItem]:
+
+    h = await content.opendir_func()
+    items = await content.readdir_func(h, 0)
+    await content.releasedir_func(h)
+
+    return items
+
+
+def map_dir_content_items(
+    mapper: Callable[[DirContentItem], DirContentItem],
+    dir_content: DirContentProto,
 ) -> DirContent:
     async def f(handle, off):
         return map(mapper, await dir_content.readdir_func(handle, off))
@@ -139,9 +149,29 @@ def map_dir_content(
     )
 
 
+def filter_dir_content_items(
+    filter: Callable[[DirContentItem], Awaitable[bool]],
+    dir_content: DirContentProto,
+) -> DirContent:
+    async def f(handle, off):
+        items = await dir_content.readdir_func(handle, off)
+        res = []
+        for item in items:
+            if await filter(item):
+                res.append(item)
+
+        return res
+
+    return DirContent(
+        opendir_func=dir_content.opendir_func,
+        releasedir_func=dir_content.releasedir_func,
+        readdir_func=f,
+    )
+
+
 import functools
 
-map_dir_content_f = lambda mapper: functools.partial(map_dir_content, mapper)
+map_dir_content_f = lambda mapper: functools.partial(map_dir_content_items, mapper)
 
 
 def vdir(

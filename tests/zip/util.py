@@ -5,13 +5,15 @@ from typing import (
     Tuple,
 )
 from zipfile import ZipFile
-from tgmount.vfs import FileLike, DirTree
-from tgmount.vfs.file import read_file_content_bytes
+from tgmount.vfs import FileLike, DirTree, read_file_content_bytes
+
+ZipSourceTreeValue = str | io.BytesIO | bytes
+ZipSourceTree = DirTree[ZipSourceTreeValue]
 
 
-def tree_to_list(
-    tree: DirTree[str | io.BytesIO | bytes], cpath=""
-) -> List[Tuple[str, str | io.BytesIO | bytes]]:
+def zip_tree_to_list(
+    tree: ZipSourceTree, cpath=""
+) -> List[Tuple[str, ZipSourceTreeValue]]:
     res = []
 
     for k, v in tree.items():
@@ -23,12 +25,9 @@ def tree_to_list(
         elif isinstance(v, bytes):
             res.append((p, v))
         elif isinstance(v, dict):
-            res = [*res, *tree_to_list(v, p)]
+            res = [*res, *zip_tree_to_list(v, p)]
 
     return res
-
-
-ZipSourceTree = DirTree[str | io.BytesIO | bytes]
 
 
 def create_zip_from_tree(tree: ZipSourceTree):
@@ -36,7 +35,7 @@ def create_zip_from_tree(tree: ZipSourceTree):
     data = io.BytesIO()
     zf = ZipFile(data, "w")
 
-    items = tree_to_list(tree)
+    items = zip_tree_to_list(tree)
 
     for (path, item) in items:
         if isinstance(item, str):

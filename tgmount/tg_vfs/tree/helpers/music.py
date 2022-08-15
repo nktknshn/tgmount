@@ -3,8 +3,9 @@ import logging
 from typing import Callable, TypedDict, TypeGuard, TypeVar, Union
 
 from telethon.tl.custom import Message
-from tgmount.tg_vfs._tree.types import MessagesTreeValue, Virt
-from tgmount.tgclient.search.filtering.guards import *
+from tgmount.tgclient.guards import *
+
+from ..types import MessagesTreeValue, Virt
 
 T = TypeVar("T")
 

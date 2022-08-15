@@ -1,11 +1,9 @@
-from typing import Callable, Iterable, Mapping, Protocol, TypeGuard, TypedDict, TypeVar
+from typing import Callable, Iterable, Mapping, Protocol, TypedDict, TypeGuard, TypeVar
 
 from telethon.tl.custom import Message
 from tgmount import vfs
-from tgmount.vfs.dir import FsSourceTreeValue
 
-from .._tree.types import MessagesTree, MessagesTreeValue, Virt, WalkTreeContext
-from dataclasses import dataclass, field, replace
+from ..tree.types import WalkTreeContext
 
 T = TypeVar("T")
 R = TypeVar("R")
@@ -32,7 +30,7 @@ def _walk_tree(
     tree: vfs.DirTree[T],
     mapper: Mapper[T, R],
 ):
-    print(f"_walk_tree={list(tree.keys())}, path={context.path}")
+    # print(f"_walk_tree={list(tree.keys())}, path={context.path}")
     res = {}
 
     for k, tree_value in tree.items():

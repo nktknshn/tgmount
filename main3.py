@@ -1,38 +1,32 @@
 import argparse
 import asyncio
 import logging
-from typing import Any, Callable, Iterable, Mapping, TypeGuard, TypeVar, Union
+from typing import (
+    Any,
+    Awaitable,
+    Callable,
+    Iterable,
+    Mapping,
+    Optional,
+    TypeGuard,
+    TypeVar,
+    Union,
+)
 
+import yaml
 from telethon import events, types
 from telethon.tl.custom import Message
 
-from tgmount import fs, vfs, zip as z
-from tgmount.cache import CacheFactoryMemory, FilesSourceCaching
-from tgmount.logging import init_logging
-from tgmount.main.util import get_tgclient, mount_ops, read_tgapp_api, run_main
-from tgmount.tg_vfs import TelegramFilesSource, helpers, Virt
-from tgmount.tg_vfs.helpers.organized import organize_messages
-from tgmount.tg_vfs.tree import FileFactory
-from tgmount.tgclient import (
-    MessageDownloadable,
-    MessageWithCompressedPhoto,
-    MessageWithDocumentImage,
-    MessageWithMusic,
-    MessageWithZip,
-    TelegramSearch,
-    TgmountTelegramClient,
-    document_or_photo_id,
-)
-from tgmount.tgclient.search.filtering.guards import (
-    MessageWithOtherDocument,
-    MessageWithVideo,
-    MessageWithVoice,
-)
-from tgmount.util import asyn as async_utils, func, guards
-from tgmount.vfs.file import vfile
+from tgmount import cache, fs
+from tgmount import logging as tglog
+from tgmount import main, tg_vfs, tgclient, util, vfs
+from tgmount import zip as z
+from tgmount.tgclient.guards import *
+from tgmount.tgmount import TgmountBase
+from tgmount.util import asyn as async_utils
+from tgmount.util import func, guards
 
 logger = logging.getLogger("tgvfs")
-T = TypeVar("T")
 
 
 def get_parser():
@@ -46,145 +40,170 @@ def get_parser():
     return parser
 
 
-async def messages_to_fstree(
-    tgfiles: TelegramFilesSource, messages: Iterable[Message]
-) -> vfs.FsSourceTree | vfs.FsSourceTreeValue:
-
-    caching = FilesSourceCaching(
-        tgfiles,
-        document_cache_factory=CacheFactoryMemory(blocksize=256 * 1024),
-    )
-
-    files = FileFactory(tgfiles)
-    cached_files = FileFactory(caching)
-
-    organized_with_zips = helpers.organized(
-        lambda d: {
-            "music_by_performer": d["music_by_performer"],
-            "docs": Virt.MapContext(
-                lambda ctx: ctx.put_extra("file_factory", cached_files),
-                Virt.MapContent(
-                    z.zip_as_dir_in_content,
-                    d["docs"],
-                ),
-            ),
-            "all_videos": d["all_videos"],
-            "voices": d["voices"],
-        }
-    )
-
-    # by_user = helpers.messages_by_user_func(
-    #     lambda by_user, less, nones: [
-    #         *[Virt.Dir(k, organized_with_zips(v)) for k, v in by_user.items()],
-    #         *less,
-    #     ],
-    # )
-
-    return files.create_tree(
-        {
-            "music": helpers.uniq_docs(filter(MessageWithMusic.guard, messages)),
-            "music-alter-names": map(
-                files.nfile(
-                    lambda msg: f"alter_{msg.id}_{msg.file.performer}_{msg.file.title}{msg.file.ext}"
-                    if msg.file.performer
-                    else MessageWithMusic.filename(msg)
-                ),
-                filter(MessageWithMusic.guard, messages),
-            ),
-            "music-by-performer": helpers.music_by_performer(
-                helpers.uniq_docs(filter(MessageWithMusic.guard, messages))
-            ),
-            "organized": organized_with_zips(messages),
-            "zips-as-dirs": map(
-                z.zip_as_dir,
-                map(
-                    cached_files.file,
-                    filter(MessageWithZip.guard, messages),
-                ),
-            ),
-            "zips-single": await async_utils.wait_all(
-                map(
-                    z.zip_as_dir_s(
-                        skip_folder_if_single_subfolder=True,
-                        skip_folder_prefix=1,
+def organized_with_zips(zip_doc_file_factory: tg_vfs.FileFactory):
+    return tg_vfs.helpers.organized(
+        lambda d: tg_vfs.helpers.skip_empty_dirs(
+            {
+                **d,
+                "docs": tg_vfs.with_filefactory(
+                    zip_doc_file_factory,
+                    tg_vfs.Virt.MapContent(
+                        z.zip_as_dir_in_content,
+                        d["docs"],
                     ),
+                ),
+            }
+        )
+    )
+
+
+class Tgmount(TgmountBase):
+    """Wrapper for everything yay"""
+
+    def __init__(
+        self,
+        client: tgclient.TgmountTelegramClient,
+        chat_id: str,
+        limit: int,
+    ) -> None:
+        super().__init__(client)
+
+        self._messages: dict[str, list[Message]] = {}
+        self._chat_id = chat_id
+        self._limit = limit
+
+        self.create_message_sources()
+
+    async def messages_to_fstree(
+        self, messages: Iterable[Message]
+    ) -> vfs.FsSourceTree | vfs.FsSourceTreeValue:
+
+        by_user = tg_vfs.helpers.messages_by_user_func(
+            lambda by_user, less, nones: [
+                *[
+                    tg_vfs.Virt.Dir(
+                        k, organized_with_zips(self.files_factory_cached)(v)
+                    )
+                    for k, v in by_user.items()
+                ],
+                *less,
+            ],
+        )
+
+        return self._files_factory.create_tree(
+            {
+                "music": tg_vfs.helpers.uniq_docs(
+                    filter(MessageWithMusic.guard, messages)
+                ),
+                "music-alter-names": map(
+                    self._files_factory.nfile(
+                        lambda msg: f"alter_{msg.id}_{msg.file.performer}_{msg.file.title}{msg.file.ext}"
+                        if msg.file.performer
+                        else MessageWithMusic.filename(msg)
+                    ),
+                    filter(MessageWithMusic.guard, messages),
+                ),
+                "music-by-performer": tg_vfs.helpers.music_by_performer(
+                    tg_vfs.helpers.uniq_docs(filter(MessageWithMusic.guard, messages))
+                ),
+                "organized": organized_with_zips(self.files_factory)(messages),
+                "zips-as-dirs": map(
+                    z.zip_as_dir,
                     map(
-                        cached_files.file,
+                        self._files_factory_cached.file,
                         filter(MessageWithZip.guard, messages),
                     ),
-                )
-            ),
-            # "by-user": await by_user(
-            #     filter(
-            #         guards(
-            #             MessageWithMusic.guard,
-            #             MessageWithOtherDocument.guard,
-            #             MessageWithVideo.guard,
-            #             MessageWithVoice.guard,
-            #         ),
-            #         messages,
-            #     ),
-            #     minimum=2,
-            # ),
-        }
-    )
+                ),
+                "zips-single": await async_utils.wait_all(
+                    map(
+                        z.zip_as_dir_s(
+                            skip_folder_if_single_subfolder=True,
+                            skip_folder_prefix=1,
+                        ),
+                        map(
+                            self.files_factory_cached.file,
+                            filter(MessageWithZip.guard, messages),
+                        ),
+                    )
+                ),
+                "by-user": await by_user(
+                    filter(
+                        guards(
+                            MessageWithMusic.guard,
+                            MessageWithOtherDocument.guard,
+                            MessageWithVideo.guard,
+                            MessageWithVoice.guard,
+                        ),
+                        messages,
+                    ),
+                    minimum=2,
+                ),
+            }
+        )
 
+    async def create_dir(
+        self, messages_source: tgclient.MessageSource
+    ) -> vfs.FsSourceTree | vfs.FsSourceTreeValue:
 
-async def create_test(
-    telegram_id: str,
-    messages_source: TelegramSearch,
-    tgfiles: TelegramFilesSource,
-    updates: TgmountTelegramClient,
-    limit=1000,
-) -> vfs.FsSourceTree | vfs.FsSourceTreeValue:
+        return await self.messages_to_fstree(
+            await messages_source.get_messages(),
+        )
 
-    messages = await messages_source.get_messages_typed(
-        telegram_id,
-        limit=limit,
-    )
+    async def update(
+        self,
+        event: events.NewMessage.Event | events.MessageDeleted.Event,
+        messages: list[Message],
+    ):
+        if self._fs is None:
+            return
 
-    @updates.on(events.NewMessage(chats=telegram_id))
-    async def event_handler(event: events.NewMessage.Event):
-        print(event)
-        # messages.push(event)
+        await self._fs.update_root(await self.vfs_root())
 
-    return await messages_to_fstree(tgfiles, messages[:])
+    def create_message_sources(self):
+
+        self._ms1 = tgclient.MessageSource(
+            self._client, chat_id=self._chat_id, limit=self._limit
+        )
+
+        self._ms2 = tgclient.MessageSource(
+            self._client, chat_id="tgmounttestingchannel", limit=self._limit
+        )
+
+        self._ms1.subscribe(self.update)
+        self._ms2.subscribe(self.update)
+
+    async def vfs_root(self) -> vfs.VfsRoot:
+
+        vfs_root = vfs.root(
+            {
+                self._chat_id: await self.create_dir(self._ms1),
+                "tgmounttestingchannel": await self.create_dir(self._ms2),
+            }
+        )
+
+        return vfs_root
 
 
 async def mount():
     parser = get_parser()
     args = parser.parse_args()
 
-    init_logging(debug=args.debug)
+    tglog.init_logging(debug=args.debug)
 
-    client = await get_tgclient(read_tgapp_api())
-
-    messages_source = client
-    documents_source = TelegramFilesSource(client)
-
-    vfs_root = vfs.root(
-        {
-            # args.id: await create_test(
-            #     args.id,
-            #     messages_source,
-            #     documents_source,
-            #     client,
-            #     limit=args.limit,
-            # ),
-            "tgmounttestingchannel": await create_test(
-                "tgmounttestingchannel",
-                messages_source,
-                documents_source,
-                client,
-                limit=args.limit,
-            ),
-        }
+    client = await main.util.get_tgclient(
+        main.util.read_tgapp_api(),
     )
 
-    ops = fs.FileSystemOperations(vfs_root)
+    tgm = Tgmount(
+        client,
+        chat_id=args.id,
+        limit=args.limit,
+    )
 
-    await mount_ops(ops, "/home/hrn/mnt/tgmount1")
+    await tgm.mount(
+        destination="/home/hrn/mnt/tgmount1",
+    )
 
 
 if __name__ == "__main__":
-    run_main(mount)
+    main.util.run_main(mount)

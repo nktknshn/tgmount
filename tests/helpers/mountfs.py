@@ -1,3 +1,4 @@
+from multiprocessing.managers import SyncManager
 import os
 import asyncio
 import queue
@@ -11,21 +12,33 @@ import pyfuse3_asyncio
 from dataclasses import dataclass
 
 from tgmount import fs
-from typing import Any, AsyncGenerator, Awaitable, Callable, Generator, Optional
+from typing import (
+    Any,
+    AsyncGenerator,
+    Awaitable,
+    Callable,
+    Generator,
+    Mapping,
+    Optional,
+)
 
 import multiprocessing
 import threading
 import subprocess
 
-from .util import wait_for_mount, cleanup, umount
+from .mount import wait_for_mount, cleanup, umount
+
+Props = Mapping
 
 
 @dataclass
-class Fixtures:
-    fs: fs.FileSystemOperations
+class MountContext:
     tmpdir: str
+    mgr: SyncManager
     cross_process_event: Optional[threading.Event] = None
     exit_event: Optional[threading.Event] = None
+
+    props: Optional[Props] = None
 
     def path(self, *p: str):
         return os.path.join(self.tmpdir, *p)
@@ -51,7 +64,7 @@ def mountfs(tmpdir: str, fs: fs.FileSystemOperations):
 
         try:
             wait_for_mount(mount_process, mnt_dir)
-            yield Fixtures(fs, mnt_dir, cross_process_event)
+            yield MountContext(mnt_dir, mgr, cross_process_event)
         except:
             cleanup(mount_process, mnt_dir)
             raise
@@ -99,10 +112,10 @@ async def mountfs_func(
     mp = multiprocessing.get_context("fork")
 
     with mp.Manager() as mgr:
-        cross_process = mgr.Namespace()
+        # cross_process = mgr.Namespace()
         cross_process_event = mgr.Event()
-        cross_process_queue = mgr.Queue()
-        cross_process_value = None
+        # cross_process_queue = mgr.Queue()
+        # cross_process_value = None
         # cross_process_value = mgr.Value(FileSystemOperations, fs)
 
         async for fs in fs_func(cross_process_event):
@@ -112,7 +125,7 @@ async def mountfs_func(
 
             try:
                 wait_for_mount(mount_process, mnt_dir)
-                yield Fixtures(fs, mnt_dir, cross_process_event)
+                yield MountContext(mnt_dir, mgr, cross_process_event)
             except:
                 cleanup(mount_process, mnt_dir)
                 raise

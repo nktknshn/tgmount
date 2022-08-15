@@ -38,9 +38,11 @@ class RegistryRoot(Generic[T]):
 class InodesRegistry(Generic[T]):
     ROOT_INODE: int = pyfuse3.ROOT_INODE
 
-    def __init__(self, root_item: T):
+    def __init__(self, root_item: T, last_inode=None):
 
-        self._last_inode = InodesRegistry.ROOT_INODE
+        self._last_inode = (
+            last_inode if last_inode is not None else InodesRegistry.ROOT_INODE
+        )
 
         self._root_item = RegistryRoot(InodesRegistry.ROOT_INODE, root_item)
 
@@ -50,8 +52,12 @@ class InodesRegistry(Generic[T]):
 
         # self._children_by_inode: Dict[int, Optional[dict[bytes, RegistryItem[T]]]] = {}
 
+    @property
+    def last_inode(self):
+        return self._last_inode
+
     def get_inodes(self):
-        return list([InodesRegistry.ROOT_INODE, *self._inodes.keys()])
+        return list([self.get_root().inode, *self._inodes.keys()])
 
     def get_root(self):
         return self._root_item
@@ -83,9 +89,42 @@ class InodesRegistry(Generic[T]):
     @staticmethod
     def get_name(item: RegistryItem[T] | RegistryRoot[T]) -> bytes:
         if isinstance(item, RegistryRoot):
-            return b"<root>"
+            return item.name
 
         return item.name
+
+    def remove_item_with_children(
+        self, inode_or_item: int | RegistryItem[T] | RegistryRoot[T]
+    ):
+        item = self.get_item_by_inode(InodesRegistry.get_inode(inode_or_item))
+
+        if item is None:
+            return
+
+        if (subinodes := self.get_item_children_inodes_recursively(item)) is not None:
+            for _inode in subinodes:
+                del self._inodes[_inode]
+
+        del self._inodes[item.inode]
+
+    def get_item_children_inodes_recursively(
+        self, inode_or_item: int | RegistryItem[T] | RegistryRoot[T]
+    ) -> Optional[set[int]]:
+        result = set()
+        children = self.get_items_by_parent(inode_or_item)
+
+        if children is None:
+            return None
+
+        for subitem in children:
+            _inodes = self.get_item_children_inodes_recursively(subitem)
+
+            if _inodes is None:
+                continue
+
+            result = result.union(_inodes)
+
+        return result
 
     def add_item_to_inodes(
         self,
@@ -171,15 +210,7 @@ class InodesRegistry(Generic[T]):
 
         return {item.name: item for item in items}
 
-    def _new_inode(self):
-        # if self._last_inode is None:
-        #     self._last_inode = pyfuse3.ROOT_INODE
-        #     return self._last_inode
-
-        self._last_inode += 1
-        return self._last_inode
-
-    def get_path(
+    def get_item_path(
         self, inode: int | RegistryItem[T] | RegistryRoot[T]
     ) -> Optional[list[bytes]]:
         inode = self.get_inode(inode)
@@ -196,7 +227,7 @@ class InodesRegistry(Generic[T]):
         if parent_item is None:
             return
 
-        parent_path = self.get_path(parent_item)
+        parent_path = self.get_item_path(parent_item)
 
         if parent_path is None:
             return
@@ -239,6 +270,14 @@ class InodesRegistry(Generic[T]):
     @staticmethod
     def join_path(path: list[bytes]) -> bytes:
         return os.path.join(*path)
+
+    def _new_inode(self):
+        # if self._last_inode is None:
+        #     self._last_inode = pyfuse3.ROOT_INODE
+        #     return self._last_inode
+
+        self._last_inode += 1
+        return self._last_inode
 
 
 """ @overload
