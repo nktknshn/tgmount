@@ -2,7 +2,8 @@ import os, pytest, time
 import subprocess
 from multiprocessing import context  # type: ignore
 
-# XXX
+
+# taken from https://github.com/libfuse/pyfuse3/blob/master/test/util.py
 
 
 def exitcode(process: context.ForkProcess):

@@ -2,7 +2,7 @@ import io
 import logging
 import os
 import zipfile
-from typing import Iterable, List, Mapping, Optional, Tuple
+from typing import Any, Iterable, List, Mapping, Optional, Tuple
 
 import greenback
 from tgmount.vfs.dir import DirContentList, DirContentProto, DirLike
@@ -16,7 +16,7 @@ from .types import ZipFileAsyncThunk
 from .zip_file import FileContentZip
 from .util import (
     ZipTree,
-    get_filelist,
+    get_zipinfo_list,
     get_zip_tree,
     ls_zip_tree,
 )
@@ -52,7 +52,7 @@ After installation of the coroutine shim, each task step passes through greenbac
 logger = logging.getLogger("tgmount-zip")
 
 
-def create_dir_content(
+def create_dir_content_zip(
     zip_file_content: FileContentProto,
     path: List[str] = [],
 ) -> "DirContentZip":
@@ -98,9 +98,8 @@ class DirContentZip(DirContentProto[vfs.DirContentList]):
 
         return None
 
-    # async thunk so workers can spawn their own handles for reading inner files
-    async def get_zipfile(self) -> Tuple[FileContentHandle, zipfile.ZipFile]:
-        """reads file content"""
+    async def get_zipfile(self) -> Tuple[Any, zipfile.ZipFile]:
+        """async thunk so tasks can spawn their own handles for reading files inside a zip"""
 
         await greenback.ensure_portal()  # type: ignore
 
@@ -109,18 +108,21 @@ class DirContentZip(DirContentProto[vfs.DirContentList]):
         # XXX close
         # async IO interface usable in non async code
 
-        fh = FileContentHandle(self._file_content, file_handle)
+        fh = file_handle
         fc = FileContentIOGreenlet(self._file_content, file_handle)
         zf = zipfile.ZipFile(fc)
 
         return fh, zf
 
-    async def get_zip_tree(self):
+    async def get_zip_tree(self, path=None):
+        """Returns"""
         h, zf = await self.get_zipfile()
 
-        filelist = get_filelist(zf)
-        zt = get_zip_tree(filelist)
-        zt = ls_zip_tree(zt, self._path)
+        filelist = get_zipinfo_list(zf)
+        zt = ls_zip_tree(
+            get_zip_tree(filelist),
+            path if path is not None else self._path,
+        )
 
         if zt is None:
             raise ValueError(f"invalid path: {self._path}")
@@ -130,7 +132,7 @@ class DirContentZip(DirContentProto[vfs.DirContentList]):
     def create_file_content_from_zipinfo(self, zinfo: zipfile.ZipInfo):
         return FileContentZip(self.get_zipfile, zinfo)
 
-    def create_filelike_from_zipinfo(self, zinfo: zipfile.ZipInfo):
+    def create_filelike_from_zipinfo(self, zinfo: zipfile.ZipInfo) -> FileLike:
         return FileLike(
             os.path.basename(zinfo.filename),
             self.create_file_content_from_zipinfo(zinfo),

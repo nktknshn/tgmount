@@ -1,26 +1,26 @@
-import pytest
-import pytest_asyncio
-from tgmount.tgclient import TgmountTelegramClient
-from tgmount.main.util import read_tgapp_api
+# import pytest
+# import pytest_asyncio
+# from tgmount.tgclient import TgmountTelegramClient
+# from tgmount.main.util import read_tgapp_api
 
 
-@pytest.fixture
-def tgapp_api():
-    return read_tgapp_api()
+# @pytest.fixture
+# def tgapp_api():
+#     return read_tgapp_api()
 
 
-Client = TgmountTelegramClient
+# Client = TgmountTelegramClient
 
 
-@pytest_asyncio.fixture
-async def tgclient(tgapp_api):
-    client = TgmountTelegramClient("tgfs", tgapp_api[0], tgapp_api[1])
+# @pytest_asyncio.fixture
+# async def tgclient(tgapp_api):
+#     client = TgmountTelegramClient("tgfs", tgapp_api[0], tgapp_api[1])
 
-    await client.auth()
+#     await client.auth()
 
-    yield client
+#     yield client
 
-    cor = client.disconnect()
+#     cor = client.disconnect()
 
-    if cor is not None:
-        await cor
+#     if cor is not None:
+#         await cor

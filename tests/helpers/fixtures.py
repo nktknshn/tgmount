@@ -52,14 +52,15 @@ async def tgclient_second(tgapp_api: tuple[int, str]):
     await client.disconnect()
 
 
+@pytest_asyncio.fixture
 async def tgclient(tgapp_api: tuple[int, str], session_name="tgfs"):
     client = tg.TgmountTelegramClient(session_name, tgapp_api[0], tgapp_api[1])
     await client.auth()
     return client
 
 
-async def get_client_with_source(Source=TelegramFilesSource):
+async def get_client_with_source(Source=TelegramFilesSource, session_name="tgfs"):
     client = await tgclient(read_tgapp_api())
-    storage = Source(client)
+    source = Source(client)
 
-    return client, storage
+    return client, source

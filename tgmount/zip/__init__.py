@@ -1,6 +1,6 @@
 from .types import ZipFileAsyncThunk
 
-from .zip_dir import DirContentZip, create_dir_content
+from .zip_dir import DirContentZip, create_dir_content_zip
 
 from .zips_as_dirs import (
     ZipsAsDirs,
@@ -11,4 +11,4 @@ from .zips_as_dirs import (
     zip_as_dir_in_content,
 )
 
-from .util import ZipTree, get_filelist, zip_list_dir
+from .util import ZipTree, get_zipinfo_list, zip_ls

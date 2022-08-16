@@ -7,26 +7,12 @@ from .dir import (
     DirContentProto,
     DirContentItem,
     DirContentList,
-    create_dir_content_from_tree,
-    FsSourceTree,
-    VfsRoot,
-    FsSourceTree,
-    FsSourceTreeValue,
 )
 from .dir import (
-    root,
-    dir_content_from_dir,
     dir_content,
     vdir,
-    dir_content_from_dir,
-    dir_content,
-    vdir,
-    is_tree,
-    map_dir_content_items,
-    map_dir_content_f,
-    read_dir_content,
-    filter_dir_content_items,
 )
+
 from .file import (
     vfile,
     file_content_from_file,
@@ -34,5 +20,20 @@ from .file import (
     text_file,
     text_content,
 )
+
+from .dir_util import (
+    dir_content_from_dir,
+    map_dir_content_items,
+    map_dir_content_f,
+    filter_dir_content_items,
+    dir_content_get_tree,
+    file_like_tree_map,
+    read_dir_content,
+)
+
+from .root import root, VfsRoot
+
+from .lookup import dirlike_ls, napp
+from .tree import create_dir_content_from_tree, FsSourceTree, FsSourceTreeValue, is_tree
 
 dir_from_tree = create_dir_content_from_tree

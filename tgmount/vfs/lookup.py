@@ -55,9 +55,7 @@ async def get_by_path_str(d: DirLike, path: str) -> Optional[DirContentItem]:
     return await get_by_path_list(d, parsed_path)
 
 
-async def list_dir_by_path(
-    d: DirLike, path: list[str]
-) -> Optional[Iterable[DirContentItem]]:
+async def dirlike_ls(d: DirLike, path: list[str]) -> Optional[Iterable[DirContentItem]]:
     """ """
     item = await get_by_path_list(d, path)
 

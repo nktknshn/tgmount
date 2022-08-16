@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from datetime import datetime
 from typing import (
     Generic,
@@ -52,14 +53,17 @@ class DirContentProto(Protocol[T]):
     lazy
     """
 
+    @abstractmethod
     async def readdir_func(self, handle: T, off: int) -> Iterable[DirContentItem]:
-        raise NotImplementedError()
+        ...
 
+    @abstractmethod
     async def opendir_func(self) -> T:
-        raise NotImplementedError()
+        ...
 
+    @abstractmethod
     async def releasedir_func(self, handle: T):
-        raise NotImplementedError()
+        ...
 
     @staticmethod
     def guard(item: Any) -> TypeGuard["DirContentProto[Any]"]:

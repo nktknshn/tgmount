@@ -10,21 +10,20 @@ import pytest_asyncio
 import telethon
 import tgmount.fs as fs
 import tgmount.tgclient as tg
+from tgmount.tgclient import guards
 import tgmount.vfs as vfs
 from telethon import events, types
-from tests.helpers.mountfs import MountContext
 from tgmount.logging import init_logging
 from tgmount.tg_vfs import FileFactory
 
+from ..helpers.asyncio import task_from_blocking, wait_ev, wait_ev_async
 from ..helpers.fixtures import (
     get_client_with_source,
     mnt_dir,
     tgapp_api,
     tgclient_second,
 )
-
-from ..helpers.spawn2 import spawn_fs_ops
-from ..helpers.asyncio import wait_ev, task_from_blocking, wait_ev_async
+from ..helpers.spawn2 import spawn_fs_ops, MountContext
 
 Message = telethon.tl.custom.Message
 Document = telethon.types.Document
@@ -41,6 +40,7 @@ Props = TypedDict("Props", debug=bool, ev0=threading.Event)
 
 async def main_test1(
     props: Props,
+    on_event,
 ):
     init_logging(props["debug"])
     client, source = await get_client_with_source()
@@ -56,7 +56,7 @@ async def main_test1(
         return vfs.root(
             {
                 "tmtc": files.create_tree(
-                    filter(tg.guards.MessageWithDocument.guard, messages)
+                    filter(guards.MessageWithDocument.guard, messages)
                 ),
             }
         )
@@ -85,6 +85,13 @@ async def main_test1(
     return ops
 
 
+def get_props(ctx: MountContext) -> Props:
+    return {
+        "debug": True,
+        "ev0": ctx.mgr.Event(),
+    }
+
+
 @pytest.mark.asyncio
 async def test_fs_tg_test1(mnt_dir, caplog, tgclient_second: Client):
 
@@ -96,12 +103,6 @@ async def test_fs_tg_test1(mnt_dir, caplog, tgclient_second: Client):
     )
 
     assert len(messages) == 10
-
-    def get_props(ctx: MountContext) -> Props:
-        return {
-            "debug": True,
-            "ev0": ctx.mgr.Event(),
-        }
 
     for ctx in spawn_fs_ops(
         main_test1,

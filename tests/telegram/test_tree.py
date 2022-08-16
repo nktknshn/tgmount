@@ -1,102 +1,101 @@
-from typing import TypedDict
-import pytest
-import pytest_asyncio
-from tgmount.tg_vfs.source import TelegramFilesSource
+# from typing import TypedDict
+# import pytest
+# import pytest_asyncio
+# from tgmount.tg_vfs.source import TelegramFilesSource
 
-from tgmount.tgclient.client import TgmountTelegramClient
-from tgmount.tgclient.search.filtering.guards import MessageWithZip
-from tgmount.tg_vfs._tree.organized import (
-    organized,
-    MessagesTreeHandler,
-    organized_func,
-)
-from tgmount.tg_vfs._tree.by_user import (
-    messages_by_user,
-    messages_by_user_func,
-    messages_by_user_simple,
-)
+# from tgmount.tgclient.client import TgmountTelegramClient
+# from tgmount.tgclient.search.filtering.guards import MessageWithZip
+# from tgmount.tg_vfs._tree.organized import (
+#     organized,
+#     MessagesTreeHandler,
+#     organized_func,
+# )
+# from tgmount.tg_vfs._tree.by_user import (
+#     messages_by_user,
+#     messages_by_user_func,
+#     messages_by_user_simple,
+# )
 
-from .helpers import tgclient, tgapp_api
-from .helpers import tgclient, tgapp_api
+# from ..helpers.fixtures import tgclient, tgapp_api
 
-from tgmount.util import func
-from tgmount import zip as z
+# from tgmount.util import func
+# from tgmount import zip as z
 
-Client = TgmountTelegramClient
-
-
-@pytest.mark.asyncio
-async def test_orgranized(tgclient: Client):
-    messages = await tgclient.get_messages_typed(
-        "tgmounttestingchannel",
-        limit=100,
-    )
-
-    tree = MessagesTreeHandler(
-        tgfiles=TelegramFilesSource(tgclient),
-        updates=tgclient,
-    )
-
-    t = organized(messages)
-
-    fstree = tree.fstree(t)
-
-    assert fstree
+# Client = TgmountTelegramClient
 
 
-class MessagesTreeHandlerZip:
-    pass
+# @pytest.mark.asyncio
+# async def test_orgranized(tgclient: Client):
+#     messages = await tgclient.get_messages_typed(
+#         "tgmounttestingchannel",
+#         limit=100,
+#     )
+
+#     tree = MessagesTreeHandler(
+#         tgfiles=TelegramFilesSource(tgclient),
+#         updates=tgclient,
+#     )
+
+#     t = organized(messages)
+
+#     fstree = tree.fstree(t)
+
+#     assert fstree
 
 
-""" 
-че вообще нужно
+# class MessagesTreeHandlerZip:
+#     pass
 
 
-"""
+# """
+# че вообще нужно
 
 
-@pytest.mark.asyncio
-async def test_orgranized_2(tgclient: Client):
-    messages = await tgclient.get_messages_typed(
-        "tgmounttestingchannel",
-        limit=100,
-    )
+# """
 
-    tree_handler = MessagesTreeHandler(
-        tgfiles=TelegramFilesSource(tgclient),
-        updates=tgclient,
-    )
 
-    organized_zips = organized_func(
-        lambda d: {
-            **d,
-            "docs": z.zips_as_dirs(
-                map(
-                    tree_handler.cached_files.file,
-                    filter(
-                        MessageWithZip.guard,
-                        d["docs"],
-                    ),
-                )
-            ),
-        }
-    )
+# @pytest.mark.asyncio
+# async def test_orgranized_2(tgclient: Client):
+#     messages = await tgclient.get_messages_typed(
+#         "tgmounttestingchannel",
+#         limit=100,
+#     )
 
-    stree = messages_by_user_simple(
-        lambda by_user, less, nones: {
-            **func.map_values(organized_zips, by_user),
-            "Other": organized_zips(less),
-        }
-    )
+#     tree_handler = MessagesTreeHandler(
+#         tgfiles=TelegramFilesSource(tgclient),
+#         updates=tgclient,
+#     )
 
-    # by_user = await messages_by_user(
-    #     filter(tree_handler.supports, messages),
-    # )
+#     organized_zips = organized_func(
+#         lambda d: {
+#             **d,
+#             "docs": z.zips_as_dirs(
+#                 map(
+#                     tree_handler.cached_files.file,
+#                     filter(
+#                         MessageWithZip.guard,
+#                         d["docs"],
+#                     ),
+#                 )
+#             ),
+#         }
+#     )
 
-    fstree = tree_handler.fstree(
-        await stree(
-            filter(tree_handler.supports, messages),
-        ),
-    )
+#     stree = messages_by_user_simple(
+#         lambda by_user, less, nones: {
+#             **func.map_values(organized_zips, by_user),
+#             "Other": organized_zips(less),
+#         }
+#     )
 
-    print(fstree)
+#     # by_user = await messages_by_user(
+#     #     filter(tree_handler.supports, messages),
+#     # )
+
+#     fstree = tree_handler.fstree(
+#         await stree(
+#             filter(tree_handler.supports, messages),
+#         ),
+#     )
+
+#     print(fstree)

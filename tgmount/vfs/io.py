@@ -77,6 +77,8 @@ class FileContentIO(IO[bytes]):
 
 
 class FileContentIOGreenlet(FileContentIO):
+    """Usable in synchronous code `IO[bytes]` implementation incapsulating async `FileContentProto` by means of `greenback` library"""
+
     def __init__(self, fc: FileContentProto, handle: Optional[Any] = None):
         super(FileContentIOGreenlet, self).__init__(fc, handle)
 

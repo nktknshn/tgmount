@@ -1,86 +1,52 @@
-import asyncio
-import logging
 import os
-from dataclasses import dataclass
-from typing import Any, Awaitable, Callable, Optional, Protocol
 
 import pytest
 import pytest_asyncio
 import tgmount.fs as fs
 from telethon import types
-from tests.fs.run import mountfs
-from tgmount import vfs
-from tgmount.tg_vfs.source import (
-    TelegramFilesSource,
-)
-from tgmount.tg_vfs.util import get_music_file
+
+from tgmount import vfs, tg_vfs, tgclient
 from tgmount.tgclient import TgmountTelegramClient
-from tgmount.main.util import read_tgapp_api
-
-
-@pytest.fixture
-def tgapp_api():
-    return read_tgapp_api()
-
+from ..helpers.fixtures import mnt_dir, tgclient, get_client_with_source
 
 Client = TgmountTelegramClient
 
 
-@pytest_asyncio.fixture
-async def tgclient(tgapp_api):
-    client = TgmountTelegramClient("tgfs", tgapp_api[0], tgapp_api[1])
+# @pytest.mark.asyncio
+# async def test_tg1(mnt_dir: str):
+#     count = 10
+#     storage = tgclient.TelegramFilesSource(tgclient)
 
-    await client.auth()
+#     messages = await tgclient.get_messages_typed(
+#         "D1SMBD1D", limit=count, filter=types.InputMessagesFilterMusic
+#     )
 
-    yield client
+#     assert len(messages) == count
 
-    cor = client.disconnect()
+#     files = []
+#     mfs = []
 
-    if cor is not None:
-        await cor
+#     for msg in messages:
+#         mf = get_music_file(msg)
 
+#         if mf is None:
+#             print(msg)
+#             continue
 
-@pytest.mark.asyncio
-async def test_tg1(tgclient: Client):
-    message = await tgclient.get_messages_typed("D1SMBD1D", limit=10)
+#         fc = storage.file_content(mf.message, mf.document)
 
-    assert len(message) == 10
+#         mfs.append((f"{mf.message.chat_id}_{mf.message.id}_{mf.file_name}", mf))
+#         files.append((f"{mf.message.chat_id}_{mf.message.id}_{mf.file_name}", fc))
 
+#     assert len(files) == count
 
-@pytest.mark.asyncio
-async def test_tg2(event_loop, tmpdir: str, tgclient: Client):
-    count = 10
-    storage = TelegramFilesSource(tgclient)
-    messages = await tgclient.get_messages_typed(
-        "D1SMBD1D", limit=count, filter=types.InputMessagesFilterMusic
-    )
+#     mf_by_name = dict(mfs)
+#     vfs_root = vfs.root(vfs.create_dir_content_from_tree({"D1SMBD1D": dict(files)}))
 
-    assert len(messages) == count
+#     for m in mountfs(str(tmpdir), fs.FileSystemOperations(vfs_root)):
+#         subfiles = os.listdir(m.path("D1SMBD1D/"))
 
-    files = []
-    mfs = []
+#         assert len(subfiles) == count
 
-    for msg in messages:
-        mf = get_music_file(msg)
-
-        if mf is None:
-            print(msg)
-            continue
-
-        fc = storage.file_content(mf.message, mf.document)
-
-        mfs.append((f"{mf.message.chat_id}_{mf.message.id}_{mf.file_name}", mf))
-        files.append((f"{mf.message.chat_id}_{mf.message.id}_{mf.file_name}", fc))
-
-    assert len(files) == count
-
-    mf_by_name = dict(mfs)
-    vfs_root = vfs.root(vfs.create_dir_content_from_tree({"D1SMBD1D": dict(files)}))
-
-    for m in mountfs(str(tmpdir), fs.FileSystemOperations(vfs_root)):
-        subfiles = os.listdir(m.path("D1SMBD1D/"))
-
-        assert len(subfiles) == count
-
-        for sf in subfiles:
-            print(mf_by_name[sf])
+#         for sf in subfiles:
+#             print(mf_by_name[sf])

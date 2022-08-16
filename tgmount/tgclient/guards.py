@@ -4,7 +4,8 @@ import telethon
 from telethon import types
 from telethon.tl.custom import Message
 from telethon.tl.custom.file import File
-from telethon.tl.types import TypeDocumentAttribute
+
+# from telethon.tl.types import TypeDocumentAttribute
 
 from ..util import func
 from .types import Document
@@ -12,20 +13,20 @@ from .types import Document
 
 from tgmount import util
 
-MessageMedia = (
-    types.MessageMediaContact
-    | types.MessageMediaDice
-    | types.MessageMediaDocument
-    | types.MessageMediaGame
-    | types.MessageMediaGeo
-    | types.MessageMediaGeoLive
-    | types.MessageMediaInvoice
-    | types.MessageMediaPhoto
-    | types.MessageMediaPoll
-    | types.MessageMediaUnsupported
-    | types.MessageMediaVenue
-    | types.MessageMediaWebPage
-)
+# MessageMedia = (
+#     types.MessageMediaContact
+#     | types.MessageMediaDice
+#     | types.MessageMediaDocument
+#     | types.MessageMediaGame
+#     | types.MessageMediaGeo
+#     | types.MessageMediaGeoLive
+#     | types.MessageMediaInvoice
+#     | types.MessageMediaPhoto
+#     | types.MessageMediaPoll
+#     | types.MessageMediaUnsupported
+#     | types.MessageMediaVenue
+#     | types.MessageMediaWebPage
+# )
 
 
 def get_attribute(doc: Document, attr_cls) -> Optional[Any]:
@@ -232,6 +233,7 @@ class MessageWithSticker(Message):
 
 
 class MessageWithCircle(Message):
+    # class MessageWithCircle(Message):
     """circles"""
 
     file: File

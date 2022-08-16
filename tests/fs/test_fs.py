@@ -1,28 +1,21 @@
 import os
-import asyncio
-import pyfuse3
-import pyfuse3_asyncio
 
-import pytest
-from dataclasses import dataclass
+from typing import TypedDict
+from tgmount import vfs, fs
 
-from tgmount.fs import FileSystemOperations
-from tgmount import vfs
-
-from ..helpers.mountfs2 import mountfs
-from .fixtures import fs_tree1
+from ..helpers.fixtures import fs_tree1, mnt_dir
+from ..helpers.spawn2 import spawn_fs_ops
+from ..helpers.mountfs import mount_fs_tree_main
 
 
-def fs1_main(fs_tree1):
-    content: vfs.DirContent = vfs.create_dir_content_from_tree(fs_tree1)
-    root = vfs.root(content)
-    return FileSystemOperations(root)
-
-
-def test_fs1(tmpdir, fs_tree1):
+def test_fs1(fs_tree1, mnt_dir):
     print("test_fs1()")
 
-    for ctx in mountfs(fs1_main, mnt_dir=tmpdir):
+    for ctx in spawn_fs_ops(
+        mount_fs_tree_main,
+        {"debug": True, "fs_tree": fs_tree1},
+        mnt_dir=mnt_dir,
+    ):
         s = os.stat(ctx.tmpdir)
 
         print(f"ino={s.st_ino}")

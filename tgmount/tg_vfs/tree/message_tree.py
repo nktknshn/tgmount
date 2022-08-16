@@ -55,6 +55,13 @@ def walk_messages_tree_value(
             tree_value.tree,
         )
 
+    # if isinstance(tree_value, Virt.MapTree):
+    #     return walk_messages_tree_value(
+    #         ctx,
+    #         messages_tree_walker,
+    #         tree_value,
+    #     )
+
     if is_tree(tree_value):
         return vfs.create_dir_content_from_tree(
             {

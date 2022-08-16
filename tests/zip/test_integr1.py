@@ -1,40 +1,16 @@
 import io
-import logging
-import os
-import struct
-import zipfile
 from typing import (
-    IO,
-    Any,
-    Awaitable,
-    ByteString,
-    Callable,
     Iterable,
-    List,
-    Optional,
     Tuple,
-    Union,
 )
-from zipfile import Path as ZipPath
-from zipfile import ZipFile, ZipInfo
+from zipfile import ZipFile
 
 import pytest
-from tgmount.vfs.dir import (
-    DirContentItem,
-    dir_content,
-    root,
-)
-from tgmount.vfs.file import file_content_from_io, vfile
-from tgmount.vfs.lookup import list_dir_by_path, napp
-from tgmount.vfs.types.dir import DirLike
+from tgmount import vfs, fs
 
-from tgmount.vfs.dir import dir_content_get_tree, file_like_tree_map
-from tgmount.zip.zzz import (
-    zip_list_dir,
-)
-from tgmount.zip import zips_as_dirs
+from tgmount.zip import zips_as_dirs, zip_ls
 
-from ..util import (
+from ..helpers.zip import (
     ZipSourceTree,
     create_zip_from_tree,
     get_file_content_str_utf8,
@@ -42,7 +18,7 @@ from ..util import (
 )
 
 
-def get_items_names(iter: Iterable[DirContentItem]):
+def get_items_names(iter: Iterable[vfs.DirContentItem]):
     return list(map(lambda item: item.name, iter))
 
 
@@ -51,12 +27,12 @@ async def test_zip():
 
     zf, zfdata = create_zip1()
 
-    a = zip_list_dir(zf)
+    a = zip_ls(zf)
 
     assert isinstance(a, dict)
     assert set(a.keys()) == {"a"}
 
-    a = zip_list_dir(zf, ["a"])
+    a = zip_ls(zf, ["a"])
 
     assert isinstance(a, dict)
     assert len(a.keys()) == 4
@@ -123,26 +99,26 @@ async def test_zip1(caplog):
 
     zf, zfdata = create_zip1()
 
-    fc = file_content_from_io(zfdata)
+    fc = vfs.file_content_from_io(zfdata)
 
-    structure = root(
+    structure = vfs.root(
         zips_as_dirs(
-            dir_content(vfile("archive.zip", fc)),
+            vfs.dir_content(vfs.vfile("archive.zip", fc)),
             skip_folder_if_single_subfolder=False,
         )
     )
 
-    items = await list_dir_by_path(structure, napp("/"))
+    items = await vfs.dirlike_ls(structure, vfs.napp("/"))
 
     assert items
     assert get_items_names(items) == ["archive.zip"]
-    assert isinstance(list(items)[0], DirLike)
+    assert isinstance(list(items)[0], vfs.DirLike)
 
-    items = await list_dir_by_path(structure, napp("/archive.zip/"))
+    items = await vfs.dirlike_ls(structure, vfs.napp("/archive.zip/"))
 
     assert items
     assert get_items_names(items) == ["a"]
-    assert isinstance(list(items)[0], DirLike)
+    assert isinstance(list(items)[0], vfs.DirLike)
 
 
 @pytest.mark.asyncio
@@ -150,34 +126,34 @@ async def test_zip2():
 
     zf, zfdata = create_zip1()
 
-    fc = file_content_from_io(zfdata)
+    fc = vfs.file_content_from_io(zfdata)
 
-    structure = root(
+    structure = vfs.root(
         zips_as_dirs(
-            dir_content(vfile("archive.zip", fc)),
+            vfs.dir_content(vfs.vfile("archive.zip", fc)),
             skip_folder_if_single_subfolder=True,
         )
     )
 
-    items = await list_dir_by_path(structure, napp("/"))
+    items = await vfs.dirlike_ls(structure, vfs.napp("/"))
 
     assert items
     assert get_items_names(items) == ["a"]
-    assert isinstance(list(items)[0], DirLike)
+    assert isinstance(list(items)[0], vfs.DirLike)
 
-    items = await list_dir_by_path(structure, napp("/a"))
+    items = await vfs.dirlike_ls(structure, vfs.napp("/a"))
 
     assert items is not None
     assert len([*items]) == 4
     assert set(get_items_names(items)) == {"b", "d", "a1.txt", "a2.txt"}
 
-    items = await list_dir_by_path(structure, napp("/a/d"))
+    items = await vfs.dirlike_ls(structure, vfs.napp("/a/d"))
 
     assert items is not None
     assert len([*items]) == 1
     assert set(get_items_names(items)) == {"a_d.txt"}
 
-    items = await list_dir_by_path(structure, napp("/a/b"))
+    items = await vfs.dirlike_ls(structure, vfs.napp("/a/b"))
 
     assert items is not None
     assert len([*items]) == 4
@@ -188,7 +164,7 @@ async def test_zip2():
         "c",
     }
 
-    items = await list_dir_by_path(structure, napp("/a/b/c"))
+    items = await vfs.dirlike_ls(structure, vfs.napp("/a/b/c"))
 
     assert items is not None
     assert len([*items]) == 1
@@ -218,16 +194,18 @@ async def test_zip3():
 
     zf, zfdata = create_zip_from_tree(source_tree)
 
-    structure = root(
+    structure = vfs.root(
         zips_as_dirs(
-            dir_content(vfile("archive.zip", file_content_from_io(zfdata))),
+            vfs.dir_content(
+                vfs.vfile("archive.zip", vfs.file_content_from_io(zfdata)),
+            ),
             skip_folder_if_single_subfolder=True,
         )
     )
 
-    tree = await dir_content_get_tree(structure.content)
+    tree = await vfs.dir_content_get_tree(structure.content)
 
-    t = await file_like_tree_map(tree, get_file_content_str_utf8)
+    t = await vfs.file_like_tree_map(tree, get_file_content_str_utf8)
 
     assert t == source_tree
 
@@ -236,18 +214,18 @@ async def test_zip3():
 async def test_zip4():
     zf, zfdata = create_zip1()
 
-    fc = file_content_from_io(zfdata)
+    fc = vfs.file_content_from_io(zfdata)
 
-    structure = root(
+    structure = vfs.root(
         zips_as_dirs(
-            dir_content(vfile("archive.zip", fc)),
+            vfs.dir_content(vfs.vfile("archive.zip", fc)),
             skip_folder_if_single_subfolder=False,
         )
     )
 
-    tree = await dir_content_get_tree(structure.content)
+    tree = await vfs.dir_content_get_tree(structure.content)
 
-    t = await file_like_tree_map(tree, get_size)
+    t = await vfs.file_like_tree_map(tree, get_size)
 
     assert t == {
         "archive.zip": {
@@ -285,15 +263,15 @@ async def test_zip5():
 
     zf, zfdata = create_zip_from_tree(source_tree)
 
-    structure = root(
+    structure = vfs.root(
         zips_as_dirs(
-            dir_content(vfile("archive.zip", file_content_from_io(zfdata))),
+            vfs.dir_content(vfs.vfile("archive.zip", vfs.file_content_from_io(zfdata))),
             skip_folder_if_single_subfolder=True,
         )
     )
 
-    tree = await dir_content_get_tree(structure.content)
+    tree = await vfs.dir_content_get_tree(structure.content)
 
-    t = await file_like_tree_map(tree, get_file_content_str_utf8)
+    t = await vfs.file_like_tree_map(tree, get_file_content_str_utf8)
 
     assert t == {"archive.zip": source_tree}

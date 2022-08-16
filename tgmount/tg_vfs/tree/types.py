@@ -74,6 +74,12 @@ class Virt:
         mapper: Callable[[WalkTreeContext], WalkTreeContext]
         tree: MessagesTreeValue[_T]
 
+    # @dataclass
+    # class MapTree(Generic[_T]):
+    #     mapper: Callable[
+    #         [WalkTreeContext, MessagesTreeValue[_T]], MessagesTreeValue[_T]
+    #     ]
+
 
 class MessagesTreeHandlerProto(Protocol[_T]):
     def fstree(self, tree: MessagesTree[_T]) -> vfs.FsSourceTree:

@@ -1,94 +1,13 @@
 from typing import Iterable, Mapping, Sequence
 from tgmount import vfs
 
-from .zip_dir import DirContentZip, create_dir_content
-
-
-class ZipsAsDirs:
-    def __init__(
-        self,
-        source_dir_content: vfs.DirContentProto,
-        *,
-        hide_sources=True,
-        skip_folder_if_single_subfolder=False,
-        zip_file_like_to_dir_name=lambda item: f"{item.name}_unzipped",
-    ):
-        self._source_dir_content = source_dir_content
-        self._hide_sources = hide_sources
-        self._skip_folder_if_single_subfolder = skip_folder_if_single_subfolder
-        self._zip_file_like_to_dir_name = zip_file_like_to_dir_name
-
-    def zip_as_dir(
-        self,
-        file: vfs.FileLike,
-    ):
-        return vfs.DirLike(
-            file.name,
-            create_dir_content(file.content),
-        )
-
-
-def zip_as_dir(
-    file: vfs.FileLike,
-):
-    return vfs.DirLike(
-        file.name,
-        create_dir_content(file.content),
-    )
-
-
-def zip_as_dir_in_content(
-    content: vfs.DirContentProto,
-):
-    return vfs.map_dir_content_items(
-        lambda item: zip_as_dir(item)
-        if vfs.FileLike.guard(item) and item.name.endswith(".zip")
-        else item,
-        content,
-    )
-
-
-async def zip_as_dir_async(
-    file: vfs.FileLike,
-):
-    return vfs.DirLike(
-        file.name,
-        create_dir_content(file.content),
-    )
-
-
-def zip_as_dir_s(
-    *,
-    skip_folder_if_single_subfolder=False,
-    skip_folder_prefix=None,
-):
-    async def _zip_as_dir_s(
-        file: vfs.FileLike,
-    ):
-
-        if skip_folder_if_single_subfolder:
-            root_dir_name = await DirContentZip(file.content).get_single_root_dir()
-
-            if root_dir_name:
-                return vfs.DirLike(
-                    root_dir_name
-                    if skip_folder_prefix is None
-                    else f"{skip_folder_prefix}_{root_dir_name}",
-                    create_dir_content(file.content, [root_dir_name]),
-                )
-
-        return vfs.DirLike(
-            file.name,
-            create_dir_content(file.content),
-        )
-
-    return _zip_as_dir_s
+from .zip_dir import DirContentZip, create_dir_content_zip
 
 
 def zips_as_dirs(
     tree_or_content: vfs.FsSourceTree | vfs.DirContentProto | Iterable[vfs.FileLike],
     **kwargs,
-) -> ZipsAsDirs:
+) -> "ZipsAsDirs":
     """
     sadly files seeking inside a zip works by reading the offset bytes so it's slow
     https://github.com/python/cpython/blob/main/Lib/zipfile.py#L1116
@@ -117,3 +36,93 @@ def zips_as_dirs(
         )
 
     return ZipsAsDirs(tree_or_content, **kwargs)
+
+
+class ZipsAsDirs(vfs.DirContentProto):
+    def __init__(
+        self,
+        source_dir_content: vfs.DirContentProto,
+        *,
+        hide_sources=True,
+        skip_folder_if_single_subfolder=False,
+        zip_file_like_to_dir_name=lambda item: f"{item.name}_unzipped",
+    ):
+        self._source_dir_content = source_dir_content
+        self._hide_sources = hide_sources
+        self._skip_folder_if_single_subfolder = skip_folder_if_single_subfolder
+        self._zip_file_like_to_dir_name = zip_file_like_to_dir_name
+
+    def zip_as_dir(
+        self,
+        file: vfs.FileLike,
+    ):
+        return vfs.DirLike(
+            file.name,
+            create_dir_content_zip(file.content),
+        )
+
+    async def opendir_func(self):
+        return await self._source_dir_content.opendir_func()
+
+    async def readdir_func(self, handle, off: int) -> Iterable[vfs.DirContentItem]:
+        return await self._source_dir_content.readdir_func(handle, off)
+
+    async def releasedir_func(self, handle):
+        return await self._source_dir_content.releasedir_func(handle)
+
+
+def zip_as_dir(
+    file: vfs.FileLike,
+):
+    return vfs.DirLike(
+        file.name,
+        create_dir_content_zip(file.content),
+    )
+
+
+def zip_as_dir_in_content(
+    content: vfs.DirContentProto,
+):
+    return vfs.map_dir_content_items(
+        lambda item: zip_as_dir(item)
+        if vfs.FileLike.guard(item) and item.name.endswith(".zip")
+        else item,
+        content,
+    )
+
+
+async def zip_as_dir_async(
+    file: vfs.FileLike,
+):
+    return vfs.DirLike(
+        file.name,
+        create_dir_content_zip(file.content),
+    )
+
+
+def zip_as_dir_s(
+    *,
+    skip_folder_if_single_subfolder=False,
+    skip_folder_prefix=None,
+):
+    async def _zip_as_dir_s(
+        file: vfs.FileLike,
+    ):
+
+        if skip_folder_if_single_subfolder:
+            root_dir_name = await DirContentZip(file.content).get_single_root_dir()
+
+            if root_dir_name:
+                return vfs.DirLike(
+                    root_dir_name
+                    if skip_folder_prefix is None
+                    else f"{skip_folder_prefix}_{root_dir_name}",
+                    create_dir_content_zip(file.content, [root_dir_name]),
+                )
+
+        return vfs.DirLike(
+            file.name,
+            create_dir_content_zip(file.content),
+        )
+
+    return _zip_as_dir_s

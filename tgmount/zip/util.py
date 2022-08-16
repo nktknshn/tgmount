@@ -12,15 +12,16 @@ from tgmount.util.func import (
 
 ZipTree = DirTree[ZipInfo]
 
+
 def is_file(zi: ZipInfo):
     return not zi.filename.endswith("/")
 
 
-def get_filelist(zf: ZipFile, *, filter_non_relative=True) -> list[ZipInfo]:
+def get_zipinfo_list(zf: ZipFile, *, filter_non_relative=True) -> list[ZipInfo]:
     """
-    removes dirs
-    removes global pathes if needed
-
+    Returns a list of `ZipInfo`
+    excluding dirs themselves
+    excluding global paths (ones starting with `/`) if needed
     """
     filelist = list_filter(is_file, zf.infolist())
 
@@ -31,19 +32,20 @@ def get_filelist(zf: ZipFile, *, filter_non_relative=True) -> list[ZipInfo]:
 
 
 def get_zip_tree(filelist: list[ZipInfo]) -> ZipTree:
+    """ZipTree is a recursive `Mapping` where values are eventually `ZipInfo`"""
     dirs = [norm_and_parse_path(f.filename) for f in filelist]
     dirs = [[*ds[:-1], zi] for zi, ds in zip(filelist, dirs)]
 
     return group_dirs_into_tree(dirs)
 
 
-def zip_list_dir(zf: ZipFile, path: list[str] = []) -> (ZipTree | None):
+def zip_ls(zf: ZipFile, path: list[str] = []) -> (ZipTree | None):
     """
     ignores global paths (paths starting with `/`).
-    to get zip's root listing use `path = '/'` which is default
+    to get zip's root listing use `path = []` which is default
     """
 
-    filelist = get_filelist(zf)
+    filelist = get_zipinfo_list(zf)
     zt = get_zip_tree(filelist)
 
     return ls_zip_tree(zt, path)

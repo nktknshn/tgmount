@@ -40,7 +40,9 @@ def get_parser():
     return parser
 
 
-def organized_with_zips(zip_doc_file_factory: tg_vfs.FileFactory):
+def organized_with_zips(
+    zip_doc_file_factory: tg_vfs.FileFactory,
+):
     return tg_vfs.helpers.organized(
         lambda d: tg_vfs.helpers.skip_empty_dirs(
             {
@@ -55,6 +57,17 @@ def organized_with_zips(zip_doc_file_factory: tg_vfs.FileFactory):
             }
         )
     )
+
+
+by_user = tg_vfs.helpers.messages_by_user_func(
+    lambda by_user, less, nones: [
+        *[
+            tg_vfs.Virt.Dir(k, organized_with_zips(self.files_factory_cached)(v))
+            for k, v in by_user.items()
+        ],
+        *less,
+    ],
+)
 
 
 class Tgmount(TgmountBase):
@@ -77,18 +90,6 @@ class Tgmount(TgmountBase):
     async def messages_to_fstree(
         self, messages: Iterable[Message]
     ) -> vfs.FsSourceTree | vfs.FsSourceTreeValue:
-
-        by_user = tg_vfs.helpers.messages_by_user_func(
-            lambda by_user, less, nones: [
-                *[
-                    tg_vfs.Virt.Dir(
-                        k, organized_with_zips(self.files_factory_cached)(v)
-                    )
-                    for k, v in by_user.items()
-                ],
-                *less,
-            ],
-        )
 
         return self._files_factory.create_tree(
             {

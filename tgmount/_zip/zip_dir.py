@@ -15,7 +15,7 @@ from tgmount.zip.types import ZipFileAsyncThunk
 from tgmount.zip.zip_file import create_filelike_from_zipinfo
 from tgmount.zip.util import (
     ZipTree,
-    get_filelist,
+    get_zipinfo_list,
     get_zip_tree,
     ls_zip_tree,
 )
@@ -71,7 +71,7 @@ class DirContentFromZipFileContent(DirContentProto[DirContentProto]):
 
         h, zf = await self.get_zipfile()
 
-        filelist = get_filelist(zf)
+        filelist = get_zipinfo_list(zf)
         zt = get_zip_tree(filelist)
         zt = ls_zip_tree(zt, self.path)
 
@@ -185,7 +185,7 @@ class ZipsAsDirs(DirContentProto[list[DirContentItem]]):
 
         # XXX await h.close()
 
-        filelist = get_filelist(zf)
+        filelist = get_zipinfo_list(zf)
         zt = get_zip_tree(filelist)
 
         root_items = list(zt.items())
