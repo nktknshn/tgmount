@@ -119,7 +119,7 @@ async def file_like_tree_map(
 
 
 async def read_dir_content(content: DirContentProto) -> Iterable[DirContentItem]:
-
+    """consume and return items from `content`. will open and release the `DirContentProto`"""
     h = await content.opendir_func()
     items = await content.readdir_func(h, 0)
     await content.releasedir_func(h)

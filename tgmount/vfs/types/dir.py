@@ -84,24 +84,24 @@ class DirContentList(DirContentProto):
         return self.content_list[off:]
 
 
-class DirContentListUpdatable(DirContentProto):
-    def __init__(self, content_list: List["DirContentItem"]):
-        self.content_list = content_list
+# class DirContentListUpdatable(DirContentProto):
+#     def __init__(self, content_list: List["DirContentItem"]):
+#         self.content_list = content_list
 
-    def on_update(self, new_item: DirContentItem):
-        self.content_list.append(new_item)
+#     def on_update(self, new_item: DirContentItem):
+#         self.content_list.append(new_item)
 
-    async def opendir_func(self) -> Any:
-        pass
+#     async def opendir_func(self) -> Any:
+#         pass
 
-    async def releasedir_func(self, handle: Any):
-        pass
+#     async def releasedir_func(self, handle: Any):
+#         pass
 
-    async def readdir_func(self, handle, off: int) -> Iterable[DirContentItem]:
-        return self.content_list[off:]
+#     async def readdir_func(self, handle, off: int) -> Iterable[DirContentItem]:
+#         return self.content_list[off:]
 
-    def __repr__(self):
-        return f"DirListUpdatable({str(self.content_list)})"
+#     def __repr__(self):
+#         return f"DirListUpdatable({str(self.content_list)})"
 
 
 # @dataclass

@@ -23,7 +23,7 @@ from ..helpers.fixtures import (
     tgapp_api,
     tgclient_second,
 )
-from ..helpers.spawn2 import spawn_fs_ops, MountContext
+from ..helpers.spawn import spawn_fs_ops, MountContext
 
 Message = telethon.tl.custom.Message
 Document = telethon.types.Document

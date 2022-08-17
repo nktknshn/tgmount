@@ -16,8 +16,8 @@ from tgmount.logging import init_logging
 from tgmount.tg_vfs.source import TelegramFilesSource
 from tgmount.vfs import FsSourceTree
 
-from ..helpers.fixtures import get_client_with_source
-from ..helpers.spawn2 import spawn_fs_ops
+from ..helpers.fixtures import get_client_with_source, mnt_dir
+from ..helpers.spawn import spawn_fs_ops
 
 Message = telethon.tl.custom.Message
 Document = telethon.types.Document

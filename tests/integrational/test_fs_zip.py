@@ -5,7 +5,7 @@ from zipfile import ZipFile
 import pytest
 from tgmount import fs, vfs, zip
 
-from ..helpers.spawn2 import spawn_fs_ops
+from ..helpers.spawn import spawn_fs_ops
 from ..helpers.mountfs import mount_fs_tree_main
 from ..helpers.zip import ZipSourceTree, create_zip_from_tree
 from ..helpers.fixtures import mnt_dir

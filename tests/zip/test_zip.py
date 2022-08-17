@@ -1,41 +1,225 @@
-# import struct
-# import zipfile
+import io
+from typing import (
+    Iterable,
+    Tuple,
+)
+from zipfile import ZipFile
 
-# from typing import Optional
-# from zipfile import ZipFile, ZipInfo
+import pytest
+from tgmount import vfs, fs
 
-# # from tgmount.zip.util import build_dirs_tree
+from tgmount.zip import zips_as_dirs, zip_ls
 
+from ..helpers.zip import (
+    ZipSourceTree,
+    create_zip_from_tree,
+    get_file_content_str_utf8,
+    get_size,
+)
 
-# def decodeExtra(zinfo: ZipInfo) -> Optional[str]:
-#     # Try to decode the extra field.
-#     extra = zinfo.extra
-#     unpack = struct.unpack
-
-#     while len(extra) >= 4:
-#         tp, ln = unpack("<HH", extra[:4])
-
-#         if tp == 0x7075:
-#             data = extra[4 : ln + 4]
-#             # Unicode Path Extra Field
-#             up_version, up_name_crc = unpack("<BL", data[:5])
-#             up_unicode_name = data[5:].decode("utf-8")
-
-#             return up_unicode_name
-#             # if up_version == 1 and up_name_crc == zinfo.orig_filename_crc:
-#             #     zinfo.filename = up_unicode_name
-
-#         extra = extra[ln + 4 :]
+from .fixtures import zip_tree1, zip_file1
 
 
-# def test_zip():
-#     zf = zipfile.ZipFile("tests/fixtures/zip2.zip")
+def get_items_names(iter: Iterable[vfs.DirContentItem]):
+    return list(map(lambda item: item.name, iter))
 
-#     p = zipfile.Path(zf, "/")
 
-#     for item in p.iterdir():
-#         print(item)
+@pytest.mark.asyncio
+async def test_zip(zip_file1):
 
-#     # for f in zf.infolist():
-#     #     print(f.filename)
-#     #     print(decodeExtra(f))
+    zf, zfdata = zip_file1
+
+    a = zip_ls(zf)
+
+    assert isinstance(a, dict)
+    assert set(a.keys()) == {"a"}
+
+    a = zip_ls(zf, ["a"])
+
+    assert isinstance(a, dict)
+    assert len(a.keys()) == 4
+    assert set(a.keys()) == {"b", "d", "a1.txt", "a2.txt"}
+
+
+@pytest.mark.asyncio
+async def test_zip1(caplog, zip_file1):
+    # caplog.set_level(logging.DEBUG)
+
+    zf, zfdata = zip_file1
+
+    fc = vfs.file_content_from_io(zfdata)
+
+    structure = vfs.root(
+        zips_as_dirs(
+            vfs.dir_content(vfs.vfile("archive.zip", fc)),
+            skip_folder_if_single_subfolder=False,
+        )
+    )
+
+    items = await vfs.ls(structure, vfs.napp("/"))
+
+    assert items
+    assert get_items_names(items) == ["archive.zip"]
+    assert isinstance(list(items)[0], vfs.DirLike)
+
+    items = await vfs.ls(structure, vfs.napp("/archive.zip/"))
+
+    assert items
+    assert get_items_names(items) == ["a"]
+    assert isinstance(list(items)[0], vfs.DirLike)
+
+
+@pytest.mark.asyncio
+async def test_zip2(zip_file1):
+
+    zf, zfdata = zip_file1
+
+    fc = vfs.file_content_from_io(zfdata)
+
+    structure = vfs.root(
+        zips_as_dirs(
+            vfs.dir_content(vfs.vfile("archive.zip", fc)),
+            skip_folder_if_single_subfolder=True,
+        )
+    )
+
+    items = await vfs.ls(structure, vfs.napp("/"))
+
+    assert items
+    assert get_items_names(items) == ["a"]
+    assert isinstance(list(items)[0], vfs.DirLike)
+
+    items = await vfs.ls(structure, vfs.napp("/a"))
+
+    assert items is not None
+    assert len([*items]) == 4
+    assert set(get_items_names(items)) == {"b", "d", "a1.txt", "a2.txt"}
+
+    items = await vfs.ls(structure, vfs.napp("/a/d"))
+
+    assert items is not None
+    assert len([*items]) == 1
+    assert set(get_items_names(items)) == {"a_d.txt"}
+
+    items = await vfs.ls(structure, vfs.napp("/a/b"))
+
+    assert items is not None
+    assert len([*items]) == 4
+    assert set(get_items_names(items)) == {
+        "a3.txt",
+        "tvrdý.txt",
+        "русский файл.txt",
+        "c",
+    }
+
+    items = await vfs.ls(structure, vfs.napp("/a/b/c"))
+
+    assert items is not None
+    assert len([*items]) == 1
+    assert set(get_items_names(items)) == {
+        "nested.txt",
+    }
+
+
+@pytest.mark.asyncio
+async def test_zip3():
+
+    source_tree: ZipSourceTree = {
+        "a": {
+            "a1.txt": "hello gravity",
+            "a2.txt": "hello moon",
+            "b": {
+                "a3.txt": "hello starts",
+                "tvrdý.txt": "hello tvrdý",
+                "русский файл.txt": "hello русский файл",
+                "c": {
+                    "nested.txt": "hello time",
+                },
+            },
+            "d": {"a_d.txt": "hello plants"},
+        }
+    }
+
+    zf, zfdata = create_zip_from_tree(source_tree)
+
+    structure = vfs.root(
+        zips_as_dirs(
+            vfs.dir_content(
+                vfs.vfile("archive.zip", vfs.file_content_from_io(zfdata)),
+            ),
+            skip_folder_if_single_subfolder=True,
+        )
+    )
+
+    tree = await vfs.dir_content_get_tree(structure.content)
+
+    t = await vfs.file_like_tree_map(tree, get_file_content_str_utf8)
+
+    assert t == source_tree
+
+
+@pytest.mark.asyncio
+async def test_zip4(zip_file1):
+    zf, zfdata = zip_file1
+
+    fc = vfs.file_content_from_io(zfdata)
+
+    structure = vfs.root(
+        zips_as_dirs(
+            vfs.dir_content(vfs.vfile("archive.zip", fc)),
+            skip_folder_if_single_subfolder=False,
+        )
+    )
+
+    tree = await vfs.dir_content_get_tree(structure.content)
+
+    t = await vfs.file_like_tree_map(tree, get_size)
+
+    assert t == {
+        "archive.zip": {
+            "a": {
+                "a1.txt": 13,
+                "a2.txt": 10,
+                "b": {
+                    "a3.txt": 12,
+                    "tvrdý.txt": 12,
+                    "русский файл.txt": 29,
+                    "c": {
+                        "nested.txt": 10,
+                    },
+                },
+                "d": {"a_d.txt": 12},
+            }
+        }
+    }
+
+
+@pytest.mark.asyncio
+async def test_zip5():
+    source_tree: ZipSourceTree = {
+        "a1.txt": "hello gravity",
+        "a2.txt": "hello moon",
+        "b": {
+            "a3.txt": "hello starts",
+            "tvrdý.txt": "hello tvrdý",
+            "русский файл.txt": "hello русский файл",
+            "c": {
+                "nested.txt": "hello time",
+            },
+        },
+    }
+
+    zf, zfdata = create_zip_from_tree(source_tree)
+
+    structure = vfs.root(
+        zips_as_dirs(
+            vfs.dir_content(vfs.vfile("archive.zip", vfs.file_content_from_io(zfdata))),
+            skip_folder_if_single_subfolder=True,
+        )
+    )
+
+    tree = await vfs.dir_content_get_tree(structure.content)
+
+    t = await vfs.file_like_tree_map(tree, get_file_content_str_utf8)
+
+    assert t == {"archive.zip": source_tree}

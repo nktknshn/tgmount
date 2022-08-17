@@ -14,6 +14,8 @@ from .types.dir import (
 
 
 def dir_content(*items: DirContentItem) -> DirContent:
+    """Takes items as arguments and returns `DirContent`"""
+
     async def f(handle, off):
         return items[off:]
 

@@ -1,6 +1,6 @@
 from .types import ZipFileAsyncThunk
 
-from .zip_dir import DirContentZip, create_dir_content_zip
+from .zip_dir import DirContentZip
 
 from .zips_as_dirs import (
     ZipsAsDirs,

@@ -4,7 +4,7 @@ from typing import TypedDict
 from tgmount import vfs, fs
 
 from ..helpers.fixtures import fs_tree1, mnt_dir
-from ..helpers.spawn2 import spawn_fs_ops
+from ..helpers.spawn import spawn_fs_ops
 from ..helpers.mountfs import mount_fs_tree_main
 
 

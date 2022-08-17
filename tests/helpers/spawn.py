@@ -40,7 +40,7 @@ MainFunction = Callable[
     Awaitable[fs.FileSystemOperations],
 ]
 
-GetProps = Callable[["MountContext"], P]
+GetProps = Callable[["MountContext[P]"], P]
 
 
 @dataclass

@@ -8,8 +8,7 @@ import pytest
 from tgmount import fs, vfs
 from tgmount.logging import init_logging
 
-# from ..helpers.mountfs2 import OnEventSetCallback, mountfs
-from ..helpers.spawn2 import GetProps, MountContext, OnEventCallbackSet, spawn_fs_ops
+from ..helpers.spawn import GetProps, OnEventCallbackSet, spawn_fs_ops
 from ..helpers.fixtures import mnt_dir
 
 Main1Props = TypedDict("Main1Props", debug=bool, ev0=threading.Event)

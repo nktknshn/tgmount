@@ -7,10 +7,12 @@ from tgmount.vfs.types.dir import (
     is_directory,
 )
 from tgmount.vfs.util import norm_and_parse_path, napp
-from .dir import get_dir_content_items
+from .dir_util import get_dir_content_items
 
 
-async def get_subitem_by_name(d: DirLike, name: str) -> Optional[DirContentItem]:
+async def dirlike_get_subitem_by_name(
+    d: DirLike, name: str
+) -> Optional[DirContentItem]:
     handle = await d.content.opendir_func()
     items = await d.content.readdir_func(handle, 0)
 
@@ -23,7 +25,9 @@ async def get_subitem_by_name(d: DirLike, name: str) -> Optional[DirContentItem]
     return None
 
 
-async def get_by_path_list(d: DirLike, path: List[str]) -> Optional[DirContentItem]:
+async def dirlike_get_by_path_list(
+    d: DirLike, path: List[str]
+) -> Optional[DirContentItem]:
 
     if len(path) == 0:
         return d
@@ -36,7 +40,7 @@ async def get_by_path_list(d: DirLike, path: List[str]) -> Optional[DirContentIt
 
     subitem_name, *rest = path
 
-    subitem = await get_subitem_by_name(d, subitem_name)
+    subitem = await dirlike_get_subitem_by_name(d, subitem_name)
 
     if subitem is None:
         return None
@@ -47,17 +51,17 @@ async def get_by_path_list(d: DirLike, path: List[str]) -> Optional[DirContentIt
     if not is_directory(subitem):
         return None
 
-    return await get_by_path_list(subitem, rest)
+    return await dirlike_get_by_path_list(subitem, rest)
 
 
-async def get_by_path_str(d: DirLike, path: str) -> Optional[DirContentItem]:
+async def dirlike_get_by_path_str(d: DirLike, path: str) -> Optional[DirContentItem]:
     parsed_path = norm_and_parse_path(path)
-    return await get_by_path_list(d, parsed_path)
+    return await dirlike_get_by_path_list(d, parsed_path)
 
 
 async def dirlike_ls(d: DirLike, path: list[str]) -> Optional[Iterable[DirContentItem]]:
     """ """
-    item = await get_by_path_list(d, path)
+    item = await dirlike_get_by_path_list(d, path)
 
     if item is None:
         return None
