@@ -1,25 +1,27 @@
 from abc import abstractmethod
+from dataclasses import dataclass
 from datetime import datetime
 from typing import (
-    Generic,
+    Any,
+    Awaitable,
+    Callable,
+    Iterable,
     Optional,
     Protocol,
     TypeGuard,
     TypeVar,
     Union,
-    Callable,
-    Iterable,
-    List,
-    Any,
-    Awaitable,
 )
-
-import time
-from dataclasses import dataclass
 
 from tgmount.vfs.types.file import FileLike
 
+T = TypeVar("T")
+
 DirContentItem = Union["DirLike", FileLike]
+
+
+OpenDirFunc = Callable[[], Awaitable[Any]]
+ReleaseDirFunc = Callable[[T], Awaitable[Any]]
 
 
 def is_directory(item: DirContentItem) -> TypeGuard["DirLike"]:
@@ -28,6 +30,8 @@ def is_directory(item: DirContentItem) -> TypeGuard["DirLike"]:
 
 @dataclass
 class DirLike:
+    """Represents a folder with a name and content"""
+
     name: str
     content: "DirContentProto"
 
@@ -42,15 +46,10 @@ class DirLike:
         return isinstance(item, DirLike)
 
 
-T = TypeVar("T")
-
-# XXX make handle type generic?
-
-
 class DirContentProto(Protocol[T]):
     """
-    intended to be stateless
-    lazy
+    Main interface describing a content of a folder. Intended to be stateless, storing the state in
+    the handle returned by `opendir_func`
     """
 
     @abstractmethod
@@ -70,62 +69,44 @@ class DirContentProto(Protocol[T]):
         return hasattr(item, "readdir_func")
 
 
-class DirContentList(DirContentProto):
-    def __init__(self, content_list: List["DirContentItem"]):
-        self.content_list = content_list
+class DirContent(DirContentProto[T]):
+    """implements `DirContentProto` with functions"""
 
-    async def opendir_func(self) -> Any:
-        pass
-
-    async def releasedir_func(self, handle: Any):
-        pass
-
-    async def readdir_func(self, handle, off: int) -> Iterable[DirContentItem]:
-        return self.content_list[off:]
-
-
-# class DirContentListUpdatable(DirContentProto):
-#     def __init__(self, content_list: List["DirContentItem"]):
-#         self.content_list = content_list
-
-#     def on_update(self, new_item: DirContentItem):
-#         self.content_list.append(new_item)
-
-#     async def opendir_func(self) -> Any:
-#         pass
-
-#     async def releasedir_func(self, handle: Any):
-#         pass
-
-#     async def readdir_func(self, handle, off: int) -> Iterable[DirContentItem]:
-#         return self.content_list[off:]
-
-#     def __repr__(self):
-#         return f"DirListUpdatable({str(self.content_list)})"
-
-
-# @dataclass
-# class OpendirContext:
-#     full_path: Optional[str] = None
-#     vfs_path: Optional[str] = None
-
-OpenDirFunc = Callable[[], Awaitable[Any]]
-# OpenDirFunc = Callable[[Optional[OpendirContext]], Awaitable[Any]]
-
-
-class DirContent(DirContentProto):
-    def __init__(self, readdir_func, releasedir_func=None, opendir_func=None):
+    def __init__(
+        self,
+        readdir_func,
+        releasedir_func=None,
+        opendir_func=None,
+    ):
         self._readdir_func = readdir_func
-        self._releasedir_func = releasedir_func
+        self._releasedir_func: Optional[ReleaseDirFunc[T]] = releasedir_func
         self._opendir_func: Optional[OpenDirFunc] = opendir_func
 
-    async def readdir_func(self, handle, off: int) -> Iterable[DirContentItem]:
+    async def readdir_func(self, handle: T, off: int) -> Iterable[DirContentItem]:
         return await self._readdir_func(handle, off)
 
     async def opendir_func(self):
         if self._opendir_func:
             return await self._opendir_func()
 
-    async def releasedir_func(self, handle):
+    async def releasedir_func(self, handle: T):
         if self._releasedir_func:
             return await self._releasedir_func(handle)
+
+
+class DirContentList(DirContentProto[list[DirContentItem]]):
+    """Immutable dir content sourced from a list of `DirContentItem`"""
+
+    def __init__(self, content_list: list[DirContentItem]):
+        self.content_list = content_list
+
+    async def opendir_func(self) -> list[DirContentItem]:
+        return self.content_list[:]
+
+    async def releasedir_func(self, handle: list[DirContentItem]):
+        return
+
+    async def readdir_func(
+        self, handle: list[DirContentItem], off: int
+    ) -> Iterable[DirContentItem]:
+        return handle[off:]

@@ -6,6 +6,6 @@ from tgmount.vfs.types.file import FileLike
 
 T = TypeVar("T")
 
-DirTree = Mapping[str, Union["DirTree[T]", T]]
+Tree = Mapping[str, Union["Tree[T]", T]]
 
-FileLikeTree = DirTree[FileLike]
+FileLikeTree = Tree[FileLike]

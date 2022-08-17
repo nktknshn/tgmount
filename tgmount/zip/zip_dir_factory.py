@@ -54,7 +54,13 @@ async def zip_file_factory(
 
     fc = FileContentIOGreenlet(file_content, file_handle)
 
-    return zipfile.ZipFile(fc)
+    try:
+        zf = zipfile.ZipFile(fc)
+    except zipfile.BadZipFile as e:
+        logger.error(f"zipfile.BadZipFile: {file_content}")
+        raise
+    else:
+        return zf
 
 
 async def file_content_factory(

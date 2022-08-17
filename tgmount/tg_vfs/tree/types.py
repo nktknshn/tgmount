@@ -36,7 +36,7 @@ MessagesTreeValue = Union[
 # MessagesTreeValue = MessagesTreeValueDir
 
 # MessagesTreeValue is what a value of tree may be
-MessagesTree = vfs.DirTree[
+MessagesTree = vfs.Tree[
     MessagesTreeValue[_T],
 ]
 
@@ -75,6 +75,11 @@ class Virt:
         tree: MessagesTreeValue[_T]
 
     # @dataclass
+    # class WithContext(Generic[_T]):
+    #     mapper: Callable[[WalkTreeContext], MessagesTreeValue[_T]]
+    #     tree: MessagesTreeValue[_T]
+
+    # @dataclass
     # class MapTree(Generic[_T]):
     #     mapper: Callable[
     #         [WalkTreeContext, MessagesTreeValue[_T]], MessagesTreeValue[_T]
@@ -82,7 +87,7 @@ class Virt:
 
 
 class MessagesTreeHandlerProto(Protocol[_T]):
-    def fstree(self, tree: MessagesTree[_T]) -> vfs.FsSourceTree:
+    def fstree(self, tree: MessagesTree[_T]) -> vfs.DirContentSourceTree:
         ...
 
     def dir_or_file_content(self, message: _T) -> vfs.DirContent | vfs.FileContent:

@@ -1,7 +1,8 @@
 import os
 from typing import Optional
 from zipfile import ZipFile, ZipInfo
-from tgmount.vfs import DirTree
+from tgmount.vfs import Tree
+from tgmount import util
 
 from tgmount.vfs.util import norm_and_parse_path
 from tgmount.util.func import (
@@ -10,7 +11,7 @@ from tgmount.util.func import (
     list_filter,
 )
 
-ZipTree = DirTree[ZipInfo]
+ZipTree = Tree[ZipInfo]
 
 
 def is_file(zi: ZipInfo):
@@ -106,3 +107,21 @@ def ls_zip_tree(zt: ZipTree, path: list[str] = []) -> Optional[ZipTree]:
         # return item
 
     return ls_zip_tree(item, path[1:])
+
+
+def get_uniq_name(names: list[str], name: str):
+    same = util.find(lambda a: a == name, names)
+
+    if same is None:
+        return name
+
+    idx = 2
+
+    while True:
+        new_name = f"{name}_{idx}"
+        same = util.find(lambda a: a == new_name, names)
+
+        if same is None:
+            return new_name
+
+        idx += 1

@@ -89,7 +89,7 @@ class Tgmount(TgmountBase):
 
     async def messages_to_fstree(
         self, messages: Iterable[Message]
-    ) -> vfs.FsSourceTree | vfs.FsSourceTreeValue:
+    ) -> vfs.DirContentSourceTree | vfs.FsSourceTreeValue:
 
         return self._files_factory.create_tree(
             {
@@ -144,7 +144,7 @@ class Tgmount(TgmountBase):
 
     async def create_dir(
         self, messages_source: tgclient.MessageSource
-    ) -> vfs.FsSourceTree | vfs.FsSourceTreeValue:
+    ) -> vfs.DirContentSourceTree | vfs.FsSourceTreeValue:
 
         return await self.messages_to_fstree(
             await messages_source.get_messages(),

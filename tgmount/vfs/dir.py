@@ -1,7 +1,5 @@
 from typing import (
     Iterable,
-    List,
-    Union,
 )
 
 from .types.dir import (
@@ -13,21 +11,21 @@ from .types.dir import (
 )
 
 
-def dir_content(*items: DirContentItem) -> DirContent:
+def dir_content(*items: DirContentItem) -> DirContent[None]:
     """Takes items as arguments and returns `DirContent`"""
 
-    async def f(handle, off):
+    async def readdir_func(handle: None, off):
         return items[off:]
 
-    return DirContent(readdir_func=f)
+    return DirContent(readdir_func=readdir_func)
 
 
 def vdir(
     fname: str,
-    content: Union[List[DirContentItem], DirContentProto | Iterable],
-    *,
-    plugins=None
+    content: DirContentProto | Iterable[DirContentItem],
 ) -> DirLike:
+    """Constructor for `DirLike`. `content` is either `DirContentProto`
+    or Iterable of `DirContentItem`"""
     if isinstance(content, (list, Iterable)):
         return DirLike(fname, DirContentList(list(content)))
     else:

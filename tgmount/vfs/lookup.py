@@ -7,7 +7,7 @@ from tgmount.vfs.types.dir import (
     is_directory,
 )
 from tgmount.vfs.util import norm_and_parse_path, napp
-from .dir_util import get_dir_content_items
+from .dir_util import read_dir_content
 
 
 async def dirlike_get_subitem_by_name(
@@ -60,7 +60,7 @@ async def dirlike_get_by_path_str(d: DirLike, path: str) -> Optional[DirContentI
 
 
 async def dirlike_ls(d: DirLike, path: list[str]) -> Optional[Iterable[DirContentItem]]:
-    """ """
+    """get a listing of a folder acessible by `path`. `path = []` or `path = ['/']` will return a listing of `d` itself"""
     item = await dirlike_get_by_path_list(d, path)
 
     if item is None:
@@ -69,6 +69,6 @@ async def dirlike_ls(d: DirLike, path: list[str]) -> Optional[Iterable[DirConten
     if not is_directory(item):
         return None
 
-    items = await get_dir_content_items(item.content)
+    items = await read_dir_content(item.content)
 
     return items

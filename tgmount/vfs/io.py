@@ -8,7 +8,7 @@ import greenback
 
 from tgmount.vfs.types.file import FileContentProto
 
-logger = logging.getLogger("tgvfs")
+logger = logging.getLogger("tgmount-vfs")
 
 
 class FileContentIO(IO[bytes]):

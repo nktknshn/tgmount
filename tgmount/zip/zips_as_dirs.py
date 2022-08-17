@@ -4,6 +4,8 @@ from tgmount.vfs.types.dir import DirContentItem
 from tgmount.zip.zip_dir_factory import DirContentZipFactory
 from dataclasses import dataclass
 from .zip_dir import DirContentZip
+from tgmount import util
+from .util import get_uniq_name
 
 
 @dataclass
@@ -82,17 +84,13 @@ class ZipsAsDirs(vfs.DirContentProto[ZipsAsDirsHandle]):
                 )
             )
 
-        if self._opt_recursive:
-            result_items.append(
-                vfs.DirLike(
-                    zip_dir_name,
-                    await self.wrap_dir_content(zip_dir),
-                ),
-            )
-        else:
-            result_items.append(
-                vfs.DirLike(zip_dir_name, zip_dir),
-            )
+        zip_dir_name = get_uniq_name(
+            list(map(lambda a: a.name, result_items)), zip_dir_name
+        )
+
+        result_items.append(
+            vfs.DirLike(zip_dir_name, zip_dir),
+        )
 
     async def _create_dir_content(
         self,
@@ -126,7 +124,9 @@ class ZipsAsDirs(vfs.DirContentProto[ZipsAsDirsHandle]):
 
 
 def zips_as_dirs(
-    tree_or_content: vfs.FsSourceTree | vfs.DirContentProto | Iterable[vfs.FileLike],
+    tree_or_content: vfs.DirContentSourceTree
+    | vfs.DirContentProto
+    | Iterable[vfs.FileLike],
     **kwargs,
 ) -> "ZipsAsDirs":
     """
@@ -135,7 +135,7 @@ def zips_as_dirs(
     """
     if vfs.is_tree(tree_or_content):
         return ZipsAsDirs(
-            vfs.create_dir_content_from_tree(tree_or_content),
+            vfs.dir_content_from_tree(tree_or_content),
             **kwargs,
         )
     elif isinstance(tree_or_content, Iterable):

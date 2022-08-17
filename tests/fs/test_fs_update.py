@@ -21,7 +21,7 @@ async def main1(
     init_logging(props["debug"])
 
     root1 = vfs.root(
-        vfs.create_dir_content_from_tree(
+        vfs.dir_content_from_tree(
             {
                 "subf": {
                     "aaa": vfs.text_content("aaaaaaa"),
@@ -32,7 +32,7 @@ async def main1(
     )
 
     root2 = vfs.root(
-        vfs.create_dir_content_from_tree(
+        vfs.dir_content_from_tree(
             {
                 "subf": {
                     "ccc": vfs.text_content("ccccccc"),

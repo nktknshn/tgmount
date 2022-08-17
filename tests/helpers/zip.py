@@ -5,10 +5,10 @@ from typing import (
     Tuple,
 )
 from zipfile import ZipFile
-from tgmount.vfs import FileLike, DirTree, read_file_content_bytes
+from tgmount.vfs import FileLike, Tree, read_file_content_bytes
 
 ZipSourceTreeValue = str | io.BytesIO | bytes
-ZipSourceTree = DirTree[ZipSourceTreeValue]
+ZipSourceTree = Tree[ZipSourceTreeValue]
 
 
 def zip_tree_to_list(
@@ -54,7 +54,9 @@ async def get_size(v: FileLike):
     return v.content.size
 
 
-async def get_file_content_str_utf8(v: FileLike) -> str:
+async def get_file_content_str_utf8(v: FileLike) -> str | bytes:
     bs = await read_file_content_bytes(v.content)
-
-    return bs.decode("utf-8")
+    try:
+        return bs.decode("utf-8")
+    except UnicodeDecodeError:
+        return bs

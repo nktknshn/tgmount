@@ -1,6 +1,6 @@
 import json
 from datetime import datetime
-from typing import List
+from typing import Callable, List, Optional, TypeVar
 
 import socks
 
@@ -20,7 +20,7 @@ def int_or_string(value: int | str):
 
 
 def parse_ids(input_str: str):
-    return [int(id) for id in input_str.split(',')]
+    return [int(id) for id in input_str.split(",")]
 
 
 class DateTimeEncoder(json.JSONEncoder):
@@ -32,11 +32,9 @@ class DateTimeEncoder(json.JSONEncoder):
 
 
 def dict_exclude(d: dict, keys: List):
-    return {
-        k: v for k, v in d.items() if k not in keys
-    }
+    return {k: v for k, v in d.items() if k not in keys}
 
 
 def proxy_arg(value):
-    [proxy_host, proxy_port] = value.split(':')
+    [proxy_host, proxy_port] = value.split(":")
     return (socks.SOCKS5, proxy_host, int(proxy_port))

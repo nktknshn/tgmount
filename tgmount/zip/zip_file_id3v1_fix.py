@@ -1,5 +1,9 @@
+import logging
+
 import zipfile
 from .zip_file import FileContentZip, ZipFileAsyncThunk, FileContentZipHandle
+
+logger = logging.getLogger("tgmount")
 
 
 class FileContentZipFixingId3v1(FileContentZip):
@@ -16,6 +20,7 @@ class FileContentZipFixingId3v1(FileContentZip):
         #     ".flac"
         # ):
         if size == 4096:
+            logger.warning(f"FileContentZipFixingId3v1.read_func()!!!")
             return b"\x00" * 4096
         else:
             return await self.read_func(handle, off, size)

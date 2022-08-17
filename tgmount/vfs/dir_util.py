@@ -16,7 +16,7 @@ from typing import (
 )
 
 from .file import file_content_from_file, text_content, vfile
-from .types import DirTree, FileLikeTree
+from .types import Tree, FileLikeTree
 from .types.dir import (
     DirContent,
     DirContentItem,
@@ -28,14 +28,16 @@ from .types.file import FileContent, FileContentProto, FileLike
 from .util import lazy_list_from_thunk
 
 
-def dir_content_from_dir(src_path: str) -> DirContent:
+def dir_content_from_fs(src_path: str) -> DirContent:
+    """Use real fily system to create `DirContent`"""
+
     def get_content():
         content = []
         for file_name in os.listdir(src_path):
             full_path = os.path.join(src_path, file_name)
 
             if os.path.isdir(full_path):
-                content.append(DirLike(file_name, dir_content_from_dir(full_path)))
+                content.append(DirLike(file_name, dir_content_from_fs(full_path)))
             elif os.path.isfile(full_path):
                 content.append(FileLike(file_name, file_content_from_file(full_path)))
 
@@ -81,22 +83,15 @@ def filter_dir_content_items(
 map_dir_content_f = lambda mapper: functools.partial(map_dir_content_items, mapper)
 
 
-async def get_dir_content_items(content: DirContentProto) -> Iterable[DirContentItem]:
-    handle = await content.opendir_func()
-    items = await content.readdir_func(handle, 0)
-    await content.releasedir_func(handle)
-
-    return items
-
-
-async def dir_content_get_tree(d: DirContentProto) -> FileLikeTree:
+async def tree_from_dir_content(d: DirContentProto) -> FileLikeTree:
+    """recursively consume `DirContentProto` returning `FileLikeTree`"""
     res: FileLikeTree = {}
 
-    items = await get_dir_content_items(d)
+    items = await read_dir_content(d)
 
     for item in items:
         if isinstance(item, DirLike):
-            res[item.name] = await dir_content_get_tree(item.content)
+            res[item.name] = await tree_from_dir_content(item.content)
 
         else:
             res[item.name] = item
@@ -104,16 +99,17 @@ async def dir_content_get_tree(d: DirContentProto) -> FileLikeTree:
     return res
 
 
-async def file_like_tree_map(
-    tree: FileLikeTree, f: Callable[[FileLike], Awaitable[Any]]
+async def map_file_like_tree(
+    mapper: Callable[[FileLike], Awaitable[Any]], tree: FileLikeTree
 ):
+    """map `FileLike` in FileLikeTree. Eg `file_like_tree_map({}, read_content_utf8)`"""
     res = {}
 
     for k, v in tree.items():
         if isinstance(v, FileLike):
-            res[k] = await f(v)
+            res[k] = await mapper(v)
         else:
-            res[k] = await file_like_tree_map(v, f)
+            res[k] = await map_file_like_tree(mapper, v)
 
     return res
 

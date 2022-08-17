@@ -12,7 +12,7 @@ R = TypeVar("R")
 Mapper = Callable[[WalkTreeContext, T], R]
 
 
-def walk_tree(tree: vfs.DirTree[T], mapper: Mapper[T, R], extra={}):
+def walk_tree(tree: vfs.Tree[T], mapper: Mapper[T, R], extra={}):
     context: WalkTreeContext = WalkTreeContext(extra=extra)
     return _walk_tree(context, tree, mapper)
 
@@ -27,7 +27,7 @@ def walk_value(tree_value: T, mapper: Mapper[T, R], extra={}):
 
 def _walk_tree(
     context: WalkTreeContext,
-    tree: vfs.DirTree[T],
+    tree: vfs.Tree[T],
     mapper: Mapper[T, R],
 ):
     # print(f"_walk_tree={list(tree.keys())}, path={context.path}")
@@ -51,5 +51,5 @@ def _walk_tree(
     return res
 
 
-def is_tree(v) -> TypeGuard[vfs.DirTree]:
+def is_tree(v) -> TypeGuard[vfs.Tree]:
     return isinstance(v, Mapping)

@@ -1,29 +1,20 @@
 from typing import (
-    Any,
-    Awaitable,
-    Callable,
-    Coroutine,
     Iterable,
-    List,
     Mapping,
-    Optional,
     TypeGuard,
-    TypeVar,
     Union,
-    overload,
 )
 
 from .dir import vdir, dir_content
-from .file import text_content, vfile
-from .types import DirTree, FileLikeTree
+from .file import vfile
+from .types import Tree
 from .types.dir import (
     DirContent,
     DirContentItem,
-    DirContentList,
     DirContentProto,
     DirLike,
 )
-from .types.file import FileContent, FileContentProto, FileLike
+from .types.file import FileContentProto, FileLike
 
 FsSourceTreeValue = Union[
     # dir
@@ -32,28 +23,27 @@ FsSourceTreeValue = Union[
     Iterable[DirLike],
     Iterable[DirLike | FileLike],
     # file
-    # str,
     FileContentProto,
 ]
 
-FsSourceTree = DirTree[FsSourceTreeValue]
+"""
+`DirContentSourceTree` represents structure that can be used as a source for building a DirContent
+"""
+DirContentSourceTree = Tree[FsSourceTreeValue]
 
 
-def is_tree(v) -> TypeGuard[FsSourceTree]:
+def is_tree(v) -> TypeGuard[DirContentSourceTree]:
     return isinstance(v, Mapping)
 
 
-def create_dir_content_from_tree(tree: FsSourceTree) -> DirContent:
+def dir_content_from_tree(tree: DirContentSourceTree) -> DirContent:
     content: list[DirContentItem] = []
 
     for k, v in tree.items():
         # DirTree case
 
         if is_tree(v):
-            content.append(vdir(k, create_dir_content_from_tree(v)))
-        # text content
-        elif isinstance(v, str):
-            content.append(vfile(k, text_content(v)))
+            content.append(vdir(k, dir_content_from_tree(v)))
         elif isinstance(v, (list, Iterable)):
             content.append(vdir(k, list(v)))
         elif DirContentProto.guard(v):

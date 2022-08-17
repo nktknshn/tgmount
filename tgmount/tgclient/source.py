@@ -8,17 +8,17 @@ import telethon
 from telethon.tl.custom import Message
 from telethon.errors import FileReferenceExpiredError
 from tgmount import vfs
-from tgmount.tg_vfs.mixins import ContentFunc, FileFunc
+
 from tgmount.tgclient import TgmountTelegramClient, TypeInputFileLocation
 
 from ._source import (
     SourceItem,
     SourceItemDocument,
     SourceItemPhoto,
-    TelegramFilesSourceBase,
 )
-from .types import InputSourceItem
-from .util import BLOCK_SIZE, split_range
+
+from ._source.types import InputSourceItem
+from ._source.util import BLOCK_SIZE, split_range
 
 logger = logging.getLogger("tgclient")
 
@@ -27,7 +27,7 @@ T = TypeVar("T")
 
 
 class TelegramFilesSource(
-    TelegramFilesSourceBase[InputSourceItem],
+    # TelegramFilesSourceBase[InputSourceItem],
 ):
     def __init__(
         self,

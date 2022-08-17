@@ -1,12 +1,10 @@
 import io
 from typing import (
     Iterable,
-    Tuple,
 )
-from zipfile import ZipFile
 
 import pytest
-from tgmount import vfs, fs
+from tgmount import vfs, zip as z
 
 from tgmount.zip import zips_as_dirs, zip_ls
 
@@ -151,9 +149,9 @@ async def test_zip3():
         )
     )
 
-    tree = await vfs.dir_content_get_tree(structure.content)
+    tree = await vfs.tree_from_dir_content(structure.content)
 
-    t = await vfs.file_like_tree_map(tree, get_file_content_str_utf8)
+    t = await vfs.map_file_like_tree(get_file_content_str_utf8, tree)
 
     assert t == source_tree
 
@@ -171,9 +169,9 @@ async def test_zip4(zip_file1):
         )
     )
 
-    tree = await vfs.dir_content_get_tree(structure.content)
+    tree = await vfs.tree_from_dir_content(structure.content)
 
-    t = await vfs.file_like_tree_map(tree, get_size)
+    t = await vfs.map_file_like_tree(get_size, tree)
 
     assert t == {
         "archive.zip": {
@@ -195,21 +193,9 @@ async def test_zip4(zip_file1):
 
 
 @pytest.mark.asyncio
-async def test_zip5():
-    source_tree: ZipSourceTree = {
-        "a1.txt": "hello gravity",
-        "a2.txt": "hello moon",
-        "b": {
-            "a3.txt": "hello starts",
-            "tvrdý.txt": "hello tvrdý",
-            "русский файл.txt": "hello русский файл",
-            "c": {
-                "nested.txt": "hello time",
-            },
-        },
-    }
+async def test_zip5(zip_tree1):
 
-    zf, zfdata = create_zip_from_tree(source_tree)
+    zf, zfdata = create_zip_from_tree(zip_tree1["a"])
 
     structure = vfs.root(
         zips_as_dirs(
@@ -218,8 +204,72 @@ async def test_zip5():
         )
     )
 
-    tree = await vfs.dir_content_get_tree(structure.content)
+    tree = await vfs.tree_from_dir_content(structure.content)
 
-    t = await vfs.file_like_tree_map(tree, get_file_content_str_utf8)
+    t = await vfs.map_file_like_tree(get_file_content_str_utf8, tree)
 
-    assert t == {"archive.zip": source_tree}
+    assert t == {"archive.zip": zip_tree1["a"]}
+
+
+@pytest.mark.asyncio
+async def test_zip6(zip_tree1):
+    """test recursive option"""
+    zf, zfdata = create_zip_from_tree(zip_tree1)
+
+    zfdata_bytes = zfdata.getbuffer()
+
+    tree = await vfs.tree_from_dir_content(
+        z.zips_as_dirs(
+            {"a": {"b": {"c.zip": vfs.file_content_from_bytes(zfdata_bytes)}}},
+            recursive=True,
+        )
+    )
+
+    t = await vfs.map_file_like_tree(get_file_content_str_utf8, tree)
+
+    assert t == {"a": {"b": {"c.zip": zip_tree1}}}
+
+    tree = await vfs.tree_from_dir_content(
+        z.zips_as_dirs(
+            {"a": {"b": {"c.zip": vfs.file_content_from_bytes(zfdata_bytes)}}},
+            recursive=False,
+        )
+    )
+
+    t = await vfs.map_file_like_tree(get_file_content_str_utf8, tree)
+
+    assert t == {"a": {"b": {"c.zip": zfdata_bytes}}}
+
+
+@pytest.mark.asyncio
+async def test_zip7(zip_tree1):
+    """test skip_folder_if_single_subfolder when zips has two identical root folders"""
+    zf, zfdata = create_zip_from_tree(zip_tree1)
+
+    structure = vfs.root(
+        z.zips_as_dirs(
+            {
+                "a": {
+                    "b": {
+                        "c.zip": vfs.file_content_from_io(zfdata),
+                        "cc.zip": vfs.file_content_from_io(zfdata),
+                    }
+                }
+            },
+            recursive=True,
+            skip_folder_if_single_subfolder=True,
+        )
+    )
+
+    tree = await vfs.tree_from_dir_content(structure.content)
+
+    t = await vfs.map_file_like_tree(get_file_content_str_utf8, tree)
+
+    assert t == {
+        "a": {
+            "b": {
+                "a": zip_tree1["a"],
+                "a_2": zip_tree1["a"],
+            }
+        }
+    }

@@ -63,7 +63,7 @@ def walk_messages_tree_value(
     #     )
 
     if is_tree(tree_value):
-        return vfs.create_dir_content_from_tree(
+        return vfs.dir_content_from_tree(
             {
                 k: walk_messages_tree_value(
                     ctx.push_path(k),
@@ -139,7 +139,7 @@ class MessagesTreeWalker(MessagesTreeWalkerProto):
 class TreeCreator:
     def create_tree(
         self: FileFunc, tree: MessagesTree | MessagesTreeValue
-    ) -> vfs.FsSourceTree | vfs.FsSourceTreeValue:
+    ) -> vfs.DirContentSourceTree | vfs.FsSourceTreeValue:
 
         walker = MessagesTreeWalker(self)
 
