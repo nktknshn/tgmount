@@ -7,7 +7,6 @@ from telethon import types
 
 from tgmount import vfs, tg_vfs, tgclient
 from tgmount.tgclient import TgmountTelegramClient
-from ..helpers.fixtures import mnt_dir, tgclient, get_client_with_source
 
 Client = TgmountTelegramClient
 

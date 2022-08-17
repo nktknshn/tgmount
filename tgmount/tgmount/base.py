@@ -21,7 +21,7 @@ class TgmountBase(TgmountProto):
         self._client = client
 
         self._messages_source = client
-        self._files_source = tg_vfs.TelegramFilesSource(client)
+        self._files_source = tgclient.TelegramFilesSource(client)
 
         self._vfs_root: Optional[vfs.VfsRoot] = None
         self._fs: Optional[fs.FileSystemOperationsUpdatable] = None

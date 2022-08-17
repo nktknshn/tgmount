@@ -1,1 +1,1 @@
-from .mixins import TelegramSearch
+from .search import TelegramSearch

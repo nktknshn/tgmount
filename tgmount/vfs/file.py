@@ -53,46 +53,9 @@ def vfile(
 
 
 def file_content_from_bytes(bs: bytes) -> FileContent:
-    lock = MyLock(f"file_content_from_bytes()", logger=logger)
-
-    async def _read(f: BytesIO, off, size):
-        logger.debug(f"file_content_from_io.read(off={off}, size={size})")
-
-        async with lock:
-            f.seek(off)
-            return f.read(size)
-
-    async def _open():
-        logger.debug(f"file_content_from_io.open()")
-        bio = BytesIO()
-        bio.write(bs)
-        bio.seek(0)
-
-        return bio
-
-    async def _seek(b: BytesIO, c, w=0):
-        logger.debug(f"file_content_from_io.seek(c={c}, w={w})")
-        async with lock:
-            b.seek(c, w)
-
-    async def _tell(b: BytesIO):
-        logger.debug(f"file_content_from_io.tell()")
-        async with lock:
-            return b.tell()
-
-    async def _close(b: BytesIO):
-        logger.debug(f"file_content_from_io.close()")
-        async with lock:
-            b.close()
-
-    return FileContent(
-        size=len(bs),
-        open_func=_open,
-        read_func=_read,
-        close_func=_close,
-        seek_func=_seek,
-        tell_func=_tell,
-    )
+    bio = BytesIO()
+    bio.write(bs)
+    return file_content_from_io(bio)
 
 
 def file_content_from_io(b: BytesIO) -> FileContent:

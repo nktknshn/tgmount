@@ -1,13 +1,14 @@
 from typing import Awaitable, Callable, Optional, Protocol, TypeVar
 
 import telethon
-from tgmount.tg_vfs import InputSourceItem
-from tgmount.tgclient import Document, Message
 
 from ._factory import CacheFactoryProto
 from ._storage import CacheBlockStorageMemory
 from .reader import CacheBlockReaderWriter
 from .types import DocId
+from tgmount.tgclient.files_source import get_downloadable_item
+
+Message = telethon.tl.custom.Message
 
 
 class CacheFactoryMemory(CacheFactoryProto[CacheBlockReaderWriter]):
@@ -29,8 +30,9 @@ class CacheFactoryMemory(CacheFactoryProto[CacheBlockReaderWriter]):
     async def get_cache(
         self,
         message: Message,
-        item: InputSourceItem,
     ) -> CacheBlockReaderWriter:
+
+        item = get_downloadable_item(message)
 
         if item.id in self._caches:
             return self._caches[item.id][1]

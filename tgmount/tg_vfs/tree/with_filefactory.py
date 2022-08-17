@@ -1,9 +1,9 @@
 from .message_tree import MessagesTree, MessagesTreeValue, Virt
-from ..file_factory import FileFactory
+from ..file_factory import FileFactoryMixin
 
 
 def with_filefactory(
-    file_factory: FileFactory,
+    file_factory: FileFactoryMixin,
     d: MessagesTree | MessagesTreeValue,
 ) -> MessagesTree | MessagesTreeValue:
     return Virt.MapContext(

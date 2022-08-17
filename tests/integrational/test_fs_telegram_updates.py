@@ -10,20 +10,16 @@ import pytest_asyncio
 import telethon
 import tgmount.fs as fs
 import tgmount.tgclient as tg
-from tgmount.tgclient import guards
 import tgmount.vfs as vfs
 from telethon import events, types
+from tests.helpers.tgclient import get_client_with_source
 from tgmount.logging import init_logging
 from tgmount.tg_vfs import FileFactory
+from tgmount.tgclient import guards
 
 from ..helpers.asyncio import task_from_blocking, wait_ev, wait_ev_async
-from ..helpers.fixtures import (
-    get_client_with_source,
-    mnt_dir,
-    tgapp_api,
-    tgclient_second,
-)
-from ..helpers.spawn import spawn_fs_ops, MountContext
+from ..helpers.fixtures import mnt_dir, tgapp_api, tgclient_second
+from ..helpers.spawn import MountContext, spawn_fs_ops
 
 Message = telethon.tl.custom.Message
 Document = telethon.types.Document
@@ -44,6 +40,7 @@ async def main_test1(
 ):
     init_logging(props["debug"])
     client, source = await get_client_with_source()
+
     files = FileFactory(source)
 
     messages = await client.get_messages_typed(

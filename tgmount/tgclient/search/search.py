@@ -15,10 +15,13 @@ from typing import (
 )
 
 from telethon import hints
+import telethon
 
-from tgmount.tgclient.types import Message, TypeMessagesFilter
+from tgmount.tgclient.types import TypeMessagesFilter
 
-from ..types import GetMessages, TotalListTyped
+Message = telethon.tl.custom.Message
+
+from .types import GetMessages, TotalListTyped
 
 
 class TelegramSearch(GetMessages):

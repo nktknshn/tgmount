@@ -1,60 +1,18 @@
+from abc import abstractmethod
+from typing import Callable, Mapping, Protocol, TypeGuard, TypeVar, cast
 from datetime import datetime
-from typing import (
-    Any,
-    Awaitable,
-    Callable,
-    Generic,
-    Optional,
-    Protocol,
-    TypeGuard,
-    TypeVar,
-    overload,
-)
 
-import telethon
-from tgmount import vfs
-from tgmount.tgclient import Document
 from telethon.tl.custom import Message
+from tgmount import vfs, tgclient
+from tgmount.tgclient import guards
 
-from tgmount.tgclient.guards import (
-    MessageDownloadable,
-    MessageWithAnimated,
-    MessageWithCircle,
-    MessageWithDocument,
-    MessageWithDocumentImage,
-    MessageWithFilename,
-    MessageWithMusic,
-    MessageWithOtherDocument,
-    MessageWithCompressedPhoto,
-    MessageWithSticker,
-    MessageWithVideo,
-    MessageWithVoice,
-    MessageWithZip,
-)
-
-from .types import InputSourceItem
-
-
-class FileContentProvider(Protocol):
-    def file_content(
-        self, message: Message, input_item: InputSourceItem
-    ) -> vfs.FileContent:
-        ...
+# from .mixins import FileContentProvider, FileFunc, FileFuncSupported
+from tgmount.tgclient.guards import *
+from .types import FileContentProto, FileFactoryProto
 
 
 def message_to_str(m: Message):
     return f"Message(id={m.id}, file={m.file}, media={m.media}, document={m.document})"
-
-
-T = TypeVar("T")
-
-
-class FileFuncProto(Protocol, Generic[T]):
-    def file(self, message: T) -> vfs.FileLike:
-        ...
-
-    def supports(self, message: Message) -> TypeGuard[T]:
-        ...
 
 
 FileFuncSupported = (
@@ -72,24 +30,12 @@ FileFuncSupported = (
     | MessageWithSticker
 )
 
-
-class ContentFunc(Protocol):
-    def content(
-        self: FileContentProvider,
-        message: MessageDownloadable,
-    ) -> vfs.FileContent:
-        if MessageWithCompressedPhoto.guard(message):
-            return self.file_content(message, message.photo)
-        elif MessageWithDocument.guard(message):
-            return self.file_content(message, message.document)
-
-        raise ValueError("incorret input message")
+T = TypeVar("T", bound=FileFuncSupported)
 
 
-class FileFunc(
-    FileFuncProto[FileFuncSupported],
-    ContentFunc,
-    FileContentProvider,
+class FileFactoryMixin(
+    FileContentProto,
+    FileFactoryProto[FileFuncSupported],
     Protocol,
 ):
     def supports(self, message: Message) -> TypeGuard[FileFuncSupported]:
@@ -142,6 +88,12 @@ class FileFunc(
 
         return vfs.FileLike(
             name if name is not None else self.filename(message),
-            content=self.content(message),
+            content=self.file_content(message),
             creation_time=creation_time,
         )
+
+    def nfile(self, namef: Callable[[T], str]) -> Callable[[T], vfs.FileLike]:
+        return lambda message: self.file(message, namef(message))
+
+    # def file_content(self, message: guards.MessageDownloadable) -> vfs.FileContent:
+    #     return self._files_source.file_content(message)

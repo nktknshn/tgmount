@@ -18,12 +18,13 @@ from telethon.hints import EntityLike, DateLike
 from telethon.client import TelegramClient
 
 # from tgmount.util import AsyncTypeGuard
-from tgmount.tgclient.types import Message, TypeMessagesFilter
+from tgmount.tgclient.types import TypeMessagesFilter
 from tgmount.util.guards import SyncTypeGuard
 
 T = TypeVar("T", contravariant=True)
 
 TT = TypeVar("TT")
+Message = telethon.tl.custom.Message
 
 
 class TotalListTyped(list[TT]):

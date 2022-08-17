@@ -2,14 +2,14 @@ import logging
 from datetime import datetime
 from random import random
 from time import time
-from typing import Any, Awaitable, Callable, TypeVar
+from typing import Any, Awaitable, Callable, Optional, TypeVar
 
 import telethon
 from telethon.tl.custom import Message
 from telethon.errors import FileReferenceExpiredError
 from tgmount import vfs
 
-from tgmount.tgclient import TgmountTelegramClient, TypeInputFileLocation
+from tgmount.tgclient import TgmountTelegramClient, TypeInputFileLocation, guards
 
 from ._source import (
     SourceItem,
@@ -19,11 +19,31 @@ from ._source import (
 
 from ._source.types import InputSourceItem
 from ._source.util import BLOCK_SIZE, split_range
+from .guards import MessageDownloadable
 
 logger = logging.getLogger("tgclient")
 
 
 T = TypeVar("T")
+
+
+def item_to_inner_object(input_item: InputSourceItem) -> SourceItem:
+    if isinstance(input_item, telethon.types.Photo):
+        item = SourceItemPhoto(input_item)
+    else:
+        item = SourceItemDocument(input_item)
+
+    return item
+
+
+def get_downloadable_item(message: MessageDownloadable) -> SourceItem:
+    if guards.MessageWithCompressedPhoto.guard(message):
+        return item_to_inner_object(message.photo)
+
+    if message.document is not None:
+        return item_to_inner_object(message.document)
+
+    raise ValueError(f"message {message} is not downloadable")
 
 
 class TelegramFilesSource(
@@ -38,22 +58,16 @@ class TelegramFilesSource(
         self.items_file_references: dict[int, bytes] = {}
         self.request_size = request_size
 
-    def _item_to_inner_object(self, input_item: InputSourceItem) -> SourceItem:
-        if isinstance(input_item, telethon.types.Photo):
-            item = SourceItemPhoto(input_item)
-        else:
-            item = SourceItemDocument(input_item)
-
-        return item
-
     def file_content(
-        self, message: Message, input_item: InputSourceItem
+        self,
+        message: MessageDownloadable
+        # , input_item: InputSourceItem
     ) -> vfs.FileContent:
 
-        item = self._item_to_inner_object(input_item)
+        item = get_downloadable_item(message)
 
         async def read_func(handle: Any, off: int, size: int) -> bytes:
-            return await self.item_read_function(message, input_item, off, size)
+            return await self.item_read_function(message, off, size)
 
         fc = vfs.FileContent(size=item.size, read_func=read_func)
 
@@ -61,24 +75,23 @@ class TelegramFilesSource(
 
     def get_read_function(
         self,
-        message: Message,
-        input_item: InputSourceItem,
+        message: MessageDownloadable,
+        # input_item: InputSourceItem,
     ) -> Callable[[int, int], Awaitable[bytes]]:
         async def _inn(offset: int, limit: int) -> bytes:
-            return await self.item_read_function(message, input_item, offset, limit)
+            return await self.item_read_function(message, offset, limit)
 
         return _inn
 
     async def item_read_function(
         self,
-        message: Message,
-        input_item: InputSourceItem,
+        message: MessageDownloadable,
+        # input_item: InputSourceItem,
         offset: int,
         limit: int,
     ) -> bytes:
-        item: SourceItem = self._item_to_inner_object(input_item)
 
-        return await self._item_read_function(message, item, offset, limit)
+        return await self._item_read_function(message, offset, limit)
 
     async def _get_item_input_location(self, item: SourceItem) -> TypeInputFileLocation:
         return item.input_location(
@@ -95,8 +108,11 @@ class TelegramFilesSource(
         self.items_file_references[item.id] = file_reference
 
     async def _update_item_file_reference(
-        self, message: Message, item: SourceItem
+        self, message: MessageDownloadable
     ) -> TypeInputFileLocation:
+
+        item = get_downloadable_item(message)
+
         refetched_msg: Message
 
         [refetched_msg] = await self.client.get_messages(
@@ -158,11 +174,12 @@ class TelegramFilesSource(
 
     async def _item_read_function(
         self,
-        message: Message,
-        item: SourceItem,
+        message: MessageDownloadable,
+        # item: SourceItem,
         offset: int,
         limit: int,
     ) -> bytes:
+        item = get_downloadable_item(message)
 
         logger.debug(
             f"TelegramFilesSource._item_read_function(Message(id={message.id},chat_id={message.chat_id}), item({message.file.name}, {item.id}, offset={offset}, limit={limit})"  # type: ignore
@@ -183,7 +200,7 @@ class TelegramFilesSource(
                 f"FileReferenceExpiredError was caught. file_reference for msg={item.id} needs refetching"
             )
 
-            input_location = await self._update_item_file_reference(message, item)
+            input_location = await self._update_item_file_reference(message)
 
             chunk = await self._retrieve_file_chunk(
                 input_location,

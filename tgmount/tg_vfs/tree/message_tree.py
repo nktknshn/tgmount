@@ -11,7 +11,9 @@ from .walk_tree import (
     walk_tree,
     walk_value,
 )
-from ..mixins import FileFunc
+from ..file_factory import FileFactoryMixin
+
+# from ..mixins import FileFunc
 
 
 class MessagesTreeWalkerProto(Protocol):
@@ -105,10 +107,10 @@ def walk_messages_tree_value(
 
 
 class MessagesTreeWalker(MessagesTreeWalkerProto):
-    def __init__(self, factory: FileFunc) -> None:
+    def __init__(self, factory: FileFactoryMixin) -> None:
         self.factory = factory
 
-    def get_file_factory(self, ctx: WalkTreeContext) -> FileFunc:
+    def get_file_factory(self, ctx: WalkTreeContext) -> FileFactoryMixin:
 
         factory = ctx.extra.get("file_factory")
 
@@ -138,7 +140,7 @@ class MessagesTreeWalker(MessagesTreeWalkerProto):
 
 class TreeCreator:
     def create_tree(
-        self: FileFunc, tree: MessagesTree | MessagesTreeValue
+        self: FileFactoryMixin, tree: MessagesTree | MessagesTreeValue
     ) -> vfs.DirContentSourceTree | vfs.FsSourceTreeValue:
 
         walker = MessagesTreeWalker(self)

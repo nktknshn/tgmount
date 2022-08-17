@@ -25,12 +25,9 @@ class FileLike:
 
     creation_time: datetime = datetime.now()
 
-    def __str__(self):
-        return f"FileLike({self.name})"
-
-    @property
-    def is_directory(self):
-        return False
+    # @property
+    # def is_directory(self):
+    #     return False
 
     @staticmethod
     def guard(item: Any) -> TypeGuard["FileLike"]:
@@ -42,7 +39,7 @@ T = TypeVar("T")
 
 class FileContentProto(Protocol, Generic[T]):
     """
-    Abstract source of data
+    Abstract source of file content
     """
 
     size: int
@@ -80,6 +77,8 @@ def async_constant(v):
 
 @dataclass
 class FileContent(FileContentProto):
+    """implementation of `FileContentProto` with functions"""
+
     size: int
 
     read_func: Callable[[Any, int, int], Awaitable[bytes]]

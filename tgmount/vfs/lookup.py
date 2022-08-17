@@ -4,7 +4,6 @@ from typing import Iterable, List, Optional
 from tgmount.vfs.types.dir import (
     DirContentItem,
     DirLike,
-    is_directory,
 )
 from tgmount.vfs.util import norm_and_parse_path, napp
 from .dir_util import read_dir_content
@@ -48,7 +47,7 @@ async def dirlike_get_by_path_list(
     if len(rest) == 0:
         return subitem
 
-    if not is_directory(subitem):
+    if not DirLike.guard(subitem):
         return None
 
     return await dirlike_get_by_path_list(subitem, rest)
@@ -66,7 +65,7 @@ async def dirlike_ls(d: DirLike, path: list[str]) -> Optional[Iterable[DirConten
     if item is None:
         return None
 
-    if not is_directory(item):
+    if not DirLike.guard(item):
         return None
 
     items = await read_dir_content(item.content)

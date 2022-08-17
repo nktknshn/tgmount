@@ -13,10 +13,12 @@ import tgmount.zip as z
 import tgmount.fs as fs
 
 from tgmount.logging import init_logging
-from tgmount.tg_vfs.source import TelegramFilesSource
+from tgmount.tgclient.files_source import TelegramFilesSource
 from tgmount.vfs import DirContentSourceTree
+from tgmount.tgclient import guards
 
-from ..helpers.fixtures import get_client_with_source, mnt_dir
+from ..helpers.fixtures import mnt_dir
+from ..helpers.tgclient import get_client_with_source
 from ..helpers.spawn import spawn_fs_ops
 
 Message = telethon.tl.custom.Message
@@ -28,16 +30,16 @@ InputMessagesFilterDocument = telethon.tl.types.InputMessagesFilterDocument
 
 async def messages_to_files_tree(
     source: TelegramFilesSource,
-    messages: list[Message],
+    messages: list[telethon.tl.custom.Message],
 ) -> DirContentSourceTree:
     return dict(
         [
             (
                 msg.file.name,
-                source.file_content(msg, msg.document),
+                source.file_content(msg),
             )
             for msg in messages
-            if msg.file.name is not None
+            if msg.file.name is not None and guards.is_downloadable(msg)
         ]
     )
 
@@ -120,7 +122,7 @@ class TackingSource(TelegramFilesSource):
 
         print(f"offset={offset} limit={limit}")
         print(f"self.total_asked = {self.total_asked}")
-        return await super().item_read_function(message, item, offset, limit)
+        return await super().item_read_function(message, offset, limit)
 
 
 # async def main_test2(props, _):

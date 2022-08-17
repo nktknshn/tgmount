@@ -2,25 +2,24 @@ import argparse
 import asyncio
 import logging
 from typing import (
-    Any,
-    Awaitable,
-    Callable,
     Iterable,
-    Mapping,
-    Optional,
-    TypeGuard,
-    TypeVar,
-    Union,
 )
 
 import yaml
 from telethon import events, types
 from telethon.tl.custom import Message
 
-from tgmount import cache, fs
-from tgmount import logging as tglog
-from tgmount import main, tg_vfs, tgclient, util, vfs
-from tgmount import zip as z
+from tgmount import (
+    cache,
+    fs,
+    logging as tglog,
+    main,
+    tg_vfs,
+    tgclient,
+    util,
+    vfs,
+    zip as z,
+)
 from tgmount.tgclient.guards import *
 from tgmount.tgmount import TgmountBase
 from tgmount.util import asyn as async_utils
@@ -41,7 +40,7 @@ def get_parser():
 
 
 def organized_with_zips(
-    zip_doc_file_factory: tg_vfs.FileFactory,
+    zip_doc_file_factory: tg_vfs.FileFactoryMixin,
 ):
     return tg_vfs.helpers.organized(
         lambda d: tg_vfs.helpers.skip_empty_dirs(
@@ -191,9 +190,9 @@ async def mount():
 
     tglog.init_logging(debug=args.debug)
 
-    client = await main.util.get_tgclient(
-        main.util.read_tgapp_api(),
-    )
+    api_id, api_hash = main.util.read_tgapp_api()
+
+    client = tgclient.TgmountTelegramClient("tgfs", api_id, api_hash)
 
     tgm = Tgmount(
         client,

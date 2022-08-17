@@ -128,7 +128,7 @@ class MessageWithFilename(Message):
         return f"{msg.id}_{msg.file.name}"
 
 
-class MessageWithCompressedPhoto(Message):
+class MessageWithCompressedPhoto(MessageWithDocument):
     """message with compressed image"""
 
     file: File
@@ -154,7 +154,7 @@ def is_downloadable(
     return MessageWithDocument.guard(msg) or MessageWithCompressedPhoto.guard(msg)
 
 
-class MessageWithDocumentImage(Message):
+class MessageWithDocumentImage(MessageWithDocument):
     """message with uncompressed image"""
 
     file: File
@@ -174,7 +174,7 @@ class MessageWithDocumentImage(Message):
         return f"{msg.id}_{msg.file.name}"
 
 
-class MessageWithZip(Message):
+class MessageWithZip(MessageWithDocument):
     """message with a zip file"""
 
     file: File
@@ -194,7 +194,7 @@ class MessageWithZip(Message):
         return f"{msg.id}_{msg.file.name}"
 
 
-class MessageWithVideo(Message):
+class MessageWithVideo(MessageWithDocument):
     """circles, video documents, stickers, gifs"""
 
     file: File
@@ -217,7 +217,7 @@ class MessageWithVideo(Message):
         return f"{msg.id}_video{msg.file.ext}"
 
 
-class MessageWithSticker(Message):
+class MessageWithSticker(MessageWithDocument):
     """stickers"""
 
     file: File
@@ -232,7 +232,7 @@ class MessageWithSticker(Message):
         return f"{msg.id}_sticker_{msg.file.name}"
 
 
-class MessageWithCircle(Message):
+class MessageWithCircle(MessageWithDocument):
     # class MessageWithCircle(Message):
     """circles"""
 
@@ -258,7 +258,7 @@ class MessageWithCircle(Message):
         return f"{msg.id}_circle{msg.file.ext}"
 
 
-class MessageWithVideoCompressed(Message):
+class MessageWithVideoCompressed(MessageWithDocument):
     """compressed video documents"""
 
     file: File
@@ -274,7 +274,7 @@ class MessageWithVideoCompressed(Message):
         )
 
 
-class MessageWithVideoDocument(Message):
+class MessageWithVideoDocument(MessageWithDocument):
     """uncompressed video documents"""
 
     file: File
@@ -290,7 +290,7 @@ class MessageWithVideoDocument(Message):
         )
 
 
-class MessageWithAnimated(Message):
+class MessageWithAnimated(MessageWithDocument):
     """stickers, gifs"""
 
     file: File
@@ -307,7 +307,7 @@ class MessageWithAnimated(Message):
         return msg.document is not None and video is not None and animated is True
 
 
-class MessageWithAudio(Message):
+class MessageWithAudio(MessageWithDocument):
     """voices and music"""
 
     document: Document
@@ -326,7 +326,7 @@ class MessageWithAudio(Message):
         return audio is not None
 
 
-class MessageWithVoice(Message):
+class MessageWithVoice(MessageWithDocument):
     file: File
     document: Document
 
@@ -402,7 +402,7 @@ class MessageWithText(Message):
         return isinstance(msg.message, str) and len(msg.message) > 0
 
 
-class MessageWithOtherDocument(Message):
+class MessageWithOtherDocument(MessageWithDocument):
     """other documents with file name"""
 
     document: Document

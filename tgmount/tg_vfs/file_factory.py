@@ -1,33 +1,13 @@
-from typing import Callable, Mapping, TypeGuard, TypeVar, cast
-
-from telethon.tl.custom import Message
-from tgmount import vfs
-
+from .types import FileContentProto
 from .tree.message_tree import TreeCreator
-from .mixins import ContentFunc, FileContentProvider, FileFunc, FileFuncSupported
-from .types import InputSourceItem
+from tgmount.tgclient import guards
+from tgmount import vfs
+from .file_factory_mixin import FileFactoryMixin
 
-T = TypeVar("T", bound=FileFuncSupported)
 
-
-class FileFactory(
-    FileFunc,
-    ContentFunc,
-    TreeCreator,
-):
-    def __init__(self, files_source: FileContentProvider) -> None:
+class FileFactory(TreeCreator, FileFactoryMixin):
+    def __init__(self, files_source: FileContentProto) -> None:
         self._files_source = files_source
 
-    def file(
-        self,
-        message: FileFuncSupported,
-    ) -> vfs.FileLike:
-        return FileFunc.file(self, message)
-
-    def nfile(self, namef: Callable[[T], str]) -> Callable[[T], vfs.FileLike]:
-        return lambda message: FileFunc.file(self, message, namef(message))
-
-    def file_content(
-        self, message: Message, input_item: InputSourceItem
-    ) -> vfs.FileContent:
-        return self._files_source.file_content(message, input_item)
+    def file_content(self, message: guards.MessageDownloadable) -> vfs.FileContent:
+        return self._files_source.file_content(message)
