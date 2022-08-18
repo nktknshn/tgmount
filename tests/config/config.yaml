@@ -1,0 +1,48 @@
+mount_dir: /home/hrn/mnt/tgmount1
+# client settings
+client:
+  session: tgfs
+  api_id: 123
+  api_hash: deadbeed121212121
+# caches
+caches:
+  memory1:
+    type: memory
+    capacity: 50MB
+    block_size: 128KB
+# every source is a separate get_messages request
+message_sources:
+  tmtc_music:
+    entity: tgmounttestingchannel
+    filter: InputMessagesFilterMusic
+  ru2chmu:
+    entity: ru2chmu
+    limit: 3000
+    reverse: False
+    updates: True
+# wrappers
+wrappers:
+  zip1:
+    plugin: zip
+    recursive: True
+    skip_folder_if_single_subfolder: True
+    hide_sources: True
+# root
+root:
+  source: ru2chmu
+  uniq_docs: True
+  dirs:
+    music:
+      filter: MessageWithMusic
+    visual:
+      filter:
+        [
+          MessageWithMusic,
+          MessageWithCompressedPhoto,
+          MessageWithDocumentImage,
+          MessageWithVideoCompressed,
+        ]
+    docs:
+      filter: MessageWithOtherDocument
+      cache: memory1
+      wrappers: zip1
