@@ -67,7 +67,7 @@ class TelegramFilesSource(
         item = get_downloadable_item(message)
 
         async def read_func(handle: Any, off: int, size: int) -> bytes:
-            return await self.item_read_function(message, off, size)
+            return await self.read(message, off, size)
 
         fc = vfs.FileContent(size=item.size, read_func=read_func)
 
@@ -79,14 +79,13 @@ class TelegramFilesSource(
         # input_item: InputSourceItem,
     ) -> Callable[[int, int], Awaitable[bytes]]:
         async def _inn(offset: int, limit: int) -> bytes:
-            return await self.item_read_function(message, offset, limit)
+            return await self.read(message, offset, limit)
 
         return _inn
 
-    async def item_read_function(
+    async def read(
         self,
         message: MessageDownloadable,
-        # input_item: InputSourceItem,
         offset: int,
         limit: int,
     ) -> bytes:

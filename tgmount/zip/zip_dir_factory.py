@@ -40,7 +40,7 @@ ZipDirContentFactory = Callable[
 ]
 
 
-async def zip_file_factory(
+async def zipfile_factory(
     file_content: vfs.FileContentProto,
 ) -> zipfile.ZipFile:
     """async thunk so tasks can spawn their own handles for reading files inside a zip"""
@@ -79,38 +79,19 @@ class DirContentZipFactory:
 
     def __init__(
         self,
-        zip_file_factory=zip_file_factory,
+        zipfile_factory=zipfile_factory,
         file_content_factory=file_content_factory,
         dir_content_factory=vfs.DirContentList,
     ) -> None:
         self._file_content_factory: FileContentFactory = file_content_factory
-        self._get_zipfile: ZipFileFactory = zip_file_factory
+        self._zipfile_factory: ZipFileFactory = zipfile_factory
         self._dir_content_factory = dir_content_factory
 
     def _get_thunk(self, file_content: vfs.FileContentProto) -> ZipFileAsyncThunk:
         async def _inner() -> zipfile.ZipFile:
-            return await self._get_zipfile(file_content)
+            return await self._zipfile_factory(file_content)
 
         return _inner
-
-    async def _create_filelike(
-        self, file_content: vfs.FileContentProto, zinfo: zipfile.ZipInfo
-    ) -> vfs.FileLike:
-        return vfs.FileLike(
-            os.path.basename(zinfo.filename),
-            await self._file_content_factory(self._get_thunk(file_content), zinfo),
-        )
-
-    async def _create_dirlike(
-        self,
-        file_content: vfs.FileContentProto,
-        dir_name: str,
-        dir_zt: ZipTree,
-    ):
-        return vfs.DirLike(
-            dir_name,
-            await self.create_dir_content_from_ziptree(file_content, dir_zt),
-        )
 
     async def create_dir_content_from_ziptree(
         self,
@@ -135,12 +116,12 @@ class DirContentZipFactory:
 
         return self._dir_content_factory([*subfilelikes, *subdirlikes])
 
-    async def get_zip_tree(
+    async def get_ziptree(
         self,
         file_content: vfs.FileContentProto,
         path=[],
     ):
-        zf = await self._get_zipfile(file_content)
+        zf = await self._zipfile_factory(file_content)
 
         zt = get_zip_tree(get_zipinfo_list(zf))
 
@@ -160,6 +141,25 @@ class DirContentZipFactory:
         path: List[str] = [],
     ) -> vfs.DirContentProto:
 
-        zt = await self.get_zip_tree(file_content, path)
+        zt = await self.get_ziptree(file_content, path)
 
         return await self.create_dir_content_from_ziptree(file_content, zt)
+
+    async def _create_filelike(
+        self, file_content: vfs.FileContentProto, zinfo: zipfile.ZipInfo
+    ) -> vfs.FileLike:
+        return vfs.FileLike(
+            os.path.basename(zinfo.filename),
+            await self._file_content_factory(self._get_thunk(file_content), zinfo),
+        )
+
+    async def _create_dirlike(
+        self,
+        file_content: vfs.FileContentProto,
+        dir_name: str,
+        dir_zt: ZipTree,
+    ):
+        return vfs.DirLike(
+            dir_name,
+            await self.create_dir_content_from_ziptree(file_content, dir_zt),
+        )

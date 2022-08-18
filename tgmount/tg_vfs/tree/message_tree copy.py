@@ -5,21 +5,21 @@ from telethon.tl.custom import Message
 from tgmount import vfs
 from tgmount.tgclient.guards import MessageDownloadable
 
-from .types import MessagesTree, MessagesTreeValue, MessagesTreeValueDir, Virt
-from tgmount.vfs.map_tree import (
+from .types import MessagesTree, MessagesTreeValue, Virt
+from vfs.map_tree import (
     MapTreeContext,
     TreeMapper,
     is_tree,
     map_tree,
     map_value,
 )
-from ..file_factory_mixin import FileFactoryMixin, FileFuncSupported
+from ..file_factory_mixin import FileFactoryMixin
 
 # from ..mixins import FileFunc
 
-# MessagesTreeMapperFunction = TreeMapper[
-#     MessagesTreeValue,
-# ]
+MessagesTreeMapperFunction = TreeMapper[
+    MessagesTreeValue,
+]
 
 
 class MessagesTreeMapperProto(Protocol):
@@ -36,25 +36,23 @@ def messages_tree_mapper(messages_tree_mapper: MessagesTreeMapperProto) -> TreeM
     def _mapper(
         ctx: MapTreeContext,
         tree_value: MessagesTreeValue,
-    ) -> vfs.DirContentProto | vfs.FileContentProto:
-        if vfs.FileContentProto.guard(tree_value):
-            return tree_value
-
-        return map_value_dir(ctx, messages_tree_mapper, tree_value)
+    ):
+        return map_messages_tree_value(ctx, messages_tree_mapper, tree_value)
 
     return _mapper
 
 
-def map_value_dir(
+def map_messages_tree_value(
     ctx: MapTreeContext,
     messages_tree_mapper: MessagesTreeMapperProto,
-    tree_value: MessagesTreeValueDir,
+    tree_value: MessagesTree | MessagesTreeValue,
+    # tree_value: MessagesTree | MessagesTreeValue,
 ) -> vfs.DirContentProto:
     # print(f"walk_messages_tree_value(path={ctx.path}")
 
     if isinstance(tree_value, Virt.MapContent):
         return tree_value.mapper(
-            map_value_dir(
+            map_messages_tree_value(
                 ctx,
                 messages_tree_mapper,
                 tree_value.content,
@@ -62,7 +60,7 @@ def map_value_dir(
         )
 
     if isinstance(tree_value, Virt.MapContext):
-        return map_value_dir(
+        return map_messages_tree_value(
             tree_value.mapper(ctx),
             messages_tree_mapper,
             tree_value.tree,
@@ -78,7 +76,7 @@ def map_value_dir(
     if is_tree(tree_value):
         return vfs.dir_content_from_tree(
             {
-                k: map_value_dir(
+                k: map_messages_tree_value(
                     ctx.push_path(k),
                     messages_tree_mapper,
                     v,
@@ -136,7 +134,7 @@ class MessagesTreeMapper(MessagesTreeMapperProto):
     def map_dir(self, ctx: MapTreeContext, dir: Virt.Dir) -> vfs.DirLike:
         # print(f"walk_dir: {ctx} dir.name={dir.name} dir.content={dir.content}")
 
-        content = map_value_dir(
+        content = map_messages_tree_value(
             ctx,
             self,
             dir.content,
@@ -159,15 +157,15 @@ class MessagesTreeMapper(MessagesTreeMapperProto):
 class TreeCreator:
     def create_tree(
         self: FileFactoryMixin,
-        tree: MessagesTreeValueDir[FileFuncSupported],
+        tree: MessagesTree | MessagesTreeValue,
     ) -> vfs.DirContentSource:
 
-        mapper = MessagesTreeMapper(self)
+        walker = MessagesTreeMapper(self)
 
         if is_tree(tree):
             return map_tree(
                 tree,
-                messages_tree_mapper(mapper),
+                messages_tree_mapper(walker),
             )
 
-        return map_value(tree, messages_tree_mapper(mapper))
+        return map_value(tree, messages_tree_mapper(walker))

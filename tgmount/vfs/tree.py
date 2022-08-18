@@ -16,12 +16,16 @@ from .types.dir import (
 )
 from .types.file import FileContentProto, FileLike
 
-FsSourceTreeValue = Union[
+DirContentSourceTreeValueDir = Union[
     # dir
     DirContentProto,
     Iterable[FileLike],
     Iterable[DirLike],
     Iterable[DirLike | FileLike],
+]
+DirContentSourceTreeValue = Union[
+    # dir
+    DirContentSourceTreeValueDir,
     # file
     FileContentProto,
 ]
@@ -29,7 +33,9 @@ FsSourceTreeValue = Union[
 """
 `DirContentSourceTree` represents structure that can be used as a source for building a DirContent
 """
-DirContentSourceTree = Tree[FsSourceTreeValue]
+DirContentSourceTree = Tree[DirContentSourceTreeValue]
+
+DirContentSource = DirContentSourceTree | DirContentSourceTreeValueDir
 
 
 def is_tree(v) -> TypeGuard[DirContentSourceTree]:
@@ -45,7 +51,10 @@ def dir_content_from_tree(tree: DirContentSourceTree) -> DirContent:
         if is_tree(v):
             content.append(vdir(k, dir_content_from_tree(v)))
         elif isinstance(v, (list, Iterable)):
-            content.append(vdir(k, list(v)))
+            if not isinstance(v, Mapping):
+                content.append(vdir(k, list(v)))
+            else:
+                raise ValueError(f"{v} shouldnt be Mapping here")
         elif DirContentProto.guard(v):
             content.append(vdir(k, v))
         elif FileContentProto.guard(v):

@@ -27,13 +27,16 @@ from .file import (
     text_file,
     vfile,
     file_content_from_bytes,
+    file_content,
 )
 from .root import VfsRoot, root
 from .tree import (
     DirContentSourceTree,
-    FsSourceTreeValue,
+    DirContentSourceTreeValue,
     dir_content_from_tree,
     is_tree,
+    DirContentSource,
+    DirContentSourceTreeValueDir,
 )
 from .types import Tree
 from .util import napp, nappb, norm_and_parse_path

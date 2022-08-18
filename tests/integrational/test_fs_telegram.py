@@ -122,7 +122,7 @@ class TackingSource(TelegramFilesSource):
 
         print(f"offset={offset} limit={limit}")
         print(f"self.total_asked = {self.total_asked}")
-        return await super().item_read_function(message, offset, limit)
+        return await super().read(message, offset, limit)
 
 
 # async def main_test2(props, _):

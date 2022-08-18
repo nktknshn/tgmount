@@ -23,4 +23,4 @@ class FileContentZipFixingId3v1(FileContentZip):
             logger.warning(f"FileContentZipFixingId3v1.read_func()!!!")
             return b"\x00" * 4096
         else:
-            return await self.read_func(handle, off, size)
+            return await super().read_func(handle, off, size)

@@ -19,6 +19,7 @@ from tgmount import (
     util,
     vfs,
     zip as z,
+    logging as log,
 )
 from tgmount.tgclient.guards import *
 from tgmount.tgmount import TgmountBase
@@ -39,38 +40,22 @@ def get_parser():
     return parser
 
 
-def organized_with_zips(
-    zip_doc_file_factory: tg_vfs.FileFactoryMixin,
-):
-    return tg_vfs.helpers.organized(
-        lambda d: tg_vfs.helpers.skip_empty_dirs(
-            {
-                **d,
-                "docs": tg_vfs.with_filefactory(
-                    zip_doc_file_factory,
-                    tg_vfs.Virt.MapContent(
-                        z.zip_as_dir_in_content,
-                        d["docs"],
-                    ),
-                ),
-            }
-        )
-    )
+class LaggingSource(tgclient.TelegramFilesSource):
+    def __init__(self, client: tgclient.TgmountTelegramClient) -> None:
+        super().__init__(client)
 
-
-by_user = tg_vfs.helpers.messages_by_user_func(
-    lambda by_user, less, nones: [
-        *[
-            tg_vfs.Virt.Dir(k, organized_with_zips(self.files_factory_cached)(v))
-            for k, v in by_user.items()
-        ],
-        *less,
-    ],
-)
+    async def read(
+        self, message: MessageDownloadable, offset: int, limit: int
+    ) -> bytes:
+        # logger.debug("LAG!")
+        # await asyncio.sleep(30)
+        return await super().read(message, offset, limit)
 
 
 class Tgmount(TgmountBase):
     """Wrapper for everything yay"""
+
+    file_source_cls = LaggingSource
 
     def __init__(
         self,
@@ -80,23 +65,23 @@ class Tgmount(TgmountBase):
     ) -> None:
         super().__init__(client)
 
-        self._messages: dict[str, list[Message]] = {}
+        # self._messages: dict[str, list[Message]] = {}
         self._chat_id = chat_id
         self._limit = limit
 
         self.create_message_sources()
 
-    async def messages_to_fstree(
-        self, messages: Iterable[Message]
-    ) -> vfs.DirContentSourceTree | vfs.FsSourceTreeValue:
+    async def messages_to_fstree(self, messages: list[Message]) -> vfs.DirContentSource:
+        async def failing_read(handle, off, size):
+            raise telethon.errors.TimeoutError(None)
 
-        return self._files_factory.create_tree(
+        return self.files_factory.create_tree(
             {
                 "music": tg_vfs.helpers.uniq_docs(
                     filter(MessageWithMusic.guard, messages)
                 ),
                 "music-alter-names": map(
-                    self._files_factory.nfile(
+                    self.files_factory.nfile(
                         lambda msg: f"alter_{msg.id}_{msg.file.performer}_{msg.file.title}{msg.file.ext}"
                         if msg.file.performer
                         else MessageWithMusic.filename(msg)
@@ -106,44 +91,35 @@ class Tgmount(TgmountBase):
                 "music-by-performer": tg_vfs.helpers.music_by_performer(
                     tg_vfs.helpers.uniq_docs(filter(MessageWithMusic.guard, messages))
                 ),
-                "organized": organized_with_zips(self.files_factory)(messages),
-                "zips-as-dirs": map(
-                    z.zip_as_dir,
+                "ioerror.txt": vfs.file_content(666, failing_read),
+                # "organized": organized_with_zips(self.files_factory)(messages),
+                "zips-as-dirs": z.zips_as_dirs(
                     map(
-                        self._files_factory_cached.file,
-                        filter(MessageWithZip.guard, messages),
+                        lambda m: self.files_factory_cached.file(m)
+                        if MessageWithZip.guard(m)
+                        else self.files_factory.file(m),
+                        filter(MessageWithOtherDocument.guard, messages),
                     ),
+                    skip_folder_if_single_subfolder=True,
                 ),
-                "zips-single": await async_utils.wait_all(
-                    map(
-                        z.zip_as_dir_s(
-                            skip_folder_if_single_subfolder=True,
-                            skip_folder_prefix=1,
-                        ),
-                        map(
-                            self.files_factory_cached.file,
-                            filter(MessageWithZip.guard, messages),
-                        ),
-                    )
-                ),
-                "by-user": await by_user(
-                    filter(
-                        guards(
-                            MessageWithMusic.guard,
-                            MessageWithOtherDocument.guard,
-                            MessageWithVideo.guard,
-                            MessageWithVoice.guard,
-                        ),
-                        messages,
-                    ),
-                    minimum=2,
-                ),
+                # "zips-single": await async_utils.wait_all(
+                #     map(
+                #         z.zip_as_dir_s(
+                #             skip_folder_if_single_subfolder=True,
+                #             skip_folder_prefix=1,
+                #         ),
+                #         map(
+                #             self.files_factory_cached.file,
+                #             filter(MessageWithZip.guard, messages),
+                #         ),
+                #     )
+                # ),
             }
         )
 
     async def create_dir(
         self, messages_source: tgclient.MessageSource
-    ) -> vfs.DirContentSourceTree | vfs.FsSourceTreeValue:
+    ) -> vfs.DirContentSourceTree | vfs.DirContentSourceTreeValueDir:
 
         return await self.messages_to_fstree(
             await messages_source.get_messages(),
@@ -175,10 +151,11 @@ class Tgmount(TgmountBase):
     async def vfs_root(self) -> vfs.VfsRoot:
 
         vfs_root = vfs.root(
-            {
-                self._chat_id: await self.create_dir(self._ms1),
-                "tgmounttestingchannel": await self.create_dir(self._ms2),
-            }
+            await self.create_dir(self._ms2)
+            # {
+            #     self._chat_id: await self.create_dir(self._ms1),
+            #     "tgmounttestingchannel": await self.create_dir(self._ms2),
+            # }
         )
 
         return vfs_root
@@ -193,6 +170,8 @@ async def mount():
     api_id, api_hash = main.util.read_tgapp_api()
 
     client = tgclient.TgmountTelegramClient("tgfs", api_id, api_hash)
+
+    await client.auth()
 
     tgm = Tgmount(
         client,

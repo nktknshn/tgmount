@@ -22,6 +22,24 @@ from tgmount.vfs.util import MyLock
 logger = logging.getLogger("tgvfs")
 
 
+def vfile(
+    fname: str,
+    content: FileContentProto,
+    creation_time: Optional[datetime] = None,
+):
+    if creation_time is None:
+        creation_time = datetime.now()
+
+    return FileLike(fname, content, creation_time)
+
+
+def file_content(
+    size: int,
+    read_func: Callable[[Any, int, int], Awaitable[bytes]],
+):
+    return FileContent(size, read_func)
+
+
 def simple_read(content: str):
     async def _inner(handle, off, size):
         return str.encode(content[off : off + size])
@@ -39,17 +57,6 @@ def text_file(fname: str, text_str: str, creation_time=None):
         text_content(text_str),
         creation_time if creation_time is not None else datetime.now(),
     )
-
-
-def vfile(
-    fname: str,
-    content: FileContentProto,
-    creation_time: Optional[datetime] = None,
-):
-    if creation_time is None:
-        creation_time = datetime.now()
-
-    return FileLike(fname, content, creation_time)
 
 
 def file_content_from_bytes(bs: bytes) -> FileContent:

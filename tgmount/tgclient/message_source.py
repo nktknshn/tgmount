@@ -63,7 +63,7 @@ class MessageSource:
         for listener in self._listeners:
             await listener(event, self._messages[:])
 
-    async def get_messages(self) -> Iterable[Message]:
+    async def get_messages(self) -> list[Message]:
 
         if self._messages is not None:
             return self._messages

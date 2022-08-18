@@ -9,10 +9,13 @@ from tgmount.util import asyn as async_utils, func, guards
 
 
 class TgmountProto(Protocol):
+    file_source_cls: Type[tgclient.TelegramFilesSource]
     ...
 
 
 class TgmountBase(TgmountProto):
+    file_source_cls = tgclient.TelegramFilesSource
+
     def __init__(
         self,
         client: tgclient.TgmountTelegramClient,
@@ -21,7 +24,7 @@ class TgmountBase(TgmountProto):
         self._client = client
 
         self._messages_source = client
-        self._files_source = tgclient.TelegramFilesSource(client)
+        self._files_source = self.file_source_cls(client)
 
         self._vfs_root: Optional[vfs.VfsRoot] = None
         self._fs: Optional[fs.FileSystemOperationsUpdatable] = None

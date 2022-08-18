@@ -1,13 +1,14 @@
 from abc import abstractmethod
-from typing import Callable, Mapping, Protocol, TypeGuard, TypeVar, cast
 from datetime import datetime
+from typing import Callable, Mapping, Protocol, TypeGuard, TypeVar, cast
 
 from telethon.tl.custom import Message
-from tgmount import vfs, tgclient
+from tgmount import tgclient, vfs
 from tgmount.tgclient import guards
 
 # from .mixins import FileContentProvider, FileFunc, FileFuncSupported
 from tgmount.tgclient.guards import *
+
 from .types import FileContentProto, FileFactoryProto
 
 
@@ -94,6 +95,3 @@ class FileFactoryMixin(
 
     def nfile(self, namef: Callable[[T], str]) -> Callable[[T], vfs.FileLike]:
         return lambda message: self.file(message, namef(message))
-
-    # def file_content(self, message: guards.MessageDownloadable) -> vfs.FileContent:
-    #     return self._files_source.file_content(message)
