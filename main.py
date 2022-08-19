@@ -7,7 +7,7 @@ from pprint import pprint
 
 import yaml
 
-from tgmount.config import *
+from tgmount.config import Config, ConfigValidator
 from tgmount.util import col
 
 
@@ -22,16 +22,16 @@ def get_parser():
 
 def main():
     # parser = get_parser()
-
     # args = parser.parse_args()
-
+    validator = ConfigValidator()
     args = dict(config="tests/config/config.yaml")
 
     with open(args["config"], "r+") as f:
         cfg_dict: dict = yaml.safe_load(f)
-        cfg = Config.from_dict(cfg_dict)
 
-        pprint(verify_config(cfg))
+    cfg = Config.from_dict(cfg_dict)
+
+    validator.verify_config(cfg)
 
 
 if __name__ == "__main__":

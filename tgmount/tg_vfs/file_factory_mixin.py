@@ -20,10 +20,9 @@ FileFuncSupported = (
     MessageWithCompressedPhoto
     | MessageWithVideo
     | MessageWithDocument
-    # | MessageWithFilename
     | MessageWithDocumentImage
     | MessageWithVoice
-    | MessageWithCircle
+    | MessageWithKruzhochek
     | MessageWithZip
     | MessageWithMusic
     | MessageWithAnimated
@@ -49,7 +48,7 @@ class FileFactoryMixin(
                     MessageWithFilename.guard,
                     MessageWithDocumentImage.guard,
                     MessageWithVoice.guard,
-                    MessageWithCircle.guard,
+                    MessageWithKruzhochek.guard,
                     MessageWithZip.guard,
                     MessageWithMusic.guard,
                     MessageWithDocument.guard,
@@ -72,7 +71,7 @@ class FileFactoryMixin(
             return MessageWithSticker.filename(message)
         elif MessageWithAnimated.guard(message):
             return f"{message.id}_gif{message.file.ext}"
-        elif MessageWithCircle.guard(message):
+        elif MessageWithKruzhochek.guard(message):
             return f"{message.id}_circle{message.file.ext}"
         elif MessageWithVideo.guard(message):
             return f"{message.id}_video{message.file.ext}"

@@ -232,7 +232,7 @@ class MessageWithSticker(MessageWithDocument):
         return f"{msg.id}_sticker_{msg.file.name}"
 
 
-class MessageWithCircle(MessageWithDocument):
+class MessageWithKruzhochek(MessageWithDocument):
     # class MessageWithCircle(Message):
     """circles"""
 
@@ -240,7 +240,7 @@ class MessageWithCircle(MessageWithDocument):
     document: Document
 
     @staticmethod
-    def guard(msg: Message) -> TypeGuard["MessageWithCircle"]:
+    def guard(msg: Message) -> TypeGuard["MessageWithKruzhochek"]:
 
         if msg.document is None:
             return False
@@ -254,7 +254,7 @@ class MessageWithCircle(MessageWithDocument):
         )
 
     @staticmethod
-    def filename(msg: "MessageWithCircle"):
+    def filename(msg: "MessageWithKruzhochek"):
         return f"{msg.id}_circle{msg.file.ext}"
 
 
@@ -268,7 +268,7 @@ class MessageWithVideoCompressed(MessageWithDocument):
     def guard(msg: Message) -> TypeGuard["MessageWithVideoCompressed"]:
         return (
             MessageWithVideo.guard(msg)
-            and not MessageWithCircle.guard(msg)
+            and not MessageWithKruzhochek.guard(msg)
             and not MessageWithAnimated.guard(msg)
             # and not MessageWithVideoDocument.guard(msg)
         )

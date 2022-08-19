@@ -19,7 +19,7 @@ OrganizedTree = TypedDict(
     docs=Iterable[MessageWithOtherDocument],
     photos=Iterable[MessageWithCompressedPhoto | MessageWithDocumentImage],
     stickers=Iterable[MessageWithSticker],
-    circles=Iterable[MessageWithCircle],
+    circles=Iterable[MessageWithKruzhochek],
     all_videos=Iterable[MessageWithVideo],
 )
 
@@ -45,7 +45,7 @@ def organize_messages(
             *f(MessageWithDocumentImage.guard),
         ],
         "stickers": f(MessageWithSticker.guard),
-        "circles": f(MessageWithCircle.guard),
+        "circles": f(MessageWithKruzhochek.guard),
         "all_videos": f(MessageWithVideo.guard),
     }
 

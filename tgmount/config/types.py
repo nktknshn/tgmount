@@ -1,3 +1,4 @@
+import yaml
 from dataclasses import dataclass, fields
 from typing import Optional, Union
 import typing
@@ -59,10 +60,10 @@ class MessageSources:
     @staticmethod
     def from_dict(d: dict) -> "MessageSources":
 
-        assert_that(
-            len(d) > 0,
-            ConfigError(f"message_sources must contain at least one record."),
-        )
+        # assert_that(
+        #     len(d) > 0,
+        #     ConfigError(f"`message_sources` must contain at least one record."),
+        # )
 
         return MessageSources(load_dict(MessageSource, d))
 
@@ -98,3 +99,7 @@ class Config:
             root=Root.from_dict(root_dict),
             caches=Caches.from_dict(caches_dict) if caches_dict is not None else None,
         )
+
+    @staticmethod
+    def from_yaml(s):
+        return Config.from_dict(yaml.safe_load(s))
