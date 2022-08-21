@@ -24,7 +24,7 @@ from tgmount import (
 from tgmount.tgclient.guards import *
 from tgmount.tgmount import TgmountBase
 from tgmount.util import asyn as async_utils
-from tgmount.util import func, guards
+from tgmount.util import func, compose_guards
 
 logger = logging.getLogger("tgvfs")
 
@@ -118,7 +118,7 @@ class Tgmount(TgmountBase):
         )
 
     async def create_dir(
-        self, messages_source: tgclient.MessageSource
+        self, messages_source: tgclient.TelegramMessageSource
     ) -> vfs.DirContentSourceTree | vfs.DirContentSourceTreeValueDir:
 
         return await self.messages_to_fstree(
@@ -137,11 +137,11 @@ class Tgmount(TgmountBase):
 
     def create_message_sources(self):
 
-        self._ms1 = tgclient.MessageSource(
+        self._ms1 = tgclient.TelegramMessageSource(
             self._client, chat_id=self._chat_id, limit=self._limit
         )
 
-        self._ms2 = tgclient.MessageSource(
+        self._ms2 = tgclient.TelegramMessageSource(
             self._client, chat_id="tgmounttestingchannel", limit=self._limit
         )
 

@@ -5,7 +5,7 @@ from telethon.tl.custom import Message
 
 from tgmount import cache, fs, main, tg_vfs, tgclient, util, vfs, zip as z
 from tgmount.tgclient.guards import *
-from tgmount.util import asyn as async_utils, func, guards
+from tgmount.util import asyn as async_utils, func, compose_guards
 
 
 class TgmountProto(Protocol):

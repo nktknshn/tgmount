@@ -6,6 +6,7 @@ from typing import (
 )
 
 from telethon import events, types
+from telethon.client.telegrambaseclient import abc
 from telethon.tl.custom import Message
 from tgmount import tgclient
 
@@ -15,12 +16,16 @@ Listener = Callable[
 ]
 
 
-class MessageSource:
+class TelegramMessageSourceProto(abc.ABC):
+    pass
+
+
+class TelegramMessageSource:
     def __init__(
         self,
         client: tgclient.TgmountTelegramClient,
-        chat_id: str,
-        limit: int,
+        chat_id: str | int,
+        limit: Optional[int],
     ) -> None:
         self._client = client
         self._chat_id = chat_id

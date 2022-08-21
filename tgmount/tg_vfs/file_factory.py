@@ -5,7 +5,10 @@ from tgmount import vfs
 from .file_factory_mixin import FileFactoryMixin
 
 
-class FileFactory(TreeCreator, FileFactoryMixin):
+class FileFactory(
+    TreeCreator,
+    FileFactoryMixin,
+):
     def __init__(self, files_source: FileContentProto) -> None:
         self._files_source = files_source
 

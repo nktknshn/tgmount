@@ -77,6 +77,15 @@ RootTree = Content | Mapping[str, "RootTree"]
 
 @dataclass
 class Root:
+    content: dict
+
+    @staticmethod
+    def from_dict(d: dict) -> "Root":
+        return Root(d)
+
+
+@dataclass
+class Root2:
     content: RootTree
 
     def get_filters_set(self) -> set[str]:
@@ -105,9 +114,9 @@ class Root:
         )
 
     @staticmethod
-    def from_dict(d: dict) -> "Root":
+    def from_dict(d: dict) -> "Root2":
         return load_class_from_dict(
-            Root, d, loaders={"content": Root.root_tree_from_dict}
+            Root2, d, loaders={"content": Root2.root_tree_from_dict}
         )
 
     @staticmethod
@@ -115,6 +124,6 @@ class Root:
         source = d.get("source")
 
         if source is None:
-            return {k: Root.root_tree_from_dict(v) for k, v in d.items()}
+            return {k: Root2.root_tree_from_dict(v) for k, v in d.items()}
 
         return Content.from_dict(d)

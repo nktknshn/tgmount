@@ -14,38 +14,41 @@ caches:
 message_sources:
   tmtc_music:
     entity: tgmounttestingchannel
-    filter: InputMessagesFilterMusic
+    # filter: InputMessagesFilterMusic
   ru2chmu:
     entity: ru2chmu
-    limit: 3000
+    limit: 500
     reverse: False
     updates: True
 # wrappers
 wrappers:
   zip1:
-    plugin: zip
+    wrapper: zips_as_dirs
     recursive: True
     skip_folder_if_single_subfolder: True
     hide_sources: True
 # root
 root:
-  source: ru2chmu
-  # uniq_docs: True
-  dirs:
-    audio:
-      music:
-        filter: MessageWithMusic
-      voices:
-        filter: MessageWithVoice
-    visual:
-      filter:
-        [
-          MessageWithMusic,
-          MessageWithCompressedPhoto,
-          MessageWithDocumentImage,
-          MessageWithVideoCompressed,
-        ]
-    docs:
-      filter: MessageWithOtherDocument
-      cache: memory1
-      # wrappers: zip1
+  audio:
+    music:
+      source: ru2chmu
+      filter: MessageWithMusic
+    voices:
+      source: ru2chmu
+      filter: MessageWithVoice
+  visual:
+    source: ru2chmu
+    filter:
+      [
+        MessageWithMusic,
+        MessageWithCompressedPhoto,
+        MessageWithDocumentImage,
+        MessageWithVideoCompressed,
+      ]
+  docs:
+    source: tmtc_music
+    filter: MessageWithOtherDocument
+  tmtc:
+    source: tmtc_music
+    # cache: memory1
+    # wrappers: zip1
