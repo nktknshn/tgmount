@@ -52,7 +52,7 @@ class TgmountError(Exception):
 
 
 @dataclass
-class CreateRootContext:
+class CreateRootResources:
     file_factory: tg_vfs.FileFactory
     sources: Mapping[str, tgclient.TelegramMessageSource]
     filters: Mapping[str, Type[Filter]]
@@ -61,7 +61,7 @@ class CreateRootContext:
 
 
 TgmountRoot = Callable[
-    [CreateRootContext],
+    [CreateRootResources],
     Awaitable[vfs.DirContentSource],
 ]
 

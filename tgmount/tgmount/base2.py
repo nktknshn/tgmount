@@ -11,7 +11,7 @@ from tgmount import config
 from tgmount.util import col, compose_guards
 from tgmount.cache import CacheFactory
 
-from .types import DirWrapper, Filter, TgmountRoot, CreateRootContext, TgmountError
+from .types import DirWrapper, Filter, TgmountRoot, CreateRootResources, TgmountError
 from tgmount import main
 
 Message = telethon.tl.custom.Message
@@ -50,7 +50,7 @@ class Tgmount:
     async def get_root(self) -> vfs.VfsRoot:
         return vfs.root(
             await self._root(
-                CreateRootContext(
+                CreateRootResources(
                     file_factory=self._file_factory,
                     sources=self._message_sources,
                     filters=self._filters,

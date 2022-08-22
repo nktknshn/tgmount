@@ -32,15 +32,13 @@ wrappers:
 # root
 root:
   ru2chmu:
+    source: { source: ru2chmu, recursive: True }
     audio:
       music:
-        source: ru2chmu
         filter: MessageWithMusic
       voices:
-        source: ru2chmu
         filter: MessageWithVoice
     visual:
-      source: ru2chmu
       filter:
         OnlyUniqueDocs:
           picker: first
@@ -50,6 +48,8 @@ root:
             MessageWithDocumentImage,
             MessageWithVideoCompressed,
           ]
+    all:
+      source: ru2chmu
   tmtc:
     docs:
       source: tmtc
@@ -64,10 +64,16 @@ root:
       filter: MessageWithZip
       cache: memory1
       wrappers: zip1
-    all:
+    all1:
       source: tmtc
-      filter: OnlyUniqueDocs
+      filter:
+        OnlyUniqueDocs: { picker: first }
+    all2:
+      source: tmtc
+      filter:
+        OnlyUniqueDocs: { picker: last }
     video:
       source: tmtc
       filter:
-        ByTypes: [MessageWithVideoCompressed, MessageWithMusic]
+        - OnlyUniqueDocs
+        - ByTypes: [MessageWithVideoCompressed, MessageWithMusic]

@@ -54,7 +54,7 @@ def from_guard(g: FilterSingleMessage):
             pass
 
         def filter(self, messages: Iterable[Message]) -> list[Message]:
-            print('FromGuard')
+            print("FromGuard")
             return list(filter(g, messages))
 
         @staticmethod
@@ -87,6 +87,18 @@ class OnlyUniqueDocs(FilterAllMessagesProto):
                 result.append(v[0])
 
         return result
+
+
+class All(FilterAllMessagesProto):
+    def __init__(self, **kwags) -> None:
+        pass
+
+    @staticmethod
+    def from_config(d: dict):
+        return All()
+
+    def filter(self, messages: Iterable[Message]) -> list[Message]:
+        return list(messages)
 
 
 class FilterProviderBase(FilterProviderProto):
