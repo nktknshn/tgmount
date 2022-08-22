@@ -42,7 +42,7 @@ class ByTypes(FilterAllMessagesProto):
     def from_config(gs: list[str]):
         return ByTypes(types=[ByTypes.guards_dict[g] for g in gs])
 
-    def filter(self, messages: Iterable[Message]):
+    async def filter(self, messages: Iterable[Message]):
         return list(
             filter(compose_guards(*self._types), messages),
         )
@@ -53,7 +53,7 @@ def from_guard(g: FilterSingleMessage):
         def __init__(self, **kwargs) -> None:
             pass
 
-        def filter(self, messages: Iterable[Message]) -> list[Message]:
+        async def filter(self, messages: Iterable[Message]) -> list[Message]:
             print("FromGuard")
             return list(filter(g, messages))
 
@@ -77,7 +77,7 @@ class OnlyUniqueDocs(FilterAllMessagesProto):
     def __init__(self, *, picker=PICKERS["first"]) -> None:
         self._picker = picker
 
-    def filter(self, messages: Iterable[Message]):
+    async def filter(self, messages: Iterable[Message]):
         result = []
 
         for k, v in func.group_by0(document_or_photo_id, messages).items():
@@ -97,8 +97,32 @@ class All(FilterAllMessagesProto):
     def from_config(d: dict):
         return All()
 
-    def filter(self, messages: Iterable[Message]) -> list[Message]:
+    async def filter(self, messages: Iterable[Message]) -> list[Message]:
         return list(messages)
+
+
+class Last(FilterAllMessagesProto):
+    def __init__(self, *, count: int) -> None:
+        self._count = count
+
+    @staticmethod
+    def from_config(arg: int):
+        return Last(count=arg)
+
+    async def filter(self, messages: Iterable[Message]) -> list[Message]:
+        return list(messages)[-self._count :]
+
+
+class First(FilterAllMessagesProto):
+    def __init__(self, *, count: int) -> None:
+        self._count = count
+
+    @staticmethod
+    def from_config(arg: int):
+        return Last(count=arg)
+
+    async def filter(self, messages: Iterable[Message]) -> list[Message]:
+        return list(messages)[: self._count]
 
 
 class FilterProviderBase(FilterProviderProto):

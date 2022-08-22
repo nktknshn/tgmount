@@ -22,7 +22,7 @@ class FilterAllMessagesProto(Protocol):
         pass
 
     @abstractmethod
-    def filter(self, messages: Iterable[Message]) -> list[Message]:
+    async def filter(self, messages: Iterable[Message]) -> list[Message]:
         ...
 
     @abstractstaticmethod

@@ -51,29 +51,30 @@ root:
     all:
       source: ru2chmu
   tmtc:
+    source: { source: tmtc, recursive: True }
+    filter: { filter: [OnlyUniqueDocs], recursive: True }
     docs:
-      source: tmtc
       filter: MessageWithOtherDocument
     zips:
-      source: tmtc
       filter:
         - MessageWithZip
-        - OnlyUniqueDocs
     unpacked:
-      source: tmtc
       filter: MessageWithZip
       cache: memory1
       wrappers: zip1
     all1:
-      source: tmtc
       filter:
         OnlyUniqueDocs: { picker: first }
     all2:
-      source: tmtc
       filter:
         OnlyUniqueDocs: { picker: last }
-    video:
-      source: tmtc
+    last10:
       filter:
-        - OnlyUniqueDocs
+        - MessageWithMusic
+        - Last: 10
+    music:
+      filter:
+        - MessageWithMusic
+    video:
+      filter:
         - ByTypes: [MessageWithVideoCompressed, MessageWithMusic]

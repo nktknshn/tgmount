@@ -1,7 +1,7 @@
 import abc
 from abc import abstractmethod
 from collections.abc import Awaitable, Callable, Mapping
-from typing import Optional, Type
+from typing import Optional, Type, TypedDict
 
 from dataclasses import dataclass, replace
 
@@ -32,10 +32,13 @@ from .types import (
 class Context:
     current_path: list[str]
     source: Optional[TelegramMessageSource] = None
-    # filt: str | dict[str, dict] | list[str | dict[str, dict]]
+    filters: Optional[list[Filter]] = None
 
     def set_source(self, source: Optional[TelegramMessageSource]):
         return replace(self, source=source)
+
+    def set_filters(self, filters: Optional[list[Filter]]):
+        return replace(self, filters=filters)
 
     def add_path(self, element: str):
         return replace(self, current_path=[*self.current_path, element])
@@ -51,6 +54,52 @@ def to_dicts(items: list[str | dict[str, dict]]) -> list[str | dict[str, dict]]:
             res.extend(dict([t]) for t in item.items())
 
     return res
+
+
+_filters = TypedDict("_filters", recursive=bool, filters=list[Filter])
+
+
+async def _get_filters(
+    filt: str | dict[str, dict] | list[str | dict[str, dict]],
+    *,
+    resources: CreateRootResources,
+    ctx: Context,
+) -> _filters:
+
+    recursive = False
+
+    if isinstance(filt, dict) and "filter" in filt:
+        recursive = filt.get("recursive", False)
+        if not isinstance(recursive, bool):
+            raise config.ConfigError(f"recursive is not bool: {recursive}")
+
+        filt = filt["filter"]
+
+    if not isinstance(filt, list):
+        filt = [filt]
+
+    filt = to_dicts(filt)
+
+    fs: list[Filter] = []
+
+    for f_item in filt:
+        if isinstance(f_item, str):
+            filter_cons = resources.filters.get(f_item)
+            filter_arg = None
+        else:
+            f_name, filter_arg = next(iter(f_item.items()))
+            filter_cons = resources.filters.get(f_name)
+
+        if filter_cons is None:
+            raise config.ConfigError(f"missing filter: {f_item} in {ctx.current_path}")
+
+        fs.append(
+            filter_cons()
+            if filter_arg is None
+            else filter_cons.from_config(filter_arg),
+        )
+
+    return _filters(recursive=recursive, filters=fs)
 
 
 async def _apply_filter(
@@ -85,7 +134,7 @@ async def _apply_filter(
         )
 
     for filter_cons in fs:
-        messages = filter_cons.filter(messages)
+        messages = await filter_cons.filter(messages)
 
     return messages
 
@@ -93,6 +142,7 @@ async def _apply_filter(
 async def _process_source(
     d: dict,
     ms: TelegramMessageSource,
+    filters: Optional[list[Filter]],
     file_factory: FileFactory,
     content: list,
     *,
@@ -104,13 +154,9 @@ async def _process_source(
     messages = await ms.get_messages()
     messages = [m for m in messages if file_factory.supports(m)]
 
-    if filt is not None:
-        messages = await _apply_filter(
-            messages,
-            filt,
-            resources=resources,
-            ctx=ctx,
-        )
+    if filters is not None:
+        for filter_cons in filters:
+            messages = await filter_cons.filter(messages)
 
     for m in messages:
         content.append(file_factory.file(m))
@@ -124,8 +170,8 @@ async def _process_source(
 async def _tgmount_root(
     d: dict, *, resources: CreateRootResources, ctx=Context(current_path=[])
 ) -> vfs.DirContentProto:
-    source = d.get("source")
-    filt = d.get("filter")
+    _source = d.get("source")
+    _filter = d.get("filter")
     cache = d.get("cache")
     wrappers = d.get("wrappers")
 
@@ -142,26 +188,40 @@ async def _tgmount_root(
 
     content = []
 
-    if source is not None:
+    filters = ctx.filters if ctx.filters is not None else []
 
-        if isinstance(source, str):
-            source_name = source
+    if _filter is not None:
+        _filters = await _get_filters(
+            filt=_filter,
+            resources=resources,
+            ctx=ctx,
+        )
+
+        filters = [*filters, *_filters["filters"]]
+
+        if _filters["recursive"] is True:
+            ctx = ctx.set_filters(filters)
+
+    if _source is not None:
+        if isinstance(_source, str):
+            source_name = _source
             recursive = False
         else:
-            source_name = source["source"]
-            recursive = source["recursive"]
+            source_name = _source["source"]
+            recursive = _source.get("recursive", False)
 
         ms = resources.sources.get(source_name)
 
         if ms is None:
             raise config.ConfigError(
-                f"missing message source {source} in {ctx.current_path}"
+                f"missing message source {_source} in {ctx.current_path}"
             )
 
         if not recursive:
             await _process_source(
                 d,
                 ms,
+                filters,
                 file_factory,
                 content,
                 resources=resources,
@@ -171,17 +231,20 @@ async def _tgmount_root(
         if recursive:
             ctx = ctx.set_source(ms)
 
-    elif ctx.source is not None and filt is not None:
+    elif ctx.source is not None:
         await _process_source(
             d,
             ctx.source,
+            filters,
             file_factory,
             content,
             resources=resources,
             ctx=ctx,
         )
     elif len(other_keys) == 0:
-        raise config.ConfigError(f"missing source or subfolders in {ctx.current_path}")
+        raise config.ConfigError(
+            f"missing source, subfolders or filter in {ctx.current_path}"
+        )
 
     for k in other_keys:
         _content = await _tgmount_root(

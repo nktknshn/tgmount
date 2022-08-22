@@ -9,7 +9,15 @@ from tgmount.tgclient import guards
 from tgmount.util import col, func
 
 from .caches import CacheProviderBase
-from .filters import All, ByTypes, FilterProviderBase, OnlyUniqueDocs, from_guard
+from .filters import (
+    All,
+    ByTypes,
+    FilterProviderBase,
+    First,
+    Last,
+    OnlyUniqueDocs,
+    from_guard,
+)
 from .types import DirWrapper, FilterAllMessagesProto
 from .wrappers import DirWrappersProviderBase
 
@@ -34,10 +42,11 @@ class CachesProvider(CacheProviderBase):
 
 
 class FilterProvider(FilterProviderBase):
-
     filters = {
         **{f.__name__: from_guard(f.guard) for f in ByTypes.guards},
         "OnlyUniqueDocs": OnlyUniqueDocs,
         "ByTypes": ByTypes,
         "All": All,
+        "First": First,
+        "Last": Last,
     }
