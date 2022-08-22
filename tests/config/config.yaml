@@ -23,7 +23,7 @@ message_sources:
 # wrappers
 wrappers:
   zip1:
-    wrapper: zips_as_dirs
+    type: zips_as_dirs
     recursive: True
     skip_folder_if_single_subfolder: True
     hide_sources: True
@@ -48,7 +48,10 @@ root:
   docs:
     source: tmtc_music
     filter: MessageWithOtherDocument
+    zips:
+      source: tmtc_music
+      filter: MessageWithZip
+      cache: memory1
+      wrappers: zip1
   tmtc:
     source: tmtc_music
-    # cache: memory1
-    # wrappers: zip1

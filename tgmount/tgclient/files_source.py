@@ -73,16 +73,6 @@ class TelegramFilesSource(
 
         return fc
 
-    def get_read_function(
-        self,
-        message: MessageDownloadable,
-        # input_item: InputSourceItem,
-    ) -> Callable[[int, int], Awaitable[bytes]]:
-        async def _inn(offset: int, limit: int) -> bytes:
-            return await self.read(message, offset, limit)
-
-        return _inn
-
     async def read(
         self,
         message: MessageDownloadable,

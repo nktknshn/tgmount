@@ -7,6 +7,8 @@ from tgmount.tgmount.builder import TgmountBuilder
 from tgmount import main
 from tgmount import logging
 
+from pprint import pprint
+
 
 def get_parser():
     parser = argparse.ArgumentParser()
@@ -31,11 +33,13 @@ async def mount():
 
     validator.verify_config(cfg)
 
+    pprint(cfg)
+
     builder = TgmountBuilder()
 
     tgm = await builder.create_tgmount(cfg)
 
-    await tgm._client.auth()
+    await tgm.client.auth()
 
     await tgm.mount()
 

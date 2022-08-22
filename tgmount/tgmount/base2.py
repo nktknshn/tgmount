@@ -9,8 +9,9 @@ from tgmount import tg_vfs, tgclient, vfs, fs
 from tgmount.tgclient import TelegramMessageSource, guards
 from tgmount import config
 from tgmount.util import col, compose_guards
+from tgmount.cache import CacheFactory
 
-from .types import Filter, TgmountRoot, CreateRootContext, TgmountError
+from .types import DirWrapper, Filter, TgmountRoot, CreateRootContext, TgmountError
 from tgmount import main
 
 Message = telethon.tl.custom.Message
@@ -28,6 +29,8 @@ class Tgmount:
         root: TgmountRoot,
         file_factory: tg_vfs.FileFactory,
         filters: Mapping[str, Filter],
+        caches: Mapping[str, tg_vfs.FileFactory],
+        wrappers: Mapping[str, DirWrapper],
         mount_dir: Optional[str] = None,
     ) -> None:
         # self._client
@@ -35,8 +38,14 @@ class Tgmount:
         self._mount_dir: Optional[str] = mount_dir
         self._message_sources: Mapping[str, TelegramMessageSource] = message_sources
         self._root: TgmountRoot = root
+        self._caches = caches
         self._file_factory = file_factory
         self._filters: Mapping[str, Filter] = filters
+        self._wrappers = wrappers
+
+    @property
+    def client(self):
+        return self._client
 
     async def get_root(self) -> vfs.VfsRoot:
         return vfs.root(
@@ -45,6 +54,8 @@ class Tgmount:
                     file_factory=self._file_factory,
                     sources=self._message_sources,
                     filters=self._filters,
+                    caches=self._caches,
+                    wrappers=self._wrappers,
                 )
             )
         )
@@ -56,6 +67,11 @@ class Tgmount:
     ):
         if self._fs is None:
             raise TgmountError(f"FileSystemOperations has not been created yet.")
+
+        messages = list(filter(guards.is_downloadable, messages))
+
+        if len(messages) == 0:
+            return
 
         await self._fs.update_root(
             await self.get_root(),

@@ -139,9 +139,7 @@ class ZipsAsDirs(vfs.DirContentProto[ZipsAsDirsHandle]):
 
 
 def zips_as_dirs(
-    tree_or_content: vfs.DirContentSourceTree
-    | vfs.DirContentProto
-    | Iterable[vfs.FileLike],
+    tree_or_content: vfs.DirContentSource,
     **kwargs,
 ) -> "ZipsAsDirs":
     """

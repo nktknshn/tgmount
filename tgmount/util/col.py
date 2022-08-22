@@ -1,4 +1,13 @@
-from typing import Callable, Iterable, List, Optional, Sequence, TypeVar, Iterator
+from typing import (
+    Callable,
+    Iterable,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    TypeVar,
+    Iterator,
+)
 
 T = TypeVar("T")
 
@@ -19,3 +28,7 @@ def flatten(col: Iterator | list) -> list:
         else:
             res.append(el)
     return res
+
+
+def dict_exclude(d: Mapping, keys: list[str]) -> dict:
+    return {k: v for k, v in d.items() if not contains(k, keys)}

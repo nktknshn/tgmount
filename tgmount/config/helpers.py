@@ -4,6 +4,7 @@ from typing import Optional, Type, TypeGuard, TypeVar, Union
 import typing
 from tgmount.util import col
 from tgmount import vfs
+from .logger import logger
 
 T = TypeVar("T")
 
@@ -88,6 +89,7 @@ def load_class_from_dict(
     *,
     loaders: Optional[dict[str, Loader]] = None,
 ):
+    logger.debug(f"load_class_from_dict({cls}, {d}, {loaders})")
 
     loaders = loaders if loaders is not None else {}
     assert_that(
@@ -121,8 +123,11 @@ def load_class_from_dict(
         raise ConfigError(f"error loading {cls}: {e}")
 
 
-def load_dict(cls, d: dict):
-    return {k: load_class_from_dict(cls, v) for k, v in d.items()}
+def load_dict(cls: Type | Callable, d: dict):
+    return {
+        k: load_class_from_dict(cls, v) if isinstance(cls, Type) else cls(v)
+        for k, v in d.items()
+    }
 
 
 T = TypeVar("T")

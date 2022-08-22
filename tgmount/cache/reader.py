@@ -1,19 +1,13 @@
 import logging
 from typing import Awaitable, Callable, Generic, Optional, Protocol, Set, TypeVar
 
-from ._storage.types import CacheBlocksStorageProto
+from .types import BlockFetcher, CacheBlocksStorageProto, CacheBlockReaderWriter
 
-BlockFetcher = Callable[[int, int], Awaitable[bytes]]
 
 logger = logging.getLogger("tgmount-cache")
 
 
-class CacheBlockReaderWriterProto(Protocol):
-    async def read_range(self, fetcher: BlockFetcher, offset: int, size: int):
-        raise NotImplementedError()
-
-
-class CacheBlockReaderWriter:
+class CacheBlockReaderWriter(CacheBlockReaderWriter):
     def __init__(self, blocks_storage: CacheBlocksStorageProto) -> None:
         self._blocks_storage: CacheBlocksStorageProto = blocks_storage
         self._blocks_read_count: dict[int, int] = {}

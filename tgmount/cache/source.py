@@ -4,49 +4,41 @@ from typing import Any, Awaitable, Callable, Generic, Optional, Protocol, Set, T
 import telethon
 from tgmount import vfs
 
-from tgmount.tgclient.files_source import TelegramFilesSource, get_downloadable_item
+from tgmount.tgclient import TelegramFilesSource, TgmountTelegramClient
 from tgmount.tgclient import guards
+from tgmount.tgclient._source.util import BLOCK_SIZE
 
-from ._factory import CacheFactoryProto
-from .reader import CacheBlockReaderWriter
+from .types import CacheFactory
 
 logger = logging.getLogger("tgmount-cache")
 Message = telethon.tl.custom.Message
 
 
-class FilesSourceCaching(
-    # CachingDocumentsStorageProto[CacheBlockReaderWriter]
-):
+class FilesSourceCaching(TelegramFilesSource):
     def __init__(
         self,
-        source: TelegramFilesSource,
-        *,
-        document_cache_factory: CacheFactoryProto[CacheBlockReaderWriter],
+        client: TgmountTelegramClient,
+        cache_factory: CacheFactory,
+        request_size: int = BLOCK_SIZE,
     ) -> None:
-        self._source = source
-        self._document_cache_factory = document_cache_factory
+        self._cache_factory = cache_factory
+        super().__init__(client, request_size)
 
-    def file_content(self, message: guards.MessageDownloadable):
-        item = get_downloadable_item(message)
-
-        async def read_func(handle: Any, off: int, size: int) -> bytes:
-            return await self.item_read_function(message, off, size)
-
-        fc = vfs.FileContent(size=item.size, read_func=read_func)
-
-        return fc
-
-    async def item_read_function(
+    async def read(
         self,
         message: guards.MessageDownloadable,
         offset: int,
         limit: int,
     ) -> bytes:
 
-        cache = await self._document_cache_factory.get_cache(message)
+        cache = await self._cache_factory.get_cache(message)
 
         data = await cache.read_range(
-            self._source.get_read_function(message), offset, limit
+            lambda offset, limit, self=self: super(FilesSourceCaching, self).read(
+                message, offset, limit
+            ),
+            offset,
+            limit,
         )
 
         return data

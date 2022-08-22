@@ -1,7 +1,5 @@
-from ._factory.types import CacheFactoryProto
-from ._storage.file import CacheBlockStorageFile
-from ._storage.memory import CacheBlockStorageMemory
+from .file import CacheBlockStorageFile
+from .memory import CacheBlocksStorageMemory, CacheFactoryMemory
 from .reader import CacheBlockReaderWriter
 from .source import FilesSourceCaching
-from .types import DocId
-from .memory import CacheFactoryMemory
+from .types import CacheFactory, DocId, CacheFactory
