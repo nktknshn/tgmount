@@ -2,24 +2,108 @@ import abc
 from abc import abstractmethod
 from collections.abc import Awaitable, Callable, Mapping
 from typing import Type
+
+from telethon.tl.custom import Message
+
+from tgmount import config, tg_vfs, tgclient, vfs
 from tgmount.cache import CacheFactory
 from tgmount.cache.source import FilesSourceCaching
 from tgmount.config import Config, ConfigValidator
-from tgmount import config
 from tgmount.tg_vfs.file_factory import FileFactory
-from tgmount.tgclient import TgmountTelegramClient, TelegramMessageSource
+from tgmount.tgclient import TelegramMessageSource, TgmountTelegramClient
 from tgmount.util import col, compose_guards
-from tgmount import vfs, tg_vfs, tgclient
 
+from .base2 import CreateRootContext, Tgmount
 from .types import (
     CachesProviderProto,
     DirWrapper,
-    Filter,
-    TgmountRoot,
-    FilterProviderProto,
     DirWrapperProviderProto,
+    Filter,
+    FilterProviderProto,
+    TgmountRoot,
 )
-from .base2 import CreateRootContext, Tgmount
+
+
+def to_dicts(items: list[str | dict[str, dict]]) -> list[str | dict[str, dict]]:
+    res = []
+
+    for item in items:
+        if isinstance(item, str):
+            res.append(item)
+        else:
+            res.extend(dict([t]) for t in item.items())
+
+    return res
+
+
+async def _apply_filter(
+    messages: list[Message],
+    filt: str | dict[str, dict] | list[str | dict[str, dict]],
+    *,
+    ctx: CreateRootContext,
+    current_path=[],
+):
+    if not isinstance(filt, list):
+        filt = [filt]
+
+    filt = to_dicts(filt)
+
+    fs: list[Filter] = []
+
+    for f_item in filt:
+        if isinstance(f_item, str):
+            filter_cons = ctx.filters.get(f_item)
+            filter_arg = None
+        else:
+            f_name, filter_arg = next(iter(f_item.items()))
+            filter_cons = ctx.filters.get(f_name)
+
+        if filter_cons is None:
+            raise config.ConfigError(f"missing filter: {f_item} in {current_path}")
+
+        fs.append(
+            filter_cons() if filter_arg is None else filter_cons.from_config(filter_arg)
+        )
+
+    for filter_cons in fs:
+        messages = filter_cons.filter(messages)
+
+    return messages
+
+
+async def _process_source(
+    d: dict,
+    source: str,
+    file_factory: FileFactory,
+    content: list,
+    *,
+    ctx: CreateRootContext,
+    current_path=[],
+):
+    filt = d.get("filter")
+
+    ms = ctx.sources.get(source)
+
+    if ms is None:
+        raise config.ConfigError(f"missing message source {source} in {current_path}")
+
+    messages = await ms.get_messages()
+    messages = [m for m in messages if file_factory.supports(m)]
+
+    if filt is not None:
+        messages = await _apply_filter(
+            messages, filt, ctx=ctx, current_path=current_path
+        )
+        # if isinstance(f, Type):
+        #     messages = f.filter(messages)
+        # else:
+        #     messages = list(filter(f, messages))
+
+        # messages = [m for m in messages if g(m)]
+    # else:
+
+    for m in messages:
+        content.append(file_factory.file(m))
 
 
 async def _tgmount_root(
@@ -44,36 +128,9 @@ async def _tgmount_root(
     content = []
 
     if source is not None:
-        ms = ctx.sources.get(source)
-
-        if ms is None:
-            raise config.ConfigError(
-                f"missing message source {source} in {current_path}"
-            )
-
-        messages = await ms.get_messages()
-
-        if filt is not None:
-            if not isinstance(filt, list):
-                filt = [filt]
-
-            fs = []
-            for f_name in filt:
-                f = ctx.filters.get(f_name)
-                if f is None:
-                    raise config.ConfigError(
-                        f"missing filter: {f_name} in {current_path}"
-                    )
-                fs.append(f)
-
-            g = compose_guards(*fs)
-
-            messages = [m for m in messages if g(m)]
-        else:
-            messages = [m for m in messages if file_factory.supports(m)]
-
-        for m in messages:
-            content.append(file_factory.file(m))
+        await _process_source(
+            d, source, file_factory, content, ctx=ctx, current_path=current_path
+        )
 
     if source is None and len(other_keys) == 0:
         raise config.ConfigError(f"missing source or subfolders in {current_path}")
@@ -110,9 +167,9 @@ class TgmountBuilderBase(abc.ABC):
     wrappers: DirWrapperProviderProto
 
     async def create_tgmount(self, cfg: Config) -> Tgmount:
-        client = self.create_client(cfg)
+        client = await self.create_client(cfg)
         messssage_sources = {
-            k: self.create_message_source(client, ms)
+            k: await self.create_message_source(client, ms)
             for k, ms in cfg.message_sources.sources.items()
         }
 
@@ -140,10 +197,10 @@ class TgmountBuilderBase(abc.ABC):
             file_factory=file_factory,
             filters=self.filters.get_filters(),
             message_sources=messssage_sources,
-            root=self.parse_root_dict(cfg.root.content),
             mount_dir=cfg.mount_dir,
             wrappers=wrappers,
             caches=caches,
+            root=self.parse_root_dict(cfg.root.content),
         )
 
         for k, v in messssage_sources.items():
@@ -167,14 +224,14 @@ class TgmountBuilderBase(abc.ABC):
 
         return await cons(**w.kwargs)
 
-    def create_client(self, cfg: Config):
+    async def create_client(self, cfg: Config):
         return self.TelegramClient(
             cfg.client.session,
             cfg.client.api_id,
             cfg.client.api_hash,
         )
 
-    def create_message_source(
+    async def create_message_source(
         self,
         client: tgclient.TgmountTelegramClient,
         ms: config.MessageSource,

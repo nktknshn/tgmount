@@ -1,3 +1,4 @@
+# optional. may be specified as command line argument
 mount_dir: /home/hrn/mnt/tgmount1
 # client settings
 client:
@@ -6,13 +7,14 @@ client:
   api_hash: deadbeed121212121
 # caches
 caches:
+  # will instantiate a single in memory cache
   memory1:
     type: memory
     capacity: 50MB
     block_size: 128KB
 # every source is a separate get_messages request
 message_sources:
-  tmtc_music:
+  tmtc:
     entity: tgmounttestingchannel
     # filter: InputMessagesFilterMusic
   ru2chmu:
@@ -20,38 +22,52 @@ message_sources:
     limit: 500
     reverse: False
     updates: True
-# wrappers
+# dir content wrappers
 wrappers:
   zip1:
     type: zips_as_dirs
     recursive: True
-    skip_folder_if_single_subfolder: True
+    # skip_folder_if_single_subfolder: True
     hide_sources: True
 # root
 root:
-  audio:
-    music:
+  ru2chmu:
+    audio:
+      music:
+        source: ru2chmu
+        filter: MessageWithMusic
+      voices:
+        source: ru2chmu
+        filter: MessageWithVoice
+    visual:
       source: ru2chmu
-      filter: MessageWithMusic
-    voices:
-      source: ru2chmu
-      filter: MessageWithVoice
-  visual:
-    source: ru2chmu
-    filter:
-      [
-        MessageWithMusic,
-        MessageWithCompressedPhoto,
-        MessageWithDocumentImage,
-        MessageWithVideoCompressed,
-      ]
-  docs:
-    source: tmtc_music
-    filter: MessageWithOtherDocument
+      filter:
+        OnlyUniqueDocs:
+          picker: first
+        ByTypes:
+          [
+            MessageWithCompressedPhoto,
+            MessageWithDocumentImage,
+            MessageWithVideoCompressed,
+          ]
+  tmtc:
+    docs:
+      source: tmtc
+      filter: MessageWithOtherDocument
     zips:
-      source: tmtc_music
+      source: tmtc
+      filter:
+        - MessageWithZip
+        - OnlyUniqueDocs
+    unpacked:
+      source: tmtc
       filter: MessageWithZip
       cache: memory1
       wrappers: zip1
-  tmtc:
-    source: tmtc_music
+    all:
+      source: tmtc
+      filter: OnlyUniqueDocs
+    video:
+      source: tmtc
+      filter:
+        ByTypes: [MessageWithVideoCompressed, MessageWithMusic]

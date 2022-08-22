@@ -39,5 +39,5 @@ def compose_guards_or(
 
 def compose_guards(
     *gs: Callable[[Message], TypeGuard[Any]]
-) -> Callable[[Message], TypeGuard[Message]]:
+) -> Callable[[Message], TypeGuard[Any]]:
     return lambda m: any(map(lambda g: g(m), gs))

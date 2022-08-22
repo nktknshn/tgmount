@@ -31,7 +31,7 @@ def main():
         cfg_dict: dict = yaml.safe_load(f)
         cfg = Config.from_dict(cfg_dict)
 
-        pprint(verify_config(cfg))
+        pprint(cfg)
 
 
 if __name__ == "__main__":

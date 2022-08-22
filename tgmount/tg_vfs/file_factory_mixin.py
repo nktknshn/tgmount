@@ -5,6 +5,7 @@ from typing import Callable, Mapping, Protocol, TypeGuard, TypeVar, cast
 from telethon.tl.custom import Message
 from tgmount import tgclient, vfs
 from tgmount.tgclient import guards
+from tgmount.util import compose_guards
 
 # from .mixins import FileContentProvider, FileFunc, FileFuncSupported
 from tgmount.tgclient.guards import *
@@ -39,36 +40,31 @@ class FileFactoryMixin(
     Protocol,
 ):
     def supports(self, message: Message) -> TypeGuard[FileFuncSupported]:
-        return any(
-            map(
-                lambda f: f(message),
-                [
-                    MessageWithCompressedPhoto.guard,
-                    MessageWithVideo.guard,
-                    MessageWithFilename.guard,
-                    MessageWithDocumentImage.guard,
-                    MessageWithVoice.guard,
-                    MessageWithKruzhochek.guard,
-                    MessageWithZip.guard,
-                    MessageWithMusic.guard,
-                    MessageWithDocument.guard,
-                    MessageWithOtherDocument.guard,
-                    MessageWithAnimated.guard,
-                    MessageWithSticker.guard,
-                ],
-            )
-        )
+        return compose_guards(
+            MessageWithCompressedPhoto.guard,
+            MessageWithVideo.guard,
+            MessageWithFilename.guard,
+            MessageWithDocumentImage.guard,
+            MessageWithVoice.guard,
+            MessageWithKruzhochek.guard,
+            MessageWithZip.guard,
+            MessageWithMusic.guard,
+            MessageWithDocument.guard,
+            MessageWithOtherDocument.guard,
+            MessageWithAnimated.guard,
+            MessageWithSticker.guard,
+        )(message)
 
     def filename(
         self,
         message: FileFuncSupported,
     ) -> str:
         if MessageWithCompressedPhoto.guard(message):
-            return MessageWithCompressedPhoto.filename(message)
+            return f"{message.id}_photo.jpeg"
         elif MessageWithVoice.guard(message):
             return f"{message.id}_voice{message.file.ext}"
         elif MessageWithSticker.guard(message):
-            return MessageWithSticker.filename(message)
+            return f"{message.id}_sticker_{message.file.name}"
         elif MessageWithAnimated.guard(message):
             return f"{message.id}_gif{message.file.ext}"
         elif MessageWithKruzhochek.guard(message):

@@ -15,12 +15,6 @@ from tgmount.vfs.map_tree import (
 )
 from ..file_factory_mixin import FileFactoryMixin, FileFuncSupported
 
-# from ..mixins import FileFunc
-
-# MessagesTreeMapperFunction = TreeMapper[
-#     MessagesTreeValue,
-# ]
-
 
 class MessagesTreeMapperProto(Protocol):
     @abstractmethod

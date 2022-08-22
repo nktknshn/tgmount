@@ -4,14 +4,11 @@ from tgmount.cache import CacheFactory, CacheFactoryMemory
 from .types import CachesProviderProto, TgmountError
 
 
-class CacheProvider(CachesProviderProto):
-    def __init__(self) -> None:
-        super().__init__()
+class CacheProviderBase(CachesProviderProto):
+    caches: Mapping[str, Type[CacheFactory]]
 
     def get_caches(self) -> Mapping[str, Type[CacheFactory]]:
-        return {
-            "memory": CacheFactoryMemory,
-        }
+        return self.caches
 
     async def get_cache_factory(self, cache_type: str) -> Type[CacheFactory]:
         cache = self.get_caches().get(cache_type)

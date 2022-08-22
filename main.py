@@ -1,13 +1,11 @@
 import argparse
+from pprint import pprint
 
 import yaml
 
+from tgmount import logging, main
 from tgmount.config import Config, ConfigValidator
-from tgmount.tgmount.builder import TgmountBuilder
-from tgmount import main
-from tgmount import logging
-
-from pprint import pprint
+from tgmount.tgmount import TgmountBuilder
 
 
 def get_parser():

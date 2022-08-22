@@ -1,4 +1,4 @@
-from abc import abstractmethod
+from abc import abstractclassmethod, abstractmethod, abstractstaticmethod
 from telethon.tl.custom import Message
 from typing import (
     Any,
@@ -16,11 +16,33 @@ from tgmount import tg_vfs, tgclient, vfs
 from tgmount.cache import CacheFactory
 
 
-Filter = Callable[[Message], TypeGuard[Any]]
+class FilterAllMessagesProto(Protocol):
+    @abstractmethod
+    def __init__(self, **kwargs) -> None:
+        pass
+
+    @abstractmethod
+    def filter(self, messages: Iterable[Message]) -> list[Message]:
+        ...
+
+    @abstractstaticmethod
+    def from_config(*args) -> "FilterAllMessagesProto":
+        ...
+
+    # @abstractclassmethod
+    # def filter(cls, messages: Iterable[Message]) -> list[Message]:
+    #     ...
+
+
+FilterSingleMessage = Callable[[Message], TypeGuard[Any]]
+FilterAllMessages = FilterAllMessagesProto
+
+Filter = FilterAllMessages
 
 
 DirWrapper = Callable[[vfs.DirContentProto], Awaitable[vfs.DirContentProto]]
 DirWrapperConstructor = Callable[[..., Any], Awaitable[DirWrapper]]
+
 MessagesWrapper = Callable[[Iterable[Message]], Awaitable[list[Message]]]
 
 
@@ -32,9 +54,8 @@ class TgmountError(Exception):
 @dataclass
 class CreateRootContext:
     file_factory: tg_vfs.FileFactory
-    # file_factory_cached: tg_vfs.FileFactory
     sources: Mapping[str, tgclient.TelegramMessageSource]
-    filters: Mapping[str, Filter]
+    filters: Mapping[str, Type[Filter]]
     caches: Mapping[str, tg_vfs.FileFactory]
     wrappers: Mapping[str, DirWrapper]
 

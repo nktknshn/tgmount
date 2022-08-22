@@ -21,8 +21,6 @@ MessagesTreeValueDirItem = Union[
 """ Type the can be turned into DirContent """
 MessagesTreeValueDir = Union[
     Iterable[MessagesTreeValueDirItem[_T]],
-    # Iterable["Virt.Dir[_T]"],
-    # Iterable["Virt.Dir[_T]" | _T],
     "Virt.MapContent[_T]",
     "Virt.MapContext[_T]",
     vfs.DirContentProto,
@@ -38,21 +36,10 @@ MessagesTreeValue = Union[
     # _T,
 ]
 
-
-# MessagesTreeValue = Union[
-#     _T,
-#     MessagesTreeValueDirContent[_T],
-# ]
-
-# MessagesTreeValue = MessagesTreeValueDir
-
 # MessagesTreeValue is what a value of tree may be
 MessagesTree = vfs.Tree[
     MessagesTreeValue[_T],
 ]
-# MessagesTree = vfs.Tree[
-#     MessagesTreeValue[_T],
-# ]
 
 
 class Virt:

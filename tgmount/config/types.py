@@ -13,8 +13,6 @@ from .root import *
 class Cache:
     type: str
     kwargs: dict
-    # capacity: str
-    # block_size: str
 
     @staticmethod
     def from_dict(d: dict) -> "Cache":
