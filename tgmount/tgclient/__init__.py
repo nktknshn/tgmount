@@ -10,5 +10,6 @@ from .types import (
 )
 from .message_source import TelegramMessageSource
 from .files_source import TelegramFilesSource
+from .guards import is_downloadable, document_or_photo_id
 
 # from .caps import Cap

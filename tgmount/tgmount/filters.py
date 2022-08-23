@@ -27,7 +27,7 @@ class ByTypes(FilterAllMessagesProto):
         guards.MessageWithAnimated,
         guards.MessageWithOtherDocument,
         guards.MessageWithSticker,
-        guards.MessageWithVideoCompressed,
+        guards.MessageWithVideoFile,
     ]
 
     guards_dict = {f.__name__: f.guard for f in guards}

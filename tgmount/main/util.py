@@ -66,12 +66,17 @@ def run_main(main, unmount=True):
         loop.run_until_complete(main())
     except KeyboardInterrupt:
         print("Bye")
+    except BrokenPipeError as e:
+        pass
     except Exception as e:
         print(str(e))
         print(str(traceback.format_exc()))
     finally:
         # if mounted:
-        pyfuse3.close(unmount=unmount)
+        if unmount:
+            pyfuse3.close(unmount=unmount)
+        if not loop.is_closed():
+            loop.close()
 
 
 async def get_tgclient(

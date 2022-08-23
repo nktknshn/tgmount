@@ -11,20 +11,24 @@ from tgmount.tgmount import TgmountBuilder
 def get_parser():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("config", type=str, default="tests/config/config.yaml")
-    parser.add_argument("--debug", type=bool, default=False)
+    parser.add_argument(
+        "config", type=str, default="tests/config/config.yaml", nargs="?"
+    )
+    parser.add_argument("--debug", type=bool, default=False, action="store_false")
 
     return parser
 
 
 async def mount():
-    logging.init_logging(True)
+
+    args = get_parser().parse_args()
+
+    logging.init_logging(args.debug)
 
     validator = ConfigValidator()
+    builder = TgmountBuilder()
 
-    args = dict(config="tests/config/config.yaml")
-
-    with open(args["config"], "r+") as f:
+    with open(args.config, "r+") as f:
         cfg_dict: dict = yaml.safe_load(f)
 
     cfg = Config.from_dict(cfg_dict)
@@ -32,8 +36,6 @@ async def mount():
     validator.verify_config(cfg)
 
     pprint(cfg)
-
-    builder = TgmountBuilder()
 
     tgm = await builder.create_tgmount(cfg)
 

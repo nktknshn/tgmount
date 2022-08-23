@@ -13,7 +13,8 @@ from vfs.map_tree import (
     map_tree,
     map_value,
 )
-from ..file_factory_mixin import FileFactoryMixin
+
+# from ..file_factory_mixin import FileFactoryMixin
 
 # from ..mixins import FileFunc
 

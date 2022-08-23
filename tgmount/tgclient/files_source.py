@@ -23,8 +23,16 @@ from .guards import MessageDownloadable
 
 logger = logging.getLogger("tgclient")
 
-
 T = TypeVar("T")
+
+# XXX telethon.utils.get_input_document
+# XXX telethon.utils.get_input_photo
+# XXX telethon.utils.get_input_media
+# XXX telethon.utils.get_message_id
+# XXX telethon.utils.get_input_location
+# XXX telethon.utils.is_video
+# XXX telethon.utils.is_audio
+# XXX telethon.utils.is_gif
 
 
 def item_to_inner_object(input_item: InputSourceItem) -> SourceItem:

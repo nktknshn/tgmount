@@ -13,7 +13,7 @@ from tgmount.vfs.map_tree import (
     map_tree,
     map_value,
 )
-from ..file_factory_mixin import FileFactoryMixin, FileFuncSupported
+from ..types import FileFactoryProto
 
 
 class MessagesTreeMapperProto(Protocol):
@@ -115,10 +115,10 @@ def map_value_dir(
 
 
 class MessagesTreeMapper(MessagesTreeMapperProto):
-    def __init__(self, factory: FileFactoryMixin) -> None:
+    def __init__(self, factory: FileFactoryProto) -> None:
         self.factory = factory
 
-    def get_file_factory(self, ctx: MapTreeContext) -> FileFactoryMixin:
+    def get_file_factory(self, ctx: MapTreeContext) -> FileFactoryProto:
 
         factory = ctx.extra.get("file_factory")
 
@@ -152,8 +152,8 @@ class MessagesTreeMapper(MessagesTreeMapperProto):
 
 class TreeCreator:
     def create_tree(
-        self: FileFactoryMixin,
-        tree: MessagesTreeValueDir[FileFuncSupported],
+        self: FileFactoryProto,
+        tree: MessagesTreeValueDir[Message],
     ) -> vfs.DirContentSource:
 
         mapper = MessagesTreeMapper(self)

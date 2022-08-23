@@ -1,4 +1,5 @@
-from typing import Any, Iterable, Optional, Type, TypeGuard, TypeVar, overload
+import abc
+from typing import Any, Iterable, Optional, Protocol, Type, TypeGuard, TypeVar, overload
 
 import telethon
 from telethon import types
@@ -154,7 +155,34 @@ def is_downloadable(
     return MessageWithDocument.guard(msg) or MessageWithCompressedPhoto.guard(msg)
 
 
-class MessageWithDocumentImage(MessageWithDocument):
+T = TypeVar("T")
+
+
+class ClassWithGuard(Protocol[T]):
+    @staticmethod
+    @abc.abstractmethod
+    def guard(msg: Message) -> TypeGuard[Type[T]]:
+        ...
+
+
+class TryGetMethodProto(Protocol[T]):
+    @classmethod
+    @abc.abstractmethod
+    def try_get(cls, message: Message) -> Optional[T]:
+        ...
+
+
+class TryGetMethod(TryGetMethodProto[T]):
+    @classmethod
+    @abc.abstractmethod
+    def try_get(cls: ClassWithGuard[T], message: Message) -> Optional[T]:
+        if cls.guard(message):
+            return message
+
+
+class MessageWithDocumentImage(
+    MessageWithDocument, TryGetMethod["MessageWithDocumentImage"]
+):
     """message with uncompressed image"""
 
     file: File
@@ -166,15 +194,18 @@ class MessageWithDocumentImage(MessageWithDocument):
             msg.document is not None
             and get_attribute(msg.document, types.DocumentAttributeImageSize)
             is not None
-            and not MessageWithSticker.guard(msg)
+            and not msg.sticker
         )
 
-    @staticmethod
-    def filename(msg: "MessageWithDocumentImage"):
-        return f"{msg.id}_{msg.file.name}"
+    # @staticmethod
+    # def filename(msg: "MessageWithDocumentImage"):
+    #     return f"{msg.id}_{msg.file.name}"
 
 
-class MessageWithZip(MessageWithDocument):
+class MessageWithZip(
+    MessageWithDocument,
+    TryGetMethod["MessageWithZip"],
+):
     """message with a zip file"""
 
     file: File
@@ -189,35 +220,15 @@ class MessageWithZip(MessageWithDocument):
             and msg.file.name.endswith(".zip")
         )
 
-    @staticmethod
-    def filename(msg: "MessageWithZip"):
-        return f"{msg.id}_{msg.file.name}"
+    # @staticmethod
+    # def filename(msg: "MessageWithZip"):
+    #     return f"{msg.id}_{msg.file.name}"
 
 
-class MessageWithVideo(MessageWithDocument):
-    """circles, video documents, stickers, gifs"""
-
-    file: File
-    document: Document
-
-    @staticmethod
-    def guard(msg: Message) -> TypeGuard["MessageWithVideo"]:
-
-        if msg.document is None:
-            return False
-
-        video = get_attribute(msg.document, types.DocumentAttributeVideo)
-
-        return msg.document is not None and (
-            video is not None or MessageWithVideoDocument.guard(msg)
-        )
-
-    @staticmethod
-    def filename(msg: "MessageWithVideo"):
-        return f"{msg.id}_video{msg.file.ext}"
-
-
-class MessageWithSticker(MessageWithDocument):
+class MessageWithSticker(
+    MessageWithDocument,
+    TryGetMethod["MessageWithSticker"],
+):
     """stickers"""
 
     file: File
@@ -225,14 +236,17 @@ class MessageWithSticker(MessageWithDocument):
 
     @staticmethod
     def guard(msg: Message) -> TypeGuard["MessageWithSticker"]:
-        return bool(msg.sticker)
+        return msg.sticker is not None
 
-    @staticmethod
-    def filename(msg: "MessageWithSticker"):
-        return f"{msg.id}_sticker_{msg.file.name}"
+    # @staticmethod
+    # def filename(msg: "MessageWithSticker"):
+    #     return f"{msg.id}_sticker_{msg.file.name}"
 
 
-class MessageWithKruzhochek(MessageWithDocument):
+class MessageWithKruzhochek(
+    MessageWithDocument,
+    TryGetMethod["MessageWithKruzhochek"],
+):
     # class MessageWithCircle(Message):
     """circles"""
 
@@ -242,30 +256,48 @@ class MessageWithKruzhochek(MessageWithDocument):
     @staticmethod
     def guard(msg: Message) -> TypeGuard["MessageWithKruzhochek"]:
 
-        if msg.document is None:
-            return False
+        return bool(msg.video_note)
+        # if msg.document is None:
+        #     return False
 
-        video = get_attribute(msg.document, types.DocumentAttributeVideo)
+        # video = get_attribute(msg.document, types.DocumentAttributeVideo)
 
-        return (
-            msg.document is not None
-            and video is not None
-            and video.round_message is True
-        )
-
-    @staticmethod
-    def filename(msg: "MessageWithKruzhochek"):
-        return f"{msg.id}_circle{msg.file.ext}"
+        # return (
+        #     msg.document is not None
+        #     and video is not None
+        #     and video.round_message is True
+        # )
 
 
-class MessageWithVideoCompressed(MessageWithDocument):
-    """compressed video documents"""
+class MessageWithVideo(
+    MessageWithDocument,
+    TryGetMethod["MessageWithVideo"],
+):
+    """circles, video documents, stickers, gifs"""
 
     file: File
     document: Document
 
     @staticmethod
-    def guard(msg: Message) -> TypeGuard["MessageWithVideoCompressed"]:
+    def guard(msg: Message) -> TypeGuard["MessageWithVideo"]:
+        # if msg.document is None:
+        #     return False
+        # video = get_attribute(msg.document, types.DocumentAttributeVideo)
+        # return MessageWithVideoFile.guard(msg) or MessageWithVideoDocument.guard(msg)
+        return bool(msg.video) or MessageWithVideoDocument.guard(msg) or bool(msg.gif)
+
+
+class MessageWithVideoFile(
+    MessageWithDocument,
+    TryGetMethod["MessageWithVideoFile"],
+):
+    """video files"""
+
+    file: File
+    document: Document
+
+    @staticmethod
+    def guard(msg: Message) -> TypeGuard["MessageWithVideoFile"]:
         return (
             MessageWithVideo.guard(msg)
             and not MessageWithKruzhochek.guard(msg)
@@ -274,7 +306,10 @@ class MessageWithVideoCompressed(MessageWithDocument):
         )
 
 
-class MessageWithVideoDocument(MessageWithDocument):
+class MessageWithVideoDocument(
+    MessageWithDocument,
+    TryGetMethod["MessageWithVideoDocument"],
+):
     """uncompressed video documents"""
 
     file: File
@@ -287,10 +322,14 @@ class MessageWithVideoDocument(MessageWithDocument):
             and msg.file is not None
             and msg.file.mime_type is not None
             and msg.file.mime_type.startswith("video")
+            and not bool(msg.video)
         )
 
 
-class MessageWithAnimated(MessageWithDocument):
+class MessageWithAnimated(
+    MessageWithDocument,
+    TryGetMethod["MessageWithAnimated"],
+):
     """stickers, gifs"""
 
     file: File
@@ -301,13 +340,13 @@ class MessageWithAnimated(MessageWithDocument):
         if msg.document is None:
             return False
 
-        video = get_attribute(msg.document, types.DocumentAttributeVideo)
-        animated = bool(get_attribute(msg.document, types.DocumentAttributeAnimated))
-
-        return msg.document is not None and video is not None and animated is True
+        return msg.gif is not None
 
 
-class MessageWithAudio(MessageWithDocument):
+class MessageWithAudio(
+    MessageWithDocument,
+    TryGetMethod["MessageWithAudio"],
+):
     """voices and music"""
 
     document: Document
@@ -315,18 +354,13 @@ class MessageWithAudio(MessageWithDocument):
     @staticmethod
     def guard(msg: Message) -> TypeGuard["MessageWithAudio"]:
 
-        if msg.document is None:
-            return False
-
-        audio = get_attribute(
-            msg.document,
-            types.DocumentAttributeAudio,
-        )
-
-        return audio is not None
+        return bool(msg.audio) or bool(msg.voice)
 
 
-class MessageWithVoice(MessageWithDocument):
+class MessageWithVoice(
+    MessageWithDocument,
+    TryGetMethod["MessageWithVoice"],
+):
     file: File
     document: Document
 
@@ -335,7 +369,10 @@ class MessageWithVoice(MessageWithDocument):
         return bool(msg.voice)
 
 
-class MessageWithMusic(MessageWithDocument):
+class MessageWithMusic(
+    MessageWithDocument,
+    TryGetMethod["MessageWithMusic"],
+):
     """message with document audio tacks (without voices)"""
 
     file: File
@@ -344,57 +381,50 @@ class MessageWithMusic(MessageWithDocument):
     @staticmethod
     def guard(msg: Message) -> TypeGuard["MessageWithMusic"]:
 
-        if msg.document is None:
-            return False
-
-        audio = get_attribute(
-            msg.document,
-            types.DocumentAttributeAudio,
-        )
-
         return (
-            msg.file is not None
-            and msg.file.name is not None
-            and audio is not None
-            and audio.voice is False
+            msg.audio
+            is not None
+            # msg.file is not None
+            # # and msg.file.name is not None
+            # and audio is not None
+            # and audio.voice is False
         )
 
-    @staticmethod
-    def filename(msg: "MessageWithMusic"):
-        return f"{msg.id}_{msg.file.name}"
+    # @staticmethod
+    # def peformer(msg: "MessageWithMusic"):
+    #     return msg.file.performer
 
-    @staticmethod
-    def peformer(msg: "MessageWithMusic"):
-        return msg.file.performer
+    # @staticmethod
+    # def title(msg: "MessageWithMusic"):
+    #     return msg.file.title
 
-    @staticmethod
-    def title(msg: "MessageWithMusic"):
-        return msg.file.title
+    # @staticmethod
+    # def group_by_performer(
+    #     messages: Iterable["MessageWithMusic"],
+    #     minimum=2,
+    # ) -> tuple[dict[str, list["MessageWithMusic"]], list["MessageWithMusic"]]:
 
-    @staticmethod
-    def group_by_performer(
-        messages: Iterable["MessageWithMusic"],
-        minimum=2,
-    ) -> tuple[dict[str, list["MessageWithMusic"]], list["MessageWithMusic"]]:
+    #     messages = list(messages)
+    #     no_performer = [t for t in messages if t.file.performer is None]
+    #     with_performer = [t for t in messages if t.file.performer is not None]
 
-        messages = list(messages)
-        no_performer = [t for t in messages if t.file.performer is None]
-        with_performer = [t for t in messages if t.file.performer is not None]
+    #     tracks = func.group_by0(lambda t: t.file.performer.lower(), with_performer)
 
-        tracks = func.group_by0(lambda t: t.file.performer.lower(), with_performer)
+    #     result = []
 
-        result = []
+    #     for perf, tracks in tracks.items():
+    #         if len(tracks) < minimum:
+    #             no_performer.extend(tracks)
+    #         else:
+    #             result.append((perf, tracks))
 
-        for perf, tracks in tracks.items():
-            if len(tracks) < minimum:
-                no_performer.extend(tracks)
-            else:
-                result.append((perf, tracks))
-
-        return dict(result), no_performer
+    #     return dict(result), no_performer
 
 
-class MessageWithText(Message):
+class MessageWithText(
+    Message,
+    TryGetMethod["MessageWithText"],
+):
     message: str
 
     @staticmethod
@@ -422,11 +452,3 @@ class MessageWithOtherDocument(MessageWithDocument):
             or MessageWithAnimated.guard(msg)
             or MessageWithVideoDocument.guard(msg)
         )
-
-
-# class MessageWithMedia(Message):
-#     media: MessageMedia
-
-#     @staticmethod
-#     def guard(msg: Message) -> TypeGuard["MessageWithMedia"]:
-#         return msg.media is not None

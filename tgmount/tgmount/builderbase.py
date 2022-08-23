@@ -102,43 +102,6 @@ async def _get_filters(
     return _filters(recursive=recursive, filters=fs)
 
 
-async def _apply_filter(
-    messages: list[Message],
-    filt: str | dict[str, dict] | list[str | dict[str, dict]],
-    *,
-    resources: CreateRootResources,
-    ctx: Context,
-):
-    if not isinstance(filt, list):
-        filt = [filt]
-
-    filt = to_dicts(filt)
-
-    fs: list[Filter] = []
-
-    for f_item in filt:
-        if isinstance(f_item, str):
-            filter_cons = resources.filters.get(f_item)
-            filter_arg = None
-        else:
-            f_name, filter_arg = next(iter(f_item.items()))
-            filter_cons = resources.filters.get(f_name)
-
-        if filter_cons is None:
-            raise config.ConfigError(f"missing filter: {f_item} in {ctx.current_path}")
-
-        fs.append(
-            filter_cons()
-            if filter_arg is None
-            else filter_cons.from_config(filter_arg),
-        )
-
-    for filter_cons in fs:
-        messages = await filter_cons.filter(messages)
-
-    return messages
-
-
 async def _process_source(
     d: dict,
     ms: TelegramMessageSource,
@@ -149,7 +112,6 @@ async def _process_source(
     resources: CreateRootResources,
     ctx: Context,
 ) -> Context:
-    filt = d.get("filter")
 
     messages = await ms.get_messages()
     messages = [m for m in messages if file_factory.supports(m)]
