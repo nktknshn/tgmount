@@ -19,7 +19,7 @@ message_sources:
     # filter: InputMessagesFilterMusic
   ru2chmu:
     entity: ru2chmu
-    limit: 500
+    limit: 3000
     reverse: False
     updates: True
 # dir content wrappers
@@ -27,54 +27,39 @@ wrappers:
   zip1:
     type: zips_as_dirs
     recursive: True
-    # skip_folder_if_single_subfolder: True
+    skip_folder_if_single_subfolder: True
     hide_sources: True
 # root
+ogranized: &ogranized
+  filter: { filter: [OnlyUniqueDocs], recursive: True }
+  docs:
+    filter:
+      - MessageWithOtherDocument
+      - Not:
+          - ByExtension: .zip
+  music:
+    filter: MessageWithMusic
+  unpacked:
+    filter: MessageWithZip
+    cache: memory1
+    wrappers: zip1
+  zips:
+    filter: MessageWithZip
+  personal:
+    filter:
+      ByTypes: [MessageWithKruzhochek, MessageWithVoice]
+  video:
+    filter: MessageWithVideoFile
+  images:
+    filter:
+      ByTypes: [MessageWithDocumentImage, MessageWithCompressedPhoto]
+  stickers:
+    filter:
+      ByTypes: [MessageWithAnimated, MessageWithSticker]
 root:
   ru2chmu:
     source: { source: ru2chmu, recursive: True }
-    audio:
-      music:
-        filter: MessageWithMusic
-      voices:
-        filter: MessageWithVoice
-    visual:
-      filter:
-        OnlyUniqueDocs:
-          picker: first
-        ByTypes:
-          [
-            MessageWithCompressedPhoto,
-            MessageWithDocumentImage,
-            MessageWithVideoCompressed,
-          ]
-    all:
-      source: ru2chmu
+    <<: *ogranized
   tmtc:
     source: { source: tmtc, recursive: True }
-    filter: { filter: [OnlyUniqueDocs], recursive: True }
-    docs:
-      filter: MessageWithOtherDocument
-    zips:
-      filter:
-        - MessageWithZip
-    unpacked:
-      filter: MessageWithZip
-      cache: memory1
-      wrappers: zip1
-    all1:
-      filter:
-        OnlyUniqueDocs: { picker: first }
-    all2:
-      filter:
-        OnlyUniqueDocs: { picker: last }
-    last10:
-      filter:
-        - MessageWithMusic
-        - Last: 10
-    music:
-      filter:
-        - MessageWithMusic
-    video:
-      filter:
-        - ByTypes: [MessageWithVideoCompressed, MessageWithMusic]
+    <<: *ogranized

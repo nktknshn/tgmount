@@ -40,6 +40,7 @@ def init_logging(debug=False, debugs=[]):
         logging.getLogger("tgmount-cache").setLevel(logging.DEBUG)
         logging.getLogger("tgvfs-ops").setLevel(logging.DEBUG)
         logging.getLogger("tgclient").setLevel(logging.DEBUG)
+        logging.getLogger("tgmount-cli").setLevel(logging.DEBUG)
         logging.getLogger("telethon").setLevel(logging.INFO)
     else:
         handler.setLevel(logging.INFO)
@@ -48,6 +49,7 @@ def init_logging(debug=False, debugs=[]):
         logging.getLogger("tgvfs-ops").setLevel(logging.INFO)
         logging.getLogger("tgmount-zip").setLevel(logging.DEBUG)
         logging.getLogger("tgmount-cache").setLevel(logging.DEBUG)
+        logging.getLogger("tgmount-cli").setLevel(logging.INFO)
         logging.getLogger("tgclient").setLevel(logging.INFO)
         logging.getLogger("telethon").setLevel(logging.ERROR)
 

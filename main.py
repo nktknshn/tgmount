@@ -14,7 +14,7 @@ def get_parser():
     parser.add_argument(
         "config", type=str, default="tests/config/config.yaml", nargs="?"
     )
-    parser.add_argument("--debug", type=bool, default=False, action="store_false")
+    parser.add_argument("--debug", default=False, action="store_true")
 
     return parser
 

@@ -1,15 +1,12 @@
 from argparse import ArgumentParser
 from typing import Optional
-from telethon.utils import get_display_name
 from tgmount.tgclient import (
     TgmountTelegramClient,
-    is_downloadable,
     document_or_photo_id,
 )
 from tgmount.tg_vfs.file_factory import FilenameMethod
 from tgmount.tgmount.filters import OnlyUniqueDocs
 
-from telethon.tl.types import User, Channel, Chat
 from telethon import hints
 
 

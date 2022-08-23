@@ -23,6 +23,7 @@ class ZipsAsDirs(vfs.DirContentProto[ZipsAsDirsHandle]):
         dir_content_zip_factory: Optional[DirContentZipFactory] = None,
         hide_sources=True,
         skip_folder_if_single_subfolder=False,
+        skip_folder_if_single_subfolder_exclude={"__MACOSX"},
         zip_file_like_to_dir_name=lambda item: f"{item.name}_unzipped",
         recursive=False,
     ):
@@ -35,6 +36,9 @@ class ZipsAsDirs(vfs.DirContentProto[ZipsAsDirsHandle]):
 
         self._opt_hide_sources = hide_sources
         self._opt_skip_folder_if_single_subfolder = skip_folder_if_single_subfolder
+        self._opt_skip_folder_if_single_subfolder_exclude = (
+            skip_folder_if_single_subfolder_exclude
+        )
         self._opt_zip_file_like_to_dir_name = zip_file_like_to_dir_name
         self._opt_recursive = recursive
 
@@ -71,8 +75,13 @@ class ZipsAsDirs(vfs.DirContentProto[ZipsAsDirsHandle]):
 
         zip_tree = await self._dir_content_zip_factory.get_ziptree(file_like.content)
 
-        zip_tree_root_items_names = list(zip_tree.keys())
-        zip_tree_root_items = list(zip_tree.values())
+        zip_tree_root_items_names = list(
+            set(zip_tree.keys()).difference(
+                self._opt_skip_folder_if_single_subfolder_exclude
+            )
+        )
+
+        zip_tree_root_items = list(zip_tree[k] for k in zip_tree_root_items_names)
 
         root_item = zip_tree_root_items[0]
 

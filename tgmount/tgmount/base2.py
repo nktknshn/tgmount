@@ -1,5 +1,5 @@
 from collections.abc import Awaitable, Callable, Mapping
-from typing import Any, Optional, TypeGuard
+from typing import Any, Optional, Type, TypeGuard
 from dataclasses import dataclass, fields
 
 import telethon
@@ -28,7 +28,7 @@ class Tgmount:
         message_sources: Mapping[str, TelegramMessageSource],
         root: TgmountRoot,
         file_factory: tg_vfs.FileFactory,
-        filters: Mapping[str, Filter],
+        filters: Mapping[str, Type[Filter]],
         caches: Mapping[str, tg_vfs.FileFactory],
         wrappers: Mapping[str, DirWrapper],
         mount_dir: Optional[str] = None,
@@ -40,7 +40,7 @@ class Tgmount:
         self._root: TgmountRoot = root
         self._caches = caches
         self._file_factory = file_factory
-        self._filters: Mapping[str, Filter] = filters
+        self._filters: Mapping[str, Type[Filter]] = filters
         self._wrappers = wrappers
 
     @property
@@ -80,7 +80,13 @@ class Tgmount:
     async def create_fs(self):
         self._fs = self.FileSystemOperations(await self.get_root())
 
-    async def mount(self, *args, destination: Optional[str] = None, **kwargs):
+    async def mount(
+        self,
+        *,
+        destination: Optional[str] = None,
+        debug_fuse=False,
+        min_tasks=10,
+    ):
         await self.create_fs()
 
         mount_dir = destination if destination is not None else self._mount_dir
@@ -88,4 +94,9 @@ class Tgmount:
         if mount_dir is None:
             raise TgmountError(f"missing destination")
 
-        await main.util.mount_ops(self._fs, mount_dir)
+        await main.util.mount_ops(
+            self._fs,
+            mount_dir=mount_dir,
+            min_tasks=min_tasks,
+            debug=debug_fuse,
+        )

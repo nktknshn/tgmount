@@ -11,7 +11,7 @@ from typing import (
     Type,
     TypeGuard,
 )
-from dataclasses import dataclass, fields
+from dataclasses import dataclass, replace
 from tgmount import tg_vfs, tgclient, vfs
 from tgmount.cache import CacheFactory
 
@@ -68,7 +68,7 @@ TgmountRoot = Callable[
 
 class FilterProviderProto(Protocol):
     @abstractmethod
-    def get_filters(self) -> Mapping[str, Filter]:
+    def get_filters(self) -> Mapping[str, Type[Filter]]:
         pass
 
 

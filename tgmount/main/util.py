@@ -7,6 +7,8 @@ import warnings
 import traceback
 
 from tgmount.tgclient import TgmountTelegramClient
+from tgmount import main
+
 
 logger = logging.getLogger("tgvfs")
 
@@ -36,25 +38,37 @@ def read_tgapp_api(tgapp_file="tgapp.txt"):
 
 
 async def mount_ops(
-    fs_ops: pyfuse3.Operations, destination: str, min_tasks=10, debug=True
+    fs_ops: pyfuse3.Operations,
+    *,
+    mount_dir: str,
+    min_tasks=10,
+    debug=True,
 ):
     logger.debug("mount_ops()")
 
-    # pyfuse3_asyncio_greenback.enable()
     pyfuse3_asyncio.enable()
 
     fuse_options = set(pyfuse3.default_options)
     fuse_options.add("fsname=test_tgmount")
 
-    # if debug:
-    #     fuse_options.add("debug")
+    if debug:
+        fuse_options.add("debug")
 
-    pyfuse3.init(fs_ops, destination, fuse_options)
+    pyfuse3.init(fs_ops, mount_dir, fuse_options)
 
+    main.mounted = True
     await pyfuse3.main(min_tasks=min_tasks)
 
+    # try:
+    #     await pyfuse3.main(min_tasks=min_tasks)
+    # except KeyboardInterrupt:
+    #     print("Bye")
+    # finally:
+    #     print("CLOSE!")
+    #     pyfuse3.close(unmount=True)
 
-def run_main(main, unmount=True):
+
+def run_main(main_func):
     loop = asyncio.new_event_loop()
     # loop.set_debug(True)
     # warnings.simplefilter('always', ResourceWarning)
@@ -63,18 +77,18 @@ def run_main(main, unmount=True):
     # loop.slow_callback_duration = 0.001
 
     try:
-        loop.run_until_complete(main())
+        loop.run_until_complete(main_func())
     except KeyboardInterrupt:
-        print("Bye")
-    except BrokenPipeError as e:
-        pass
+        print("\nKeyboardInterrupt")
     except Exception as e:
-        print(str(e))
-        print(str(traceback.format_exc()))
+        # print(str(e))
+        # print(str(traceback.format_exc()))
+        raise e
     finally:
-        # if mounted:
-        if unmount:
-            pyfuse3.close(unmount=unmount)
+
+        if main.mounted:
+            pyfuse3.close(unmount=True)
+
         if not loop.is_closed():
             loop.close()
 

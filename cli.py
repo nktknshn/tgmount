@@ -1,3 +1,4 @@
+from collections.abc import Callable
 import os
 import sys
 import argparse
@@ -5,8 +6,11 @@ from typing import Optional, TypedDict
 from tgmount.tgclient import TgmountTelegramClient
 from tgmount.tgmount import TgmountError
 from tgmount.cli.util import read_os_env, parse_tgapp_str
-from tgmount.cli import list_dialogs, list_documents, add_list_documents_arguments
+from tgmount import cli
+
+# import list_dialogs, list_documents, add_list_documents_arguments
 from tgmount.main.util import run_main
+from tgmount.logging import init_logging
 
 """
 export TGAPP=111111:ac7e6350d04adeadbeedf1af778773d6f0
@@ -24,23 +28,23 @@ def get_parser():
 
     parser.add_argument("--session", type=str, required=False)
     parser.add_argument("--tgapp", type=str, required=False)
+    parser.add_argument("--debug", default=False, action="store_true")
 
     commands_subparsers = parser.add_subparsers(dest="command")
 
+    command_auth = commands_subparsers.add_parser("auth")
+    command_mount = commands_subparsers.add_parser("mount")
+    command_validate = commands_subparsers.add_parser("validate")
+
     command_list = commands_subparsers.add_parser("list")
-
     command_list_subparsers = command_list.add_subparsers(dest="list_subcommand")
-
     command_list_dialogs = command_list_subparsers.add_parser("dialogs")
     command_list_documents = command_list_subparsers.add_parser("documents")
 
-    add_list_documents_arguments(command_list_documents)
+    cli.add_list_documents_arguments(command_list_documents)
+    cli.add_mount_arguments(command_mount)
 
     return parser
-
-
-def get_client(session: str, api_id: int, api_hash: str):
-    return TgmountTelegramClient(session, api_id, api_hash)
 
 
 def get_tgapp_and_session(args: argparse.Namespace):
@@ -62,22 +66,48 @@ def get_tgapp_and_session(args: argparse.Namespace):
     return session, api_id, api_hash
 
 
+class ClientEnv:
+    TelegramClient = TgmountTelegramClient
+
+    @classmethod
+    def get_client(cls, session: str, api_id: int, api_hash: str):
+        return cls.TelegramClient(
+            session,
+            api_id,
+            api_hash,
+        )
+
+    def __init__(self, session, api_id, api_hash):
+        self.client = self.get_client(session, api_id, api_hash)
+
+    async def __aenter__(self):
+        await self.client.auth()
+        return self.client
+
+    async def __aexit__(self, type, value, traceback):
+        await self._cleanup()
+
+    async def _cleanup(self):
+        if cor := self.client.disconnect():
+            await cor
+
+
 async def main():
 
     args = get_parser().parse_args()
 
-    # print(args)
+    init_logging(args.debug)
 
     session, api_id, api_hash = get_tgapp_and_session(args)
-    client = get_client(session, api_id, api_hash)
 
-    await client.auth()
+    if args.command == "list" and args.list_subcommand == "dialogs":
+        async with ClientEnv(session, api_id, api_hash) as client:
+            await cli.list_dialogs(client)
 
-    try:
-        if args.command == "list" and args.list_subcommand == "dialogs":
-            await list_dialogs(client)
-        elif args.command == "list" and args.list_subcommand == "documents":
-            await list_documents(
+    elif args.command == "list" and args.list_subcommand == "documents":
+
+        async with ClientEnv(session, api_id, api_hash) as client:
+            await cli.list_documents(
                 client,
                 args.entity,
                 limit=args.limit,
@@ -88,10 +118,22 @@ async def main():
                 print_all_matching_types=args.print_all_matching_types,
                 only_unique_docs=args.only_unique_docs,
             )
-    finally:
-        if cor := client.disconnect():
-            await cor
+    elif args.command == "mount":
+        api_credentials = (
+            (api_id, api_hash) if api_id is not None and api_hash is not None else None
+        )
+        await cli.mount(
+            args.config,
+            api_credentials=api_credentials,
+            session=args.session,
+            mount_dir=args.mount_dir,
+            debug_fuse=args.debug_fuse,
+            min_tasks=args.min_tasks,
+        )
 
 
 if __name__ == "__main__":
-    run_main(main, unmount=False)
+    try:
+        run_main(main)
+    except TgmountError as e:
+        print(f"Error happened: {e}")

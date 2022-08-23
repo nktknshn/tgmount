@@ -15,6 +15,7 @@ from tgmount.config import Config, ConfigValidator
 from tgmount.config.types import MessageSource
 from tgmount.tg_vfs.file_factory import FileFactory
 from tgmount.tgclient import TelegramMessageSource, TgmountTelegramClient
+from tgmount.tgmount.filters import FilterDict
 from tgmount.util import col, compose_guards
 
 from .base2 import CreateRootResources, Tgmount
@@ -59,12 +60,14 @@ def to_dicts(items: list[str | dict[str, dict]]) -> list[str | dict[str, dict]]:
 _filters = TypedDict("_filters", recursive=bool, filters=list[Filter])
 
 
-async def _get_filters(
+def _get_filters(
     filt: str | dict[str, dict] | list[str | dict[str, dict]],
     *,
     resources: CreateRootResources,
     ctx: Context,
 ) -> _filters:
+    def _parse_filter(filt: FilterDict) -> list[Filter]:
+        return _get_filters(filt, resources=resources, ctx=ctx)["filters"]
 
     recursive = False
 
@@ -96,7 +99,7 @@ async def _get_filters(
         fs.append(
             filter_cons()
             if filter_arg is None
-            else filter_cons.from_config(filter_arg),
+            else filter_cons.from_config(filter_arg, _parse_filter),
         )
 
     return _filters(recursive=recursive, filters=fs)
@@ -153,7 +156,7 @@ async def _tgmount_root(
     filters = ctx.filters if ctx.filters is not None else []
 
     if _filter is not None:
-        _filters = await _get_filters(
+        _filters = _get_filters(
             filt=_filter,
             resources=resources,
             ctx=ctx,

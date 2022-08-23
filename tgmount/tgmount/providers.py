@@ -11,7 +11,9 @@ from tgmount.util import col, func
 from .caches import CacheProviderBase
 from .filters import (
     All,
+    ByExtension,
     ByTypes,
+    Not,
     FilterProviderBase,
     First,
     Last,
@@ -49,4 +51,6 @@ class FilterProvider(FilterProviderBase):
         "All": All,
         "First": First,
         "Last": Last,
+        "ByExtension": ByExtension,
+        "Not": Not,
     }
