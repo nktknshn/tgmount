@@ -18,6 +18,8 @@ from .filters import (
     First,
     Last,
     OnlyUniqueDocs,
+    Union,
+    Seq,
     from_guard,
 )
 from .types import DirWrapper, FilterAllMessagesProto
@@ -53,4 +55,6 @@ class FilterProvider(FilterProviderBase):
         "Last": Last,
         "ByExtension": ByExtension,
         "Not": Not,
+        "Union": Union,
+        "Seq": Seq,
     }

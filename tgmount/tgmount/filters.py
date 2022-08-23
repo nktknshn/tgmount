@@ -114,6 +114,38 @@ class Not(FilterAllMessagesProto):
         return [m for m in messages if not col.contains(m, _ms)]
 
 
+class Union(FilterAllMessagesProto):
+    def __init__(self, filters: list[Filter]) -> None:
+        self.filters = filters
+
+    @staticmethod
+    def from_config(gs: FilterDict, parse_filter: ParseFilter):
+        return Union(filters=parse_filter(gs))
+
+    async def filter(self, messages: Iterable[Message]):
+        _ms = []
+        for f in self.filters:
+            _ms.extend(await f.filter(messages))
+
+        return await OnlyUniqueDocs().filter(_ms)
+
+
+class Seq(FilterAllMessagesProto):
+    def __init__(self, filters: list[Filter]) -> None:
+        self.filters = filters
+
+    @staticmethod
+    def from_config(gs: FilterDict, parse_filter: ParseFilter):
+        return Seq(filters=parse_filter(gs))
+
+    async def filter(self, messages: Iterable[Message]):
+        messages = list(messages)
+        for f in self.filters:
+            messages = await f.filter(messages)
+
+        return messages
+
+
 class All(FilterAllMessagesProto):
     def __init__(self, **kwags) -> None:
         pass

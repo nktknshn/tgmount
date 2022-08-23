@@ -19,7 +19,7 @@ message_sources:
     # filter: InputMessagesFilterMusic
   ru2chmu:
     entity: ru2chmu
-    limit: 3000
+    limit: 300
     reverse: False
     updates: True
 # dir content wrappers
@@ -47,15 +47,22 @@ ogranized: &ogranized
     filter: MessageWithZip
   personal:
     filter:
-      ByTypes: [MessageWithKruzhochek, MessageWithVoice]
+      Union: [MessageWithKruzhochek, MessageWithVoice]
   video:
     filter: MessageWithVideoFile
   images:
     filter:
-      ByTypes: [MessageWithDocumentImage, MessageWithCompressedPhoto]
+      Union: [MessageWithDocumentImage, MessageWithCompressedPhoto]
   stickers:
     filter:
-      ByTypes: [MessageWithAnimated, MessageWithSticker]
+      Union: [MessageWithAnimated, MessageWithSticker]
+  all:
+    filter: All
+  music-last30:
+    filter:
+      - MessageWithMusic
+      - Last: 30
+
 root:
   ru2chmu:
     source: { source: ru2chmu, recursive: True }
