@@ -48,12 +48,12 @@ class SupportsMethod:
     def supports(self, message: Message) -> TypeGuard[FileFuncSupported]:
         return compose_guards(*[t.guard for t in self.supported])(message)
 
-    def message_type(self, message: Message):
+    def message_type(self, message: Message) -> Optional[str]:
         ts = self.message_types(message)
         if len(ts) > 0:
             return ts[0]
 
-    def message_types(self, message: Message):
+    def message_types(self, message: Message) -> list[str]:
         ts = []
         for t in self.supported:
             if t.guard(message):

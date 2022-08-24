@@ -54,6 +54,19 @@ def require(value: Optional[T], e) -> T:
     return value
 
 
+def dict_get_value(
+    d: Mapping,
+    key: str,
+    typ: Type[T],
+    e: Exception,
+    default=Optional[T],
+) -> T:
+    dv = d.get(key, default)
+    dv = type_check(T, typ, e)
+
+    return dv
+
+
 def type_check(value, typ: Type[T], e) -> T:
     type_origin = typing.get_origin(typ)
     type_args = typing.get_args(typ)

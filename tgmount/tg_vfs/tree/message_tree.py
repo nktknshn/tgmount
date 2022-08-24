@@ -130,16 +130,9 @@ class MessagesTreeMapper(MessagesTreeMapperProto):
     def map_dir(self, ctx: MapTreeContext, dir: Virt.Dir) -> vfs.DirLike:
         # print(f"walk_dir: {ctx} dir.name={dir.name} dir.content={dir.content}")
 
-        content = map_value_dir(
-            ctx,
-            self,
-            dir.content,
-        )
+        content = map_value_dir(ctx, self, dir.content)
 
-        return vfs.DirLike(
-            dir.name,
-            content,
-        )
+        return vfs.DirLike(dir.name, content)
 
     def map_message(
         self,

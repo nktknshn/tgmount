@@ -42,22 +42,24 @@ def is_tree(v) -> TypeGuard[DirContentSourceTree]:
     return isinstance(v, Mapping)
 
 
-def dir_content_from_tree(tree: DirContentSourceTree) -> DirContent:
-    content: list[DirContentItem] = []
+def dir_content_from_tree(tree: DirContentSource) -> DirContentProto:
+    if is_tree(tree):
+        content: list[DirContentItem] = []
 
-    for k, v in tree.items():
-        # DirTree case
-
-        if is_tree(v):
-            content.append(vdir(k, dir_content_from_tree(v)))
-        elif isinstance(v, (list, Iterable)):
-            if not isinstance(v, Mapping):
-                content.append(vdir(k, list(v)))
+        for k, v in tree.items():
+            # DirTree case
+            if FileContentProto.guard(v):
+                content.append(vfile(k, v))
             else:
-                raise ValueError(f"{v} shouldnt be Mapping here")
-        elif DirContentProto.guard(v):
-            content.append(vdir(k, v))
-        elif FileContentProto.guard(v):
-            content.append(vfile(k, v))
+                content.append(vdir(k, dir_content_from_tree(v)))
+        return dir_content(*content)
+    else:
+        if isinstance(tree, (list, Iterable)):
+            if not isinstance(tree, Mapping):
+                dir_content(*tree)
+            else:
+                raise ValueError(f"{tree} shouldnt be Mapping here")
+        elif DirContentProto.guard(tree):
+            return tree
 
-    return dir_content(*content)
+    raise ValueError(f"incorrect tree value: {tree}")

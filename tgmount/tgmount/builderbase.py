@@ -12,10 +12,12 @@ from tgmount.cache import CacheFactory
 from tgmount.cache import source
 from tgmount.cache.source import FilesSourceCaching
 from tgmount.config import Config, ConfigValidator
+from tgmount.config.helpers import dict_get_value
 from tgmount.config.types import MessageSource
 from tgmount.tg_vfs.file_factory import FileFactory
 from tgmount.tgclient import TelegramMessageSource, TgmountTelegramClient
 from tgmount.tgmount.filters import FilterDict
+from tgmount.tgmount.producers import TreeProducersProviderProto
 from tgmount.util import col, compose_guards
 
 from .base2 import CreateRootResources, Tgmount
@@ -58,6 +60,8 @@ def to_dicts(items: list[str | dict[str, dict]]) -> list[str | dict[str, dict]]:
 
 
 _filters = TypedDict("_filters", recursive=bool, filters=list[Filter])
+
+# dict_get_value
 
 
 def _get_filters(
@@ -110,7 +114,7 @@ async def _process_source(
     ms: TelegramMessageSource,
     filters: Optional[list[Filter]],
     file_factory: FileFactory,
-    content: list,
+    content_messages: list[Message],
     *,
     resources: CreateRootResources,
     ctx: Context,
@@ -124,7 +128,7 @@ async def _process_source(
             messages = await filter_cons.filter(messages)
 
     for m in messages:
-        content.append(file_factory.file(m))
+        content_messages.append(m)
 
     # if recursive:
     #     return ctx.set_source(ms)
@@ -139,9 +143,10 @@ async def _tgmount_root(
     _filter = d.get("filter")
     cache = d.get("cache")
     wrappers = d.get("wrappers")
+    _producer = d.get("producer")
 
     other_keys = set(d.keys()).difference(
-        {"source", "filter", "cache", "wrappers"},
+        {"source", "filter", "cache", "wrappers", "producer"},
     )
 
     file_factory = (
@@ -151,7 +156,7 @@ async def _tgmount_root(
     if file_factory is None:
         raise config.ConfigError(f"missing cache named {cache} in {ctx.current_path}")
 
-    content = []
+    content_messages: tg_vfs.MessagesTreeValueDir = []
 
     filters = ctx.filters if ctx.filters is not None else []
 
@@ -188,7 +193,7 @@ async def _tgmount_root(
                 ms,
                 filters,
                 file_factory,
-                content,
+                content_messages,
                 resources=resources,
                 ctx=ctx,
             )
@@ -202,7 +207,7 @@ async def _tgmount_root(
             ctx.source,
             filters,
             file_factory,
-            content,
+            content_messages,
             resources=resources,
             ctx=ctx,
         )
@@ -217,9 +222,29 @@ async def _tgmount_root(
             resources=resources,
             ctx=ctx.add_path(k),
         )
-        content.append(vfs.vdir(k, _content))
+        content_messages.append(vfs.vdir(k, _content))
 
-    content = vfs.dir_content(*content)
+    if _producer is not None:
+
+        producer_name = next(iter(_producer.keys()), None)
+
+        if producer_name is None:
+            raise config.ConfigError(
+                f"Invalid producer definition: {_producer} in {ctx.current_path}"
+            )
+
+        producer_cls = resources.producers.get(producer_name)
+        if producer_cls is None:
+            raise config.ConfigError(
+                f"missing producer: {producer_name} in {ctx.current_path}"
+            )
+
+        producer = producer_cls.from_config(_producer[producer_name], None)
+        content_messages = await producer.produce_tree(content_messages)
+
+    content = vfs.dir_content_from_tree(
+        file_factory.create_tree(content_messages),
+    )
 
     if wrappers is not None:
         if not isinstance(wrappers, list):
@@ -245,6 +270,7 @@ class TgmountBuilderBase(abc.ABC):
     caches: CachesProviderProto
     filters: FilterProviderProto
     wrappers: DirWrapperProviderProto
+    producers: TreeProducersProviderProto
 
     async def create_tgmount(self, cfg: Config) -> Tgmount:
         client = await self.create_client(cfg)
@@ -276,6 +302,7 @@ class TgmountBuilderBase(abc.ABC):
             client=client,
             file_factory=file_factory,
             filters=self.filters.get_filters(),
+            producers=self.producers.get_producers(),
             message_sources=messssage_sources,
             mount_dir=cfg.mount_dir,
             wrappers=wrappers,

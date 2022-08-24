@@ -58,10 +58,16 @@ ogranized: &ogranized
       Union: [MessageWithAnimated, MessageWithSticker]
   all:
     filter: All
-  music-last30:
+  music-by-performer:
     filter:
       - MessageWithMusic
-      - Last: 30
+      # - Last: 30
+    producer:
+      MusicByPerformer: { minimum: 2 }
+  by-sender:
+    filter: All
+    producer:
+      MessageBySender: { minimum: 2 }
 
 root:
   ru2chmu:

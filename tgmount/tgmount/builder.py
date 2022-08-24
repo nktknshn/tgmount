@@ -12,7 +12,7 @@ from .types import (
     FilterProviderProto,
 )
 
-from .providers import CachesProvider
+from .providers import CachesProvider, TreeProducersProvider
 
 
 class TgmountBuilder(TgmountBuilderBase):
@@ -24,3 +24,4 @@ class TgmountBuilder(TgmountBuilderBase):
     filters: FilterProviderProto = FilterProvider()
     caches: CachesProviderProto = CachesProvider()
     wrappers: DirWrapperProviderProto = DirWrappersProvider()
+    producers = TreeProducersProvider()

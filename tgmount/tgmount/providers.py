@@ -24,6 +24,7 @@ from .filters import (
 )
 from .types import DirWrapper, FilterAllMessagesProto
 from .wrappers import DirWrappersProviderBase
+from .producers import MessageBySender, TreeProducersProviderBase, MusicByPerformer
 
 
 async def zips_as_dirs(**kwargs) -> DirWrapper:
@@ -42,6 +43,13 @@ class DirWrappersProvider(DirWrappersProviderBase):
 class CachesProvider(CacheProviderBase):
     caches = {
         "memory": CacheFactoryMemory,
+    }
+
+
+class TreeProducersProvider(TreeProducersProviderBase):
+    producers = {
+        "MusicByPerformer": MusicByPerformer,
+        "MessageBySender": MessageBySender,
     }
 
 

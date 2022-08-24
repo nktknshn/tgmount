@@ -36,17 +36,26 @@ MessagesTreeValue = Union[
     # _T,
 ]
 
-# MessagesTreeValue is what a value of tree may be
-MessagesTree = vfs.Tree[
-    MessagesTreeValue[_T],
-]
+""" 
+MessagesTreeValue is what a value of tree may be
+MessagesTreeValue is a structure that can be turned into DirContentProto
+It is either MessagesTreeValueDir or Mapping of item names into content (which may be
+DirContent of FileContent
+)
+"""
+MessagesTree = (
+    MessagesTreeValueDir[T] | Mapping[str, "MessagesTree[T]" | MessagesTreeValue[T]]
+)
+# MessagesTree = vfs.Tree[
+#     MessagesTreeValue[_T],
+# ]
 
 
 class Virt:
     @dataclass
     class Dir(Generic[_T]):
         name: str
-        content: MessagesTreeValueDir[_T]
+        content: MessagesTree[_T]
 
     @dataclass
     class File(Generic[_T]):
@@ -56,12 +65,12 @@ class Virt:
     @dataclass
     class MapContent(Generic[_T]):
         mapper: Callable[[vfs.DirContentProto], vfs.DirContentProto]
-        content: MessagesTreeValueDir[_T]
+        content: MessagesTree[_T]
 
     @dataclass
     class MapContext(Generic[_T]):
         mapper: Callable[[MapTreeContext], MapTreeContext]
-        tree: MessagesTreeValueDir[_T]
+        tree: MessagesTree[_T]
 
     # @dataclass
     # class WithContext(Generic[_T]):
@@ -73,23 +82,3 @@ class Virt:
     #     mapper: Callable[
     #         [WalkTreeContext, MessagesTreeValue[_T]], MessagesTreeValue[_T]
     #     ]
-
-
-# class MessagesTreeHandlerProto(Protocol[_T]):
-#     def fstree(self, tree: MessagesTree[_T]) -> vfs.DirContentSourceTree:
-#         ...
-
-#     def dir_or_file_content(self, message: _T) -> vfs.DirContent | vfs.FileContent:
-#         ...
-
-#     def supports(self, message: Message) -> TypeGuard[_T]:
-#         ...
-
-#     def dir_or_file(self, message: _T) -> vfs.DirLike | vfs.FileLike:
-#         ...
-
-#     def dir_content(self, message: _T) -> vfs.DirContentProto:
-#         ...
-
-#     def from_dir_like(self, dl: Virt.Dir[_T]) -> vfs.DirContentProto:
-#         ...

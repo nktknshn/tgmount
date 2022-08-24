@@ -15,6 +15,8 @@ from dataclasses import dataclass, replace
 from tgmount import tg_vfs, tgclient, vfs
 from tgmount.cache import CacheFactory
 
+from .producers import TreeProducer
+
 
 class FilterAllMessagesProto(Protocol):
     @abstractmethod
@@ -28,10 +30,6 @@ class FilterAllMessagesProto(Protocol):
     @abstractstaticmethod
     def from_config(*args) -> "FilterAllMessagesProto":
         ...
-
-    # @abstractclassmethod
-    # def filter(cls, messages: Iterable[Message]) -> list[Message]:
-    #     ...
 
 
 FilterSingleMessage = Callable[[Message], TypeGuard[Any]]
@@ -56,6 +54,7 @@ class CreateRootResources:
     file_factory: tg_vfs.FileFactory
     sources: Mapping[str, tgclient.TelegramMessageSource]
     filters: Mapping[str, Type[Filter]]
+    producers: Mapping[str, Type[TreeProducer]]
     caches: Mapping[str, tg_vfs.FileFactory]
     wrappers: Mapping[str, DirWrapper]
 

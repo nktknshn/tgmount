@@ -12,6 +12,7 @@ from tgmount.util import col, compose_guards
 from tgmount.cache import CacheFactory
 
 from .types import DirWrapper, Filter, TgmountRoot, CreateRootResources, TgmountError
+from .producers import TreeProducer
 from tgmount import main
 
 Message = telethon.tl.custom.Message
@@ -29,6 +30,7 @@ class Tgmount:
         root: TgmountRoot,
         file_factory: tg_vfs.FileFactory,
         filters: Mapping[str, Type[Filter]],
+        producers: Mapping[str, Type[TreeProducer]],
         caches: Mapping[str, tg_vfs.FileFactory],
         wrappers: Mapping[str, DirWrapper],
         mount_dir: Optional[str] = None,
@@ -42,6 +44,7 @@ class Tgmount:
         self._file_factory = file_factory
         self._filters: Mapping[str, Type[Filter]] = filters
         self._wrappers = wrappers
+        self._producers = producers
 
     @property
     def client(self):
@@ -54,6 +57,7 @@ class Tgmount:
                     file_factory=self._file_factory,
                     sources=self._message_sources,
                     filters=self._filters,
+                    producers=self._producers,
                     caches=self._caches,
                     wrappers=self._wrappers,
                 )
