@@ -7,41 +7,37 @@ from tgmount.tgclient.guards import *
 from telethon.tl.custom import Message
 from tgmount.vfs.map_tree import MapTreeContext
 
-_T = TypeVar("_T")
+T = TypeVar("T")
 
 """ Type that can be an item of Iterable """
 MessagesTreeValueDirItem = Union[
-    _T,
-    "Virt.Dir[_T]",
-    "Virt.Dir[_T]" | _T,
+    T,
+    "Virt.Dir[T]",
+    "Virt.Dir[T]" | T,
     vfs.DirLike,
     vfs.FileLike,
 ]
 
-""" Type the can be turned into DirContent """
+""" Type that the can be turned into DirContent """
 MessagesTreeValueDir = Union[
-    Iterable[MessagesTreeValueDirItem[_T]],
-    "Virt.MapContent[_T]",
-    "Virt.MapContext[_T]",
+    Iterable[MessagesTreeValueDirItem[T]],
+    "Virt.MapContent[T]",
+    "Virt.MapContext[T]",
     vfs.DirContentProto,
-    Mapping[str, "MessagesTreeValueDir[_T] | vfs.FileContentProto"]
-    # vfs.FileContentProto
-    # _T,
+    Mapping[str, "MessagesTreeValueDir[T] | vfs.FileContentProto"],
 ]
 
 """ Type that can be a value of `MessagesTree` Mapping (file content or dir content)"""
 MessagesTreeValue = Union[
-    MessagesTreeValueDir[_T],
+    MessagesTreeValueDir[T],
     vfs.FileContentProto
     # _T,
 ]
 
 """ 
-MessagesTreeValue is what a value of tree may be
-MessagesTreeValue is a structure that can be turned into DirContentProto
-It is either MessagesTreeValueDir or Mapping of item names into content (which may be
-DirContent of FileContent
-)
+MessagesTree is a structure that can be turned into DirContentProto
+It is either MessagesTreeValueDir or Mapping of item names into conten
+(which may be DirContent of FileContent)
 """
 MessagesTree = (
     MessagesTreeValueDir[T] | Mapping[str, "MessagesTree[T]" | MessagesTreeValue[T]]
@@ -53,24 +49,24 @@ MessagesTree = (
 
 class Virt:
     @dataclass
-    class Dir(Generic[_T]):
+    class Dir(Generic[T]):
         name: str
-        content: MessagesTree[_T]
+        content: MessagesTree[T]
+
+    # @dataclass
+    # class File(Generic[T]):
+    #     name: str
+    #     content: T
 
     @dataclass
-    class File(Generic[_T]):
-        name: str
-        content: _T
-
-    @dataclass
-    class MapContent(Generic[_T]):
+    class MapContent(Generic[T]):
         mapper: Callable[[vfs.DirContentProto], vfs.DirContentProto]
-        content: MessagesTree[_T]
+        content: MessagesTree[T]
 
     @dataclass
-    class MapContext(Generic[_T]):
+    class MapContext(Generic[T]):
         mapper: Callable[[MapTreeContext], MapTreeContext]
-        tree: MessagesTree[_T]
+        tree: MessagesTree[T]
 
     # @dataclass
     # class WithContext(Generic[_T]):

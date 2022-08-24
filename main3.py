@@ -119,7 +119,7 @@ class Tgmount(TgmountBase):
 
     async def create_dir(
         self, messages_source: tgclient.TelegramMessageSource
-    ) -> vfs.DirContentSourceTree | vfs.DirContentSourceTreeValueDir:
+    ) -> vfs.DirContentSourceMapping | vfs.DirContentSourceTreeValueDir:
 
         return await self.messages_to_fstree(
             await messages_source.get_messages(),

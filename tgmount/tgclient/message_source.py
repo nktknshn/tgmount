@@ -1,8 +1,10 @@
+from abc import abstractmethod
 from typing import (
     Awaitable,
     Callable,
     Iterable,
     Optional,
+    Protocol,
 )
 
 from telethon import events, types
@@ -16,11 +18,21 @@ Listener = Callable[
 ]
 
 
-class TelegramMessageSourceProto(abc.ABC):
-    pass
+class TelegramMessageSourceProto(Protocol):
+    @abstractmethod
+    async def get_messages(self) -> list[Message]:
+        pass
+
+    @staticmethod
+    def from_messages(ms: list[Message]) -> "TelegramMessageSourceProto":
+        class TelegramMessageSource(TelegramMessageSourceProto):
+            async def get_messages(self) -> list[Message]:
+                return ms
+
+        return TelegramMessageSource()
 
 
-class TelegramMessageSource:
+class TelegramMessageSource(TelegramMessageSourceProto):
     def __init__(
         self,
         client: tgclient.TgmountTelegramClient,

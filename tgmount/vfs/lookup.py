@@ -6,7 +6,7 @@ from tgmount.vfs.types.dir import (
     DirLike,
 )
 from tgmount.vfs.util import norm_and_parse_path, napp
-from .dir_util import read_dir_content
+from .dir_util import dir_content_read
 
 
 async def dirlike_get_subitem_by_name(
@@ -68,6 +68,6 @@ async def dirlike_ls(d: DirLike, path: list[str]) -> Optional[Iterable[DirConten
     if not DirLike.guard(item):
         return None
 
-    items = await read_dir_content(item.content)
+    items = await dir_content_read(item.content)
 
     return items

@@ -5,6 +5,7 @@ from telethon.tl.custom import Message
 from tgmount import vfs
 from tgmount import zip as z
 from tgmount.cache import CacheFactoryMemory
+from tgmount.tg_vfs.tree.helpers.remove_empty import remove_empty_dirs_content
 from tgmount.tgclient import guards
 from tgmount.util import col, func
 
@@ -22,21 +23,22 @@ from .filters import (
     Seq,
     from_guard,
 )
-from .types import DirWrapper, FilterAllMessagesProto
-from .wrappers import DirWrappersProviderBase
+from .wrappers import DirWrappersProviderBase, ExcludeEmptyDirs, ZipsAsDirsWrapper
 from .producers import MessageBySender, TreeProducersProviderBase, MusicByPerformer
 
 
-async def zips_as_dirs(**kwargs) -> DirWrapper:
-    async def _inner(content: vfs.DirContentProto) -> vfs.DirContentProto:
-        return z.zips_as_dirs(content, **kwargs)
+# async def zips_as_dirs(**kwargs) -> DirWrapper:
+#     async def _inner(content: vfs.DirContentProto) -> vfs.DirContentProto:
+#         return z.zips_as_dirs(content, **kwargs)
 
-    return _inner
+#     return _inner
 
 
 class DirWrappersProvider(DirWrappersProviderBase):
     wrappers = {
-        "zips_as_dirs": zips_as_dirs,
+        "ZipsAsDirs": ZipsAsDirsWrapper,
+        "ExcludeEmptyDirs": ExcludeEmptyDirs,
+        # "exclude_empty_dirs": lambda args: remove_empty_dirs_content,
     }
 
 

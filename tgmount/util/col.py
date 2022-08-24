@@ -10,6 +10,7 @@ from typing import (
 )
 
 T = TypeVar("T")
+from .func import group_by, group_by0, group_by_func_async
 
 
 def find(pred: Callable[[T], bool], col: Sequence[T]) -> Optional[T]:
@@ -32,3 +33,11 @@ def flatten(col: Iterator | list) -> list:
 
 def dict_exclude(d: Mapping, keys: list[str]) -> dict:
     return {k: v for k, v in d.items() if not contains(k, keys)}
+
+
+def get_first_key(d: Mapping):
+    return next(iter(d.keys()), None)
+
+
+def get_first_pair(d: Mapping):
+    return next(iter(d.items()))

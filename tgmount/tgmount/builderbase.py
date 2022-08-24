@@ -3,7 +3,7 @@ from abc import abstractmethod
 from collections.abc import Awaitable, Callable, Mapping
 from typing import Optional, Type, TypedDict
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, replace, make_dataclass
 
 from telethon.tl.custom import Message
 
@@ -16,29 +16,30 @@ from tgmount.config.helpers import dict_get_value
 from tgmount.config.types import MessageSource
 from tgmount.tg_vfs.file_factory import FileFactory
 from tgmount.tgclient import TelegramMessageSource, TgmountTelegramClient
+from tgmount.tgclient.message_source import TelegramMessageSourceProto
 from tgmount.tgmount.filters import FilterDict
 from tgmount.tgmount.producers import TreeProducersProviderProto
-from tgmount.util import col, compose_guards
+from tgmount.util import col, compose_guards, none_fallback
 
-from .base2 import CreateRootResources, Tgmount
+from .tgmountbase import CreateRootResources, Tgmount
 from .types import (
     CachesProviderProto,
-    DirWrapper,
-    DirWrapperProviderProto,
     Filter,
     FilterProviderProto,
     TgmountRoot,
 )
 
+from .wrappers import DirContentWrapperProto, DirWrapperProviderProto
+
 
 @dataclass
 class Context:
     current_path: list[str]
-    source: Optional[TelegramMessageSource] = None
+    recursive_source: Optional[TelegramMessageSourceProto] = None
     filters: Optional[list[Filter]] = None
 
-    def set_source(self, source: Optional[TelegramMessageSource]):
-        return replace(self, source=source)
+    def set_recursive_source(self, source: Optional[TelegramMessageSourceProto]):
+        return replace(self, recursive_source=source)
 
     def set_filters(self, filters: Optional[list[Filter]]):
         return replace(self, filters=filters)
@@ -60,7 +61,6 @@ def to_dicts(items: list[str | dict[str, dict]]) -> list[str | dict[str, dict]]:
 
 
 _filters = TypedDict("_filters", recursive=bool, filters=list[Filter])
-
 # dict_get_value
 
 
@@ -94,7 +94,7 @@ def _get_filters(
             filter_cons = resources.filters.get(f_item)
             filter_arg = None
         else:
-            f_name, filter_arg = next(iter(f_item.items()))
+            f_name, filter_arg = col.get_first_pair(f_item)
             filter_cons = resources.filters.get(f_name)
 
         if filter_cons is None:
@@ -111,14 +111,14 @@ def _get_filters(
 
 async def _process_source(
     d: dict,
-    ms: TelegramMessageSource,
+    ms: TelegramMessageSourceProto,
     filters: Optional[list[Filter]],
     file_factory: FileFactory,
     content_messages: list[Message],
     *,
     resources: CreateRootResources,
     ctx: Context,
-) -> Context:
+):
 
     messages = await ms.get_messages()
     messages = [m for m in messages if file_factory.supports(m)]
@@ -130,11 +130,6 @@ async def _process_source(
     for m in messages:
         content_messages.append(m)
 
-    # if recursive:
-    #     return ctx.set_source(ms)
-
-    return ctx
-
 
 async def _tgmount_root(
     d: dict, *, resources: CreateRootResources, ctx=Context(current_path=[])
@@ -143,7 +138,7 @@ async def _tgmount_root(
     _filter = d.get("filter")
     cache = d.get("cache")
     wrappers = d.get("wrappers")
-    _producer = d.get("producer")
+    _producer_dict = d.get("producer")
 
     other_keys = set(d.keys()).difference(
         {"source", "filter", "cache", "wrappers", "producer"},
@@ -156,9 +151,10 @@ async def _tgmount_root(
     if file_factory is None:
         raise config.ConfigError(f"missing cache named {cache} in {ctx.current_path}")
 
-    content_messages: tg_vfs.MessagesTreeValueDir = []
+    content_messages: tg_vfs.MessagesTree = []
 
-    filters = ctx.filters if ctx.filters is not None else []
+    filters = none_fallback(ctx.filters, [])
+    recursive_filter = False
 
     if _filter is not None:
         _filters = _get_filters(
@@ -170,6 +166,7 @@ async def _tgmount_root(
         filters = [*filters, *_filters["filters"]]
 
         if _filters["recursive"] is True:
+            recursive_filter = True
             ctx = ctx.set_filters(filters)
 
     if _source is not None:
@@ -199,12 +196,16 @@ async def _tgmount_root(
             )
 
         if recursive:
-            ctx = ctx.set_source(ms)
+            ctx = ctx.set_recursive_source(ms)
 
-    elif ctx.source is not None:
+    elif (
+        ctx.recursive_source is not None
+        and _filter is not None
+        and not recursive_filter
+    ):
         await _process_source(
             d,
-            ctx.source,
+            ctx.recursive_source,
             filters,
             file_factory,
             content_messages,
@@ -216,47 +217,83 @@ async def _tgmount_root(
             f"missing source, subfolders or filter in {ctx.current_path}"
         )
 
+    if _producer_dict is not None:
+        producer_name = col.get_first_key(_producer_dict)
+
+        if producer_name is None:
+            raise config.ConfigError(
+                f"Invalid producer definition: {_producer_dict} in {ctx.current_path}"
+            )
+
+        producer_cls = resources.producers.get(producer_name)
+
+        if producer_cls is None:
+            raise config.ConfigError(
+                f"Missing producer: {producer_name}. path: {ctx.current_path}"
+            )
+
+        def _parse_root_func(d: dict):
+            async def _inner(ms: list[Message]):
+                return await _tgmount_root(
+                    d,
+                    resources=resources,
+                    ctx=ctx.set_recursive_source(
+                        TelegramMessageSourceProto.from_messages(ms)
+                    ).add_path(producer_name),
+                )
+
+            return _inner
+
+        producer = producer_cls.from_config(
+            _producer_dict[producer_name],
+            _parse_root_func,
+        )
+
+        content_messages = await producer.produce_tree(content_messages)
+
+    content = vfs.dir_content_from_source(
+        file_factory.create_dir_content_source(content_messages),
+    )
+
+    other_keys_content = []
     for k in other_keys:
         _content = await _tgmount_root(
             d[k],
             resources=resources,
             ctx=ctx.add_path(k),
         )
-        content_messages.append(vfs.vdir(k, _content))
+        other_keys_content.append(vfs.vdir(k, _content))
 
-    if _producer is not None:
-
-        producer_name = next(iter(_producer.keys()), None)
-
-        if producer_name is None:
-            raise config.ConfigError(
-                f"Invalid producer definition: {_producer} in {ctx.current_path}"
-            )
-
-        producer_cls = resources.producers.get(producer_name)
-        if producer_cls is None:
-            raise config.ConfigError(
-                f"missing producer: {producer_name} in {ctx.current_path}"
-            )
-
-        producer = producer_cls.from_config(_producer[producer_name], None)
-        content_messages = await producer.produce_tree(content_messages)
-
-    content = vfs.dir_content_from_tree(
-        file_factory.create_tree(content_messages),
+    content = vfs.dir_content_extend(
+        content,
+        vfs.dir_content(*other_keys_content),
     )
 
     if wrappers is not None:
         if not isinstance(wrappers, list):
             wrappers = [wrappers]
 
-        for w_name in wrappers:
-            w = resources.wrappers.get(w_name)
+        wrappers = to_dicts(wrappers)
 
-            if w is None:
-                raise config.ConfigError(f"missing wrapper: {w} in {ctx.current_path}")
+        for w_item in wrappers:
+            if isinstance(w_item, str):
+                wrapper_name = w_item
+                wrapper_arg = None
+            else:
+                wrapper_name, wrapper_arg = col.get_first_pair(w_item)
 
-            content = await w(content)
+            wrapper_cons = resources.wrappers.get(wrapper_name)
+
+            if wrapper_cons is None:
+                raise config.ConfigError(
+                    f"missing wrapper: {wrapper_name} in {ctx.current_path}"
+                )
+            if wrapper_arg is None:
+                wrapper = wrapper_cons()
+            else:
+                wrapper = wrapper_cons.from_config(wrapper_arg)
+
+            content = await wrapper.wrap_dir_content(content)
 
     return content
 
@@ -287,13 +324,13 @@ class TgmountBuilderBase(abc.ABC):
         else:
             caches = {}
 
-        if cfg.wrappers is not None:
-            wrappers = {
-                k: await self.create_wrapper(wrapper_config)
-                for k, wrapper_config in cfg.wrappers.wrappers.items()
-            }
-        else:
-            wrappers = {}
+        # if cfg.wrappers is not None:
+        #     wrappers = {
+        #         k: await self.create_wrapper(wrapper_config)
+        #         for k, wrapper_config in cfg.wrappers.wrappers.items()
+        #     }
+        # else:
+        #     wrappers = {}
 
         files_source = self.FilesSource(client)
         file_factory = self.FileFactory(files_source)
@@ -305,7 +342,7 @@ class TgmountBuilderBase(abc.ABC):
             producers=self.producers.get_producers(),
             message_sources=messssage_sources,
             mount_dir=cfg.mount_dir,
-            wrappers=wrappers,
+            wrappers=self.wrappers.get_wrappers(),
             caches=caches,
             root=self.parse_root_dict(cfg.root.content),
         )
@@ -326,10 +363,10 @@ class TgmountBuilderBase(abc.ABC):
 
         return self.FileFactory(fsc)
 
-    async def create_wrapper(self, w: config.Wrapper) -> DirWrapper:
-        cons = await self.wrappers.get_wrappers_factory(w.type)
+    # async def create_wrapper(self, w: config.Wrapper) -> DirWrapper:
+    #     cons = await self.wrappers.get_wrappers_factory(w.type)
 
-        return await cons(**w.kwargs)
+    #     return await cons(**w.kwargs)
 
     async def create_client(self, cfg: Config):
         return self.TelegramClient(

@@ -14,7 +14,7 @@ import tgmount.fs as fs
 
 from tgmount.logging import init_logging
 from tgmount.tgclient.files_source import TelegramFilesSource
-from tgmount.vfs import DirContentSourceTree
+from tgmount.vfs import DirContentSourceMapping
 from tgmount.tgclient import guards
 
 from ..helpers.fixtures import mnt_dir
@@ -31,7 +31,7 @@ InputMessagesFilterDocument = telethon.tl.types.InputMessagesFilterDocument
 async def messages_to_files_tree(
     source: TelegramFilesSource,
     messages: list[telethon.tl.custom.Message],
-) -> DirContentSourceTree:
+) -> DirContentSourceMapping:
     return dict(
         [
             (

@@ -17,7 +17,7 @@ from tgmount.logging import init_logging
 MountFsTreeProps = TypedDict(
     "Main1Props",
     debug=bool,
-    fs_tree=vfs.DirContentSourceTree,
+    fs_tree=vfs.DirContentSourceMapping,
 )
 
 

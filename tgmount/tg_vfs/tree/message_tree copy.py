@@ -75,7 +75,7 @@ def map_messages_tree_value(
     #     )
 
     if is_tree(tree_value):
-        return vfs.dir_content_from_tree(
+        return vfs.dir_content_from_source(
             {
                 k: map_messages_tree_value(
                     ctx.push_path(k),

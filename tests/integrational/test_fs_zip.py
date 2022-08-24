@@ -52,7 +52,7 @@ def zip_tree1(mp3bytes1) -> ZipSourceTree:
 def test_fs_zip1(mnt_dir: str, zip_tree1: ZipSourceTree):
     (zf, zb) = create_zip_from_tree(zip_tree1)
 
-    fs_tree: vfs.DirContentSourceTree = {
+    fs_tree: vfs.DirContentSourceMapping = {
         "dir1": {
             "file1.txt": vfs.text_content("file1.txt content"),
             "file2.txt": vfs.text_content("file2.txt content"),

@@ -1,3 +1,3 @@
-from .base2 import Tgmount
+from .tgmountbase import Tgmount
 from .builder import TgmountBuilder
-from .types import TgmountError
+from .error import TgmountError

@@ -7,10 +7,10 @@ from tgmount.tgmount.providers import DirWrappersProvider, FilterProvider
 from .builderbase import TgmountBuilderBase
 from .types import (
     CachesProviderProto,
-    DirWrapperProviderProto,
     Filter,
     FilterProviderProto,
 )
+from .wrappers import DirWrapperProviderProto
 
 from .providers import CachesProvider, TreeProducersProvider
 

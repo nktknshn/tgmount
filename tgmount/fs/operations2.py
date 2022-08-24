@@ -6,13 +6,11 @@ from dataclasses import dataclass
 
 import pyfuse3
 from tgmount import vfs
+
 from .fh import FileSystemHanders
 from .inode2 import InodesRegistry, RegistryItem, RegistryRoot
-from .util import (
-    create_directory_attributes,
-    create_file_attributes,
-    exception_handler,
-)
+from .logger import logger
+from .util import create_directory_attributes, create_file_attributes, exception_handler
 
 # from tgmount.vfs import DirContentItem, DirLike, FileLike
 
@@ -23,8 +21,6 @@ from .util import (
 #     pass
 # else:
 #     faulthandler.enable()
-
-logger = logging.getLogger("tgvfs-ops")
 
 
 @dataclass

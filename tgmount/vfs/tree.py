@@ -17,12 +17,12 @@ from .types.dir import (
 from .types.file import FileContentProto, FileLike
 
 DirContentSourceTreeValueDir = Union[
-    # dir
     DirContentProto,
     Iterable[FileLike],
     Iterable[DirLike],
     Iterable[DirLike | FileLike],
 ]
+
 DirContentSourceTreeValue = Union[
     # dir
     DirContentSourceTreeValueDir,
@@ -30,36 +30,38 @@ DirContentSourceTreeValue = Union[
     FileContentProto,
 ]
 
+
+DirContentSourceMapping = Tree[DirContentSourceTreeValue]
+
 """
-`DirContentSourceTree` represents structure that can be used as a source for building a DirContent
+`DirContentSource` represents a structure that can be used as a source for
+building a DirContentProto
 """
-DirContentSourceTree = Tree[DirContentSourceTreeValue]
-
-DirContentSource = DirContentSourceTree | DirContentSourceTreeValueDir
+DirContentSource = DirContentSourceMapping | DirContentSourceTreeValueDir
 
 
-def is_tree(v) -> TypeGuard[DirContentSourceTree]:
+def is_tree(v) -> TypeGuard[DirContentSourceMapping]:
     return isinstance(v, Mapping)
 
 
-def dir_content_from_tree(tree: DirContentSource) -> DirContentProto:
-    if is_tree(tree):
+def dir_content_from_source(content_source: DirContentSource) -> DirContentProto:
+    """Turns `DirContentSource` into `DirContentProto`"""
+    if is_tree(content_source):
         content: list[DirContentItem] = []
 
-        for k, v in tree.items():
-            # DirTree case
+        for k, v in content_source.items():
             if FileContentProto.guard(v):
                 content.append(vfile(k, v))
             else:
-                content.append(vdir(k, dir_content_from_tree(v)))
+                content.append(vdir(k, dir_content_from_source(v)))
         return dir_content(*content)
     else:
-        if isinstance(tree, (list, Iterable)):
-            if not isinstance(tree, Mapping):
-                dir_content(*tree)
+        if isinstance(content_source, (list, Iterable)):
+            if not isinstance(content_source, Mapping):
+                dir_content(*content_source)
             else:
-                raise ValueError(f"{tree} shouldnt be Mapping here")
-        elif DirContentProto.guard(tree):
-            return tree
+                raise ValueError(f"{content_source} shouldnt be Mapping here")
+        elif DirContentProto.guard(content_source):
+            return content_source
 
-    raise ValueError(f"incorrect tree value: {tree}")
+    raise ValueError(f"incorrect tree value: {content_source}")

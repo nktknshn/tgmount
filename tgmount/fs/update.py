@@ -4,6 +4,7 @@ from .inode2 import InodesRegistry
 
 import tgmount.vfs as vfs
 import pyfuse3
+from .logger import logger
 
 
 class FileSystemOperationsUpdatable(FileSystemOperations):
@@ -57,7 +58,11 @@ class FileSystemOperationsUpdatable(FileSystemOperations):
 
         self.inodes.remove_item_with_children(item)
 
-    async def update_root(self, root: vfs.DirLike):
+    def invalidate_all(self):
+        pass
+        # self.update_root(vfs.root())
+
+    def update_root(self, root: vfs.DirLike):
         for inode in reversed(self.inodes.get_inodes()):
             # print(f"inode={inode}")
             kids = self.inodes.get_items_by_parent_dict(inode)
@@ -67,7 +72,10 @@ class FileSystemOperationsUpdatable(FileSystemOperations):
 
             for k, v in kids.items():
                 # print(f"invalidate_entry({inode}, {k})")
-                pyfuse3.invalidate_entry_async(inode, k)
+                try:
+                    pyfuse3.invalidate_entry(inode, k)
+                except OSError as e:
+                    logger.error(f"pyfuse3.invalidate_entry_async: {e}")
 
         # pyfuse3.invalidate_inode(pyfuse3.ROOT_INODE)
 

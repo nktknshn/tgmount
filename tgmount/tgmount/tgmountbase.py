@@ -11,9 +11,11 @@ from tgmount import config
 from tgmount.util import col, compose_guards
 from tgmount.cache import CacheFactory
 
-from .types import DirWrapper, Filter, TgmountRoot, CreateRootResources, TgmountError
+from .types import Filter, TgmountRoot, CreateRootResources
+from .error import TgmountError
 from .producers import TreeProducer
 from tgmount import main
+from .wrappers import DirContentWrapper
 
 Message = telethon.tl.custom.Message
 
@@ -32,7 +34,7 @@ class Tgmount:
         filters: Mapping[str, Type[Filter]],
         producers: Mapping[str, Type[TreeProducer]],
         caches: Mapping[str, tg_vfs.FileFactory],
-        wrappers: Mapping[str, DirWrapper],
+        wrappers: Mapping[str, Type[DirContentWrapper]],
         mount_dir: Optional[str] = None,
     ) -> None:
         # self._client
@@ -97,6 +99,8 @@ class Tgmount:
 
         if mount_dir is None:
             raise TgmountError(f"missing destination")
+
+        main.cleanup = self._fs.invalidate_all
 
         await main.util.mount_ops(
             self._fs,

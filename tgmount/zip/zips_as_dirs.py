@@ -113,7 +113,7 @@ class ZipsAsDirs(vfs.DirContentProto[ZipsAsDirsHandle]):
         self,
         source_dir_content: vfs.DirContentProto,
     ):
-        content_items = await vfs.read_dir_content(source_dir_content)
+        content_items = await vfs.dir_content_read(source_dir_content)
 
         result_items = []
 
@@ -157,7 +157,7 @@ def zips_as_dirs(
     """
     if vfs.is_tree(tree_or_content):
         return ZipsAsDirs(
-            vfs.dir_content_from_tree(tree_or_content),
+            vfs.dir_content_from_source(tree_or_content),
             **kwargs,
         )
     elif isinstance(tree_or_content, Iterable):

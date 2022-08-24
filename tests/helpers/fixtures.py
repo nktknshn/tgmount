@@ -18,7 +18,7 @@ def mnt_dir(tmpdir):
 
 
 @pytest.fixture()
-def fs_tree1() -> vfs.DirContentSourceTree:
+def fs_tree1() -> vfs.DirContentSourceMapping:
     tc = vfs.text_content
     return {
         "dir1": {

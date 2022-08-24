@@ -149,9 +149,9 @@ async def test_zip3():
         )
     )
 
-    tree = await vfs.tree_from_dir_content(structure.content)
+    tree = await vfs.dir_content_to_tree(structure.content)
 
-    t = await vfs.map_file_like_tree(get_file_content_str_utf8, tree)
+    t = await vfs.file_like_tree_map(get_file_content_str_utf8, tree)
 
     assert t == source_tree
 
@@ -169,9 +169,9 @@ async def test_zip4(zip_file1):
         )
     )
 
-    tree = await vfs.tree_from_dir_content(structure.content)
+    tree = await vfs.dir_content_to_tree(structure.content)
 
-    t = await vfs.map_file_like_tree(get_size, tree)
+    t = await vfs.file_like_tree_map(get_size, tree)
 
     assert t == {
         "archive.zip": {
@@ -204,9 +204,9 @@ async def test_zip5(zip_tree1):
         )
     )
 
-    tree = await vfs.tree_from_dir_content(structure.content)
+    tree = await vfs.dir_content_to_tree(structure.content)
 
-    t = await vfs.map_file_like_tree(get_file_content_str_utf8, tree)
+    t = await vfs.file_like_tree_map(get_file_content_str_utf8, tree)
 
     assert t == {"archive.zip": zip_tree1["a"]}
 
@@ -218,25 +218,25 @@ async def test_zip6(zip_tree1):
 
     zfdata_bytes = zfdata.getbuffer()
 
-    tree = await vfs.tree_from_dir_content(
+    tree = await vfs.dir_content_to_tree(
         z.zips_as_dirs(
             {"a": {"b": {"c.zip": vfs.file_content_from_bytes(zfdata_bytes)}}},
             recursive=True,
         )
     )
 
-    t = await vfs.map_file_like_tree(get_file_content_str_utf8, tree)
+    t = await vfs.file_like_tree_map(get_file_content_str_utf8, tree)
 
     assert t == {"a": {"b": {"c.zip": zip_tree1}}}
 
-    tree = await vfs.tree_from_dir_content(
+    tree = await vfs.dir_content_to_tree(
         z.zips_as_dirs(
             {"a": {"b": {"c.zip": vfs.file_content_from_bytes(zfdata_bytes)}}},
             recursive=False,
         )
     )
 
-    t = await vfs.map_file_like_tree(get_file_content_str_utf8, tree)
+    t = await vfs.file_like_tree_map(get_file_content_str_utf8, tree)
 
     assert t == {"a": {"b": {"c.zip": zfdata_bytes}}}
 
@@ -261,9 +261,9 @@ async def test_zip7(zip_tree1):
         )
     )
 
-    tree = await vfs.tree_from_dir_content(structure.content)
+    tree = await vfs.dir_content_to_tree(structure.content)
 
-    t = await vfs.map_file_like_tree(get_file_content_str_utf8, tree)
+    t = await vfs.file_like_tree_map(get_file_content_str_utf8, tree)
 
     assert t == {
         "a": {

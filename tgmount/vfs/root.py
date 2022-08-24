@@ -1,10 +1,10 @@
 from typing import overload
 from .dir import DirLike, DirContentList, DirContentItem, DirContentProto
 from .tree import (
-    DirContentSourceTree,
+    DirContentSourceMapping,
     DirContentSourceTreeValue,
     DirContentSourceTreeValueDir,
-    dir_content_from_tree,
+    dir_content_from_source,
 )
 from .file import FileLike
 
@@ -26,7 +26,7 @@ def root(content: DirContentProto) -> VfsRoot:
 
 
 @overload
-def root(content: DirContentSourceTree | DirContentSourceTreeValueDir) -> VfsRoot:
+def root(content: DirContentSourceMapping | DirContentSourceTreeValueDir) -> VfsRoot:
     ...
     # return DirLike(name=root_name, content=content)
 
@@ -37,7 +37,7 @@ def root(*content) -> VfsRoot:  # type: ignore
         if DirLike.guard(content[0]) or FileLike.guard(content[0]):
             return VfsRoot(root_name, DirContentList(list(content)))
         elif isinstance(content[0], dict):
-            return VfsRoot(root_name, dir_content_from_tree(content[0]))
+            return VfsRoot(root_name, dir_content_from_source(content[0]))
         return VfsRoot(root_name, content[0])
 
     return VfsRoot(root_name, DirContentList(list(content)))

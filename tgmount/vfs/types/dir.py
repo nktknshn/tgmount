@@ -48,8 +48,9 @@ class DirLike:
 
 class DirContentProto(Protocol[T]):
     """
-    Main interface describing a content of a folder. Intended to be stateless, storing the state in
-    the handle returned by `opendir_func`
+    Main interface describing a content of a folder. Intended to be
+    stateless, storing the state in the handle by type `T` returned by
+    `opendir_func`
     """
 
     @abstractmethod

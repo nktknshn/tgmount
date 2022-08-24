@@ -57,15 +57,8 @@ async def mount_ops(
     pyfuse3.init(fs_ops, mount_dir, fuse_options)
 
     main.mounted = True
-    await pyfuse3.main(min_tasks=min_tasks)
 
-    # try:
-    #     await pyfuse3.main(min_tasks=min_tasks)
-    # except KeyboardInterrupt:
-    #     print("Bye")
-    # finally:
-    #     print("CLOSE!")
-    #     pyfuse3.close(unmount=True)
+    await pyfuse3.main(min_tasks=min_tasks)
 
 
 def run_main(main_func):
@@ -88,6 +81,9 @@ def run_main(main_func):
 
         if main.mounted:
             pyfuse3.close(unmount=True)
+
+        if main.cleanup:
+            main.cleanup()
 
         if not loop.is_closed():
             loop.close()

@@ -16,6 +16,7 @@ from tgmount import tg_vfs, tgclient, vfs
 from tgmount.cache import CacheFactory
 
 from .producers import TreeProducer
+from .wrappers import DirContentWrapper
 
 
 class FilterAllMessagesProto(Protocol):
@@ -38,15 +39,10 @@ FilterAllMessages = FilterAllMessagesProto
 Filter = FilterAllMessages
 
 
-DirWrapper = Callable[[vfs.DirContentProto], Awaitable[vfs.DirContentProto]]
-DirWrapperConstructor = Callable[[..., Any], Awaitable[DirWrapper]]
+# DirWrapper = Callable[[vfs.DirContentProto], Awaitable[vfs.DirContentProto]]
+# DirWrapperConstructor = Callable[[..., Any], Awaitable[DirWrapper]]
 
-MessagesWrapper = Callable[[Iterable[Message]], Awaitable[list[Message]]]
-
-
-class TgmountError(Exception):
-    def __init__(self, *args: object) -> None:
-        super().__init__(*args)
+# MessagesWrapper = Callable[[Iterable[Message]], Awaitable[list[Message]]]
 
 
 @dataclass
@@ -56,7 +52,7 @@ class CreateRootResources:
     filters: Mapping[str, Type[Filter]]
     producers: Mapping[str, Type[TreeProducer]]
     caches: Mapping[str, tg_vfs.FileFactory]
-    wrappers: Mapping[str, DirWrapper]
+    wrappers: Mapping[str, Type[DirContentWrapper]]
 
 
 TgmountRoot = Callable[
@@ -68,16 +64,6 @@ TgmountRoot = Callable[
 class FilterProviderProto(Protocol):
     @abstractmethod
     def get_filters(self) -> Mapping[str, Type[Filter]]:
-        pass
-
-
-class DirWrapperProviderProto(Protocol):
-    @abstractmethod
-    def get_wrappers(self) -> Mapping[str, DirWrapper]:
-        pass
-
-    @abstractmethod
-    async def get_wrappers_factory(self, wrapper_type: str) -> DirWrapperConstructor:
         pass
 
 

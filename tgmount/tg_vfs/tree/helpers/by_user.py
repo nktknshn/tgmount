@@ -1,11 +1,11 @@
-from typing import Callable, Iterable, Mapping, TypedDict, TypeVar
+from typing import Awaitable, Callable, Iterable, Mapping, TypedDict, TypeVar
 
 import telethon
 from telethon.tl.custom import Message
-from tgmount.util import func
+from tgmount.util import col
 
 # from tgmount.tgclient.types import Message
-from ..types import MessagesTree, MessagesTreeValue
+from ..types import MessagesTree, MessagesTreeValue, Virt
 
 _M = TypeVar("_M", bound=Message)
 
@@ -35,24 +35,35 @@ async def group_by_sender(
 
         return key
 
-    return await func.group_by_func_async(
+    return await col.group_by_func_async(
         get_key,
         messages,
         minimum=minimum,
     )
 
 
-async def messages_by_user(messages: Iterable[_M], *, minimum=1) -> MessagesTree[_M]:
+UserDirProducer = Callable[[Iterable[_M]], Awaitable[MessagesTree[_M]]]
+
+
+async def async_identity(value):
+    return value
+
+
+async def messages_by_user(
+    messages: Iterable[_M],
+    *,
+    minimum=1,
+    user_dir_producer: UserDirProducer = async_identity,
+) -> MessagesTree[_M]:
     by_user, less, nones = await group_by_sender(
         messages,
         minimum=minimum,
     )
 
-    return {
-        **by_user,
-        "None": nones,
-        "Other": less,
-    }
+    return [
+        *[Virt.Dir(k, await user_dir_producer(items)) for k, items in by_user.items()],
+        *less,
+    ]
 
 
 def messages_by_user_func(

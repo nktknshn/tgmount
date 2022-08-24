@@ -1,7 +1,8 @@
 from typing import Type, Awaitable, Callable, Mapping
 from tgmount.cache import CacheFactory, CacheFactoryMemory
 
-from .types import CachesProviderProto, TgmountError
+from .types import CachesProviderProto
+from .error import TgmountError
 
 
 class CacheProviderBase(CachesProviderProto):

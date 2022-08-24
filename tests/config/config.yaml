@@ -19,17 +19,9 @@ message_sources:
     # filter: InputMessagesFilterMusic
   ru2chmu:
     entity: ru2chmu
-    limit: 300
+    limit: 500
     reverse: False
     updates: True
-# dir content wrappers
-wrappers:
-  zip1:
-    type: zips_as_dirs
-    recursive: True
-    skip_folder_if_single_subfolder: True
-    hide_sources: True
-# root
 ogranized: &ogranized
   filter: { filter: [OnlyUniqueDocs], recursive: True }
   docs:
@@ -37,12 +29,21 @@ ogranized: &ogranized
       - MessageWithOtherDocument
       - Not:
           - ByExtension: .zip
+  audio:
+    music:
+      filter: MessageWithMusic
+    voices:
+      filter: MessageWithVoice
   music:
     filter: MessageWithMusic
   unpacked:
     filter: MessageWithZip
     cache: memory1
-    wrappers: zip1
+    wrappers:
+      - ZipsAsDirs:
+          recursive: True
+          skip_folder_if_single_subfolder: True
+          hide_sources: True
   zips:
     filter: MessageWithZip
   personal:
@@ -64,15 +65,19 @@ ogranized: &ogranized
       # - Last: 30
     producer:
       MusicByPerformer: { minimum: 2 }
-  by-sender:
-    filter: All
-    producer:
-      MessageBySender: { minimum: 2 }
-
+# root
 root:
   ru2chmu:
     source: { source: ru2chmu, recursive: True }
     <<: *ogranized
+    by-sender:
+      filter: All
+      producer:
+        MessageBySender:
+          minimum: 2
+          sender_root:
+            <<: *ogranized
+            wrappers: ExcludeEmptyDirs
   tmtc:
     source: { source: tmtc, recursive: True }
     <<: *ogranized

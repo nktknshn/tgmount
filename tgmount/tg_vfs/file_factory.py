@@ -9,7 +9,7 @@ from tgmount.tgclient.files_source import get_downloadable_item
 
 from tgmount.util import compose_guards
 
-from .tree.message_tree import TreeCreator
+from .tree.message_tree import DirContentSourceCreator
 from .types import FileContentProto, FileFactoryProto
 
 T = TypeVar("T")
@@ -127,7 +127,7 @@ class FactoryMethod(FilenameMethod):
 
 class FileFactory(
     FactoryMethod,
-    TreeCreator,
+    DirContentSourceCreator,
     FileFactoryProto[FileFuncSupported],
 ):
     def __init__(self, files_source: FileContentProto) -> None:

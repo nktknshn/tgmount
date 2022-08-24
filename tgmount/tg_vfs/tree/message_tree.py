@@ -70,7 +70,7 @@ def map_value_dir(
     #     )
 
     if is_tree(tree_value):
-        return vfs.dir_content_from_tree(
+        return vfs.dir_content_from_source(
             {
                 k: map_value_dir(
                     ctx.push_path(k),
@@ -143,10 +143,10 @@ class MessagesTreeMapper(MessagesTreeMapperProto):
         return self.get_file_factory(ctx).file(message)
 
 
-class TreeCreator:
-    def create_tree(
+class DirContentSourceCreator:
+    def create_dir_content_source(
         self: FileFactoryProto,
-        tree: MessagesTreeValueDir[Message],
+        tree: MessagesTree[Message],
     ) -> vfs.DirContentSource:
 
         mapper = MessagesTreeMapper(self)

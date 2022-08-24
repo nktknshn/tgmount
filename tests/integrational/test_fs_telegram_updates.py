@@ -52,7 +52,7 @@ async def main_test1(
     def create_root(messages: Iterable[Message]) -> vfs.VfsRoot:
         return vfs.root(
             {
-                "tmtc": files.create_tree(
+                "tmtc": files.create_dir_content_source(
                     filter(guards.MessageWithDocument.guard, messages)
                 ),
             }
