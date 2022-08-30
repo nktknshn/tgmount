@@ -1,4 +1,3 @@
-# from .mixins import SourceUtilsMixin
 from .tree.types import (
     Virt,
     MessagesTree,
@@ -6,10 +5,14 @@ from .tree.types import (
     MessagesTreeValueDir,
 )
 
-# from .file_factory_mixin import FileFactoryMixin
 from .tree import helpers
 
 from .tree.with_filefactory import with_filefactory
 
+from .file_factory import (
+    FileFactorySupportedTypes,
+    FileFactoryProto,
+)
 
-from .file_factory import FileFactory
+from .filefactorybase import FileFactoryDefault
+from .classifier import ClassifierBase

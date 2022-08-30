@@ -6,11 +6,29 @@ import os
 import stat
 import traceback
 from functools import wraps
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable, List, Optional, overload
+import time
 
 import pyfuse3
 
 logger = logging.getLogger("tgvfs")
+
+
+def measure_time(*, logger_func):
+    def measure_time(func):
+        @wraps(func)
+        async def inner_function(*args, **kwargs):
+            started = time.time_ns()
+            res = await func(*args, **kwargs)
+            duration = time.time_ns() - started
+
+            logger_func(f"{func} = {int(duration/1000/1000)} ms")
+
+            return res
+
+        return inner_function
+
+    return measure_time
 
 
 def exception_handler(func):
@@ -75,3 +93,37 @@ def create_attributes(st_mode: int, stamp: int, size: int, inode: Optional[int] 
         attrs.st_ino = inode
 
     return attrs
+
+
+@overload
+def str_to_bytes(s: str) -> bytes:
+    ...
+
+
+@overload
+def str_to_bytes(s: list[str]) -> list[bytes]:
+    ...
+
+
+def str_to_bytes(s: str | list[str]) -> bytes | list[bytes]:
+    if isinstance(s, list):
+        return list(map(str_to_bytes, s))
+
+    return s.encode("utf-8")
+
+
+@overload
+def bytes_to_str(bs: bytes) -> str:
+    ...
+
+
+@overload
+def bytes_to_str(bs: list[bytes]) -> list[str]:
+    ...
+
+
+def bytes_to_str(bs: bytes | list[bytes]) -> str | list[str]:
+    if isinstance(bs, list):
+        return list(map(lambda b: b.decode("utf-8"), bs))
+
+    return bs.decode("utf-8")

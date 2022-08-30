@@ -11,6 +11,7 @@ from telethon import events, types
 from telethon.client.telegrambaseclient import abc
 from telethon.tl.custom import Message
 from tgmount import tgclient
+from .logger import logger
 
 Listener = Callable[
     [events.NewMessage.Event | events.MessageDeleted.Event, list[Message]],
@@ -56,7 +57,10 @@ class TelegramMessageSource(TelegramMessageSourceProto):
     async def _on_new_message(self, event: events.NewMessage.Event):
         if self._messages is None:
             self._messages = []
+
         self._messages.append(event.message)
+
+        logger.info(f"New message: {event.message}")
 
         for listener in self._listeners:
             await listener(event, self._messages[:])
@@ -81,9 +85,10 @@ class TelegramMessageSource(TelegramMessageSourceProto):
             await listener(event, self._messages[:])
 
     async def get_messages(self) -> list[Message]:
-
         if self._messages is not None:
-            return self._messages
+            return self._messages[:]
+
+        logger.info(f"Fetching {self._limit} messages from {self._chat_id}")
 
         self._messages = await self._client.get_messages_typed(
             self._chat_id,

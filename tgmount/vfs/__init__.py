@@ -16,7 +16,9 @@ from .dir_util import (
     dir_content_map_items,
     dir_content_read,
     dir_content_extend,
+    dir_content_read_dict,
 )
+from .compare import *
 from .file import (
     FileContent,
     FileContentProto,
@@ -41,6 +43,7 @@ from .tree import (
 )
 from .types import Tree
 from .util import napp, nappb, norm_and_parse_path
-from .lookup import dirlike_ls as ls
 
-dir_from_tree = dir_content_from_source
+from .lookup import dirlike_ls as ls, dirlike_get_by_path_list
+
+dir_content_from_tree = dir_content_from_source

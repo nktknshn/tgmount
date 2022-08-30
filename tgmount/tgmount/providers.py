@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Iterable, Mapping
 
 from telethon.tl.custom import Message
 
@@ -12,8 +12,10 @@ from tgmount.util import col, func
 from .caches import CacheProviderBase
 from .filters import (
     All,
+    And,
     ByExtension,
     ByTypes,
+    FiltersMapping,
     Not,
     FilterProviderBase,
     First,
@@ -21,10 +23,15 @@ from .filters import (
     OnlyUniqueDocs,
     Union,
     Seq,
-    from_guard,
+    from_context_classifier,
 )
 from .wrappers import DirWrappersProviderBase, ExcludeEmptyDirs, ZipsAsDirsWrapper
-from .producers import MessageBySender, TreeProducersProviderBase, MusicByPerformer
+from .producers import (
+    MessageByForwardSource,
+    MessageBySender,
+    TreeProducersProviderBase,
+    MusicByPerformer,
+)
 
 
 # async def zips_as_dirs(**kwargs) -> DirWrapper:
@@ -52,19 +59,25 @@ class TreeProducersProvider(TreeProducersProviderBase):
     producers = {
         "MusicByPerformer": MusicByPerformer,
         "MessageBySender": MessageBySender,
+        "MessageByForward": MessageByForwardSource,
     }
 
 
 class FilterProvider(FilterProviderBase):
-    filters = {
-        **{f.__name__: from_guard(f.guard) for f in ByTypes.guards},
-        "OnlyUniqueDocs": OnlyUniqueDocs,
-        "ByTypes": ByTypes,
-        "All": All,
-        "First": First,
-        "Last": Last,
-        "ByExtension": ByExtension,
-        "Not": Not,
-        "Union": Union,
-        "Seq": Seq,
-    }
+    filters = FiltersMapping(
+        filters={
+            "OnlyUniqueDocs": OnlyUniqueDocs,
+            # "ByTypes": ByTypes,
+            "All": All,
+            "First": First,
+            "Last": Last,
+            "ByExtension": ByExtension,
+            "Not": Not,
+            "Union": Union,
+            "Seq": Seq,
+            "And": And,
+        },
+        filter_getters=[
+            from_context_classifier,
+        ],
+    )

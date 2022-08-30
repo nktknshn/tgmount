@@ -2,6 +2,8 @@ from typing import Any, TypeVar, Callable, Awaitable, TypeGuard, overload
 
 from telethon.tl.custom import Message
 
+T = TypeVar("T")
+
 _I = TypeVar("_I")
 _O = TypeVar("_O")
 _O2 = TypeVar("_O2")
@@ -41,3 +43,7 @@ def compose_guards(
     *gs: Callable[[Message], TypeGuard[Any]]
 ) -> Callable[[Message], TypeGuard[Any]]:
     return lambda m: any(map(lambda g: g(m), gs))
+
+
+def compose_try_gets(*gs: Callable[[Message], T | None]) -> Callable[[Message], bool]:
+    return lambda m: any(map(lambda g: g(m) is not None, gs))

@@ -1,37 +1,72 @@
 from abc import abstractmethod
+from collections.abc import Mapping
 from datetime import datetime
-from typing import Callable, Protocol, TypeGuard, TypeVar
+from typing import Callable, ClassVar, Protocol, TypeGuard, TypeVar
 
 from telethon.tl.custom import Message
 from tgmount import vfs
+from tgmount.tg_vfs.error import FileFactoryError
 from tgmount.tgclient.guards import *
 from tgmount.tgclient.files_source import get_downloadable_item
 
 from tgmount.util import compose_guards
+from .error import FileFactoryError
 
-from .tree.message_tree import DirContentSourceCreator
-from .types import FileContentProto, FileFactoryProto
+from .tree.message_tree import DirContentSourceCreatorMixin
+from .types import FileContentProviderProto, FileFactoryProto, MessagesTree
 
 T = TypeVar("T")
 
-FileFuncSupported = (
-    MessageWithCompressedPhoto
-    | MessageWithVideo
-    | MessageWithDocumentImage
+TryGetFunc = Callable[[Message], Optional[T]]
+
+
+class SupportsMethodBase(Protocol[T]):
+    supported: ClassVar[list[Type[WithTryGetMethodProto]]]
+
+    @property
+    def try_get_dict(self) -> Mapping[str, Type[TryGetFunc]]:
+        return {f.__name__: f.try_get for f in self.supported}
+
+    def try_get(self, message: Message) -> Optional[T]:
+        for t in self.supported:
+            if (m := t.try_get(message)) is not None:
+                return m
+
+    def supports(self, message: Message) -> TypeGuard[T]:
+        return self.try_get(message) is not None
+        # return compose_guards(*[t.try_get for t in self.supported])(message)
+
+    def message_type(self, message: Message) -> Optional[str]:
+        ts = self.message_types(message)
+        if len(ts) > 0:
+            return ts[0]
+
+    def message_types(self, message: Message) -> list[str]:
+        ts = []
+        for t in self.supported:
+            if bool(t.try_get(message)):
+                ts.append(t.__name__)
+        return ts
+
+
+FileFactorySupportedTypes = (
+    MessageWithMusic
     | MessageWithVoice
-    | MessageWithKruzhochek
-    | MessageWithZip
-    | MessageWithMusic
-    | MessageWithDocument
-    | MessageWithOtherDocument
-    | MessageWithAnimated
     | MessageWithSticker
+    | MessageWithAnimated
+    | MessageWithKruzhochek
+    | MessageWithCompressedPhoto
+    | MessageWithDocumentImage
+    | MessageWithVideoFile
+    | MessageWithVideo
+    | MessageWithZip
+    | MessageWithOtherDocument
 )
 
 
-class SupportsMethod:
+class SupportsMethod(SupportsMethodBase[FileFactorySupportedTypes]):
+
     supported = [
-        # MessageWithFilename,
         MessageWithMusic,
         MessageWithVoice,
         MessageWithSticker,
@@ -45,32 +80,11 @@ class SupportsMethod:
         MessageWithOtherDocument,
     ]
 
-    def supports(self, message: Message) -> TypeGuard[FileFuncSupported]:
-        return compose_guards(*[t.guard for t in self.supported])(message)
 
-    def message_type(self, message: Message) -> Optional[str]:
-        ts = self.message_types(message)
-        if len(ts) > 0:
-            return ts[0]
-
-    def message_types(self, message: Message) -> list[str]:
-        ts = []
-        for t in self.supported:
-            if t.guard(message):
-                ts.append(t.__name__)
-        return ts
-
-
-class FilenameMethod(SupportsMethod):
-    def size(
-        self,
-        message: FileFuncSupported,
-    ) -> int:
-        return get_downloadable_item(message).size
-
+class FilenameMethod:
     def filename(
         self,
-        message: FileFuncSupported,
+        message: FileFactorySupportedTypes,
     ) -> str:
         if MessageWithCompressedPhoto.guard(message):
             return f"{message.id}_photo.jpeg"
@@ -104,12 +118,18 @@ class FilenameMethod(SupportsMethod):
 
 
 class FactoryMethod(FilenameMethod):
-    files_source: FileContentProto
+    files_source: FileContentProviderProto
 
-    def file_content(self, message: MessageDownloadable) -> vfs.FileContent:
-        return self.files_source.file_content(message)
+    def size(self, message: Message) -> int:
+        return self.file_content(message).size
 
-    def file(self, message: FileFuncSupported, name=None) -> vfs.FileLike:
+    def file_content(self, message: Message) -> vfs.FileContent:
+        if MessageDownloadable.guard(message):
+            return self.files_source.file_content(message)
+
+        raise FileFactoryError(f"Cannot get file content for {message}.")
+
+    def file(self, message: FileFactorySupportedTypes, name=None) -> vfs.FileLike:
 
         creation_time = getattr(message, "date", datetime.now())
 
@@ -119,19 +139,20 @@ class FactoryMethod(FilenameMethod):
             creation_time=creation_time,
         )
 
-    def nfile(
-        self, namef: Callable[[FileFuncSupported], str]
-    ) -> Callable[[FileFuncSupported], vfs.FileLike]:
-        return lambda message: self.file(message, namef(message))
+    # def nfile(
+    #     self, namef: Callable[[FileFuncSupported], str]
+    # ) -> Callable[[FileFuncSupported], vfs.FileLike]:
+    #     return lambda message: self.file(message, namef(message))
 
 
-class FileFactory(
-    FactoryMethod,
-    DirContentSourceCreator,
-    FileFactoryProto[FileFuncSupported],
-):
-    def __init__(self, files_source: FileContentProto) -> None:
-        self.files_source = files_source
+# class FileFactory(
+#     FactoryMethod,
+#     SupportsMethod,
+#     DirContentSourceCreatorMixin,
+#     FileFactoryBase,
+# ):
+#     def __init__(self, files_source: FileContentProviderProto) -> None:
+#         self.files_source = files_source
 
 
 def message_to_str(m: Message):

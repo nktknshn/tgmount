@@ -11,10 +11,10 @@ import telethon
 import tgmount.fs as fs
 import tgmount.tgclient as tg
 import tgmount.vfs as vfs
+import tgmount.tg_vfs as tg_vfs
 from telethon import events, types
 from tests.helpers.tgclient import get_client_with_source
 from tgmount.logging import init_logging
-from tgmount.tg_vfs import FileFactory
 from tgmount.tgclient import guards
 
 from ..helpers.asyncio import task_from_blocking, wait_ev, wait_ev_async
@@ -39,9 +39,10 @@ async def main_test1(
     on_event,
 ):
     init_logging(props["debug"])
+
     client, source = await get_client_with_source()
 
-    files = FileFactory(source)
+    files = tg_vfs.FileFactoryDefault(source)
 
     messages = await client.get_messages_typed(
         TESTING_CHANNEL,
@@ -65,8 +66,6 @@ async def main_test1(
     @client.on(events.NewMessage(chats=TESTING_CHANNEL))
     async def event_handler_new_message(event: events.NewMessage.Event):
 
-        # await wait_ev_async(props["ev0"])
-
         messages.append(event.message)
         await ops.update_root(create_root(messages[:]))
         # ops.print_stats()
@@ -84,7 +83,7 @@ async def main_test1(
 
 def get_props(ctx: MountContext) -> Props:
     return {
-        "debug": True,
+        "debug": False,
         "ev0": ctx.mgr.Event(),
     }
 
@@ -92,7 +91,7 @@ def get_props(ctx: MountContext) -> Props:
 @pytest.mark.asyncio
 async def test_fs_tg_test1(mnt_dir, caplog, tgclient_second: Client):
 
-    caplog.set_level(logging.DEBUG)
+    caplog.set_level(logging.INFO)
 
     messages = await tgclient_second.get_messages_typed(
         TESTING_CHANNEL,

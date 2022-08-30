@@ -24,28 +24,6 @@ OpenDirFunc = Callable[[], Awaitable[Any]]
 ReleaseDirFunc = Callable[[T], Awaitable[Any]]
 
 
-# def is_directory(item: DirContentItem) -> TypeGuard["DirLike"]:
-#     return item.is_directory
-
-
-@dataclass
-class DirLike:
-    """Represents a folder with a name and content"""
-
-    name: str
-    content: "DirContentProto"
-
-    creation_time: datetime = datetime.now()
-
-    # @property
-    # def is_directory(self):
-    #     return True
-
-    @staticmethod
-    def guard(item: Any) -> TypeGuard["DirLike"]:
-        return isinstance(item, DirLike)
-
-
 class DirContentProto(Protocol[T]):
     """
     Main interface describing a content of a folder. Intended to be
@@ -68,6 +46,22 @@ class DirContentProto(Protocol[T]):
     @staticmethod
     def guard(item: Any) -> TypeGuard["DirContentProto[Any]"]:
         return hasattr(item, "readdir_func")
+
+
+@dataclass
+class DirLike:
+    """Represents a folder with a name and content"""
+
+    name: str
+    content: "DirContentProto"
+
+    creation_time: datetime = datetime.now()
+
+    extra: Optional[Any] = None
+
+    @staticmethod
+    def guard(item: Any) -> TypeGuard["DirLike"]:
+        return isinstance(item, DirLike)
 
 
 class DirContent(DirContentProto[T]):

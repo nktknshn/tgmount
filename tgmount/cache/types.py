@@ -30,37 +30,45 @@ class CacheBlocksStorageProto(Protocol):
     blocksize: int
     total_size: int
 
+    @abstractmethod
+    def __init__(self, blocksize: int, total_size: int) -> None:
+        pass
+
+    @abstractmethod
     async def total_stored(self) -> int:
-        raise NotImplementedError()
+        ...
 
+    @abstractmethod
     async def get(self, block_number: int) -> Optional[bytes]:
-        raise NotImplementedError()
+        ...
 
+    @abstractmethod
     async def put(self, block_number: int, block: bytes):
-        raise NotImplementedError()
+        ...
 
+    @abstractmethod
     async def blocks(self) -> Set[int]:
-        raise NotImplementedError()
+        ...
 
     # async def discard_blocks(self, blocks: set[int]) -> None:
     #     raise NotImplementedError()
 
 
-class CacheBlocksStorage(CacheBlocksStorageProto):
-    blocksize: int
-    total_size: int
+class CacheFactoryProto(Protocol, Generic[T]):
+    @abstractmethod
+    def __init__(self, **kwargs) -> None:
+        ...
 
     @abstractmethod
-    def __init__(self, blocksize: int, total_size: int) -> None:
-        pass
+    async def total_stored(self) -> int:
+        ...
 
-
-class CacheFactoryProto(Protocol, Generic[T]):
+    @abstractmethod
     async def get_cache(
         self,
         message: telethon.tl.custom.Message,
     ) -> T:
-        raise NotImplementedError()
+        ...
 
 
 class CachingDocumentsStorageError(Exception):
@@ -68,13 +76,11 @@ class CachingDocumentsStorageError(Exception):
         super().__init__(message)
 
 
-class CacheFactory(CacheFactoryProto[CacheBlockReaderWriterProto]):
-    @abstractmethod
-    def __init__(self, **kwargs) -> None:
-        pass
+class CacheFactory(CacheFactoryProto[CacheBlockReaderWriterProto], Protocol):
+    pass
 
 
 class CacheBlockReaderWriter(CacheBlockReaderWriterProto):
     @abstractmethod
-    def __init__(self, blocks_storage: CacheBlocksStorage) -> None:
+    def __init__(self, blocks_storage: CacheBlocksStorageProto) -> None:
         pass

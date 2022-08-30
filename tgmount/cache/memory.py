@@ -4,12 +4,12 @@ import telethon
 
 from .factory import CacheFactory
 from .reader import CacheBlockReaderWriter
-from .types import CacheBlocksStorage
+from .types import CacheBlocksStorageProto
 
 Message = telethon.tl.custom.Message
 
 
-class CacheBlocksStorageMemory(CacheBlocksStorage):
+class CacheBlocksStorageMemory(CacheBlocksStorageProto):
     def __init__(self, blocksize: int, total_size: int):
         self._blocksize = blocksize
         self._total_size = total_size

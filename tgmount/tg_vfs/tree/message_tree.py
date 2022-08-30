@@ -1,5 +1,14 @@
 from abc import abstractmethod
-from typing import Callable, Iterable, Mapping, Protocol, TypedDict, TypeGuard, TypeVar
+from typing import (
+    Callable,
+    Iterable,
+    Mapping,
+    Optional,
+    Protocol,
+    TypedDict,
+    TypeGuard,
+    TypeVar,
+)
 
 from telethon.tl.custom import Message
 from tgmount import vfs
@@ -13,7 +22,7 @@ from tgmount.vfs.map_tree import (
     map_tree,
     map_value,
 )
-from ..types import FileFactoryProto
+from ..types import DirContentSourceCreatorProto, FileFactoryProto
 
 
 class MessagesTreeMapperProto(Protocol):
@@ -139,14 +148,15 @@ class MessagesTreeMapper(MessagesTreeMapperProto):
         ctx: MapTreeContext,
         message: MessageDownloadable,
     ) -> vfs.FileLike:
-        # print(f"walk_message: {ctx}")
-        return self.get_file_factory(ctx).file(message)
+        treat_as = ctx.extra.get("treat_as", [])
+        return self.get_file_factory(ctx).file(message, treat_as=treat_as)
 
 
-class DirContentSourceCreator:
+class DirContentSourceCreatorMixin(DirContentSourceCreatorProto):
     def create_dir_content_source(
         self: FileFactoryProto,
         tree: MessagesTree[Message],
+        treat_as: Optional[list[str]] = None,
     ) -> vfs.DirContentSource:
 
         mapper = MessagesTreeMapper(self)
@@ -155,6 +165,33 @@ class DirContentSourceCreator:
             return map_tree(
                 tree,
                 messages_tree_mapper(mapper),
+                extra={"treat_as": treat_as},
             )
 
-        return map_value(tree, messages_tree_mapper(mapper))
+        return map_value(
+            tree,
+            messages_tree_mapper(mapper),
+            extra={"treat_as": treat_as},
+        )
+
+
+def create_dir_content_source(
+    file_factory: FileFactoryProto,
+    tree: MessagesTree[Message],
+    treat_as: Optional[list[str]] = None,
+) -> vfs.DirContentSource:
+
+    mapper = MessagesTreeMapper(file_factory)
+
+    if is_tree(tree):
+        return map_tree(
+            tree,
+            messages_tree_mapper(mapper),
+            extra={"treat_as": treat_as},
+        )
+
+    return map_value(
+        tree,
+        messages_tree_mapper(mapper),
+        extra={"treat_as": treat_as},
+    )

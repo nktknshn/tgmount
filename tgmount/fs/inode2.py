@@ -1,21 +1,26 @@
-import os
 import logging
+import os
 from dataclasses import dataclass
 from typing import (
+    Any,
     Dict,
+    Generic,
+    List,
+    Mapping,
     Optional,
     Protocol,
-    Union,
-    List,
-    Any,
-    Generic,
+    TypedDict,
     TypeVar,
+    Union,
     overload,
 )
-from typing_extensions import LiteralString
 
 import pyfuse3
+from tgmount.util import none_fallback
+from typing_extensions import LiteralString
 
+from .util import bytes_to_str, str_to_bytes
+from .logger import logger
 
 T = TypeVar("T")
 
@@ -35,6 +40,9 @@ class RegistryRoot(Generic[T]):
     name = b"<root>"
 
 
+InodesRegistryItem = RegistryRoot[T] | RegistryItem[T]
+
+
 class InodesRegistry(Generic[T]):
     ROOT_INODE: int = pyfuse3.ROOT_INODE
 
@@ -50,7 +58,15 @@ class InodesRegistry(Generic[T]):
             # InodesRegistry.ROOT_INODE: root_item
         }
 
+        self._dir_content_read: set[int] = set()
+
         # self._children_by_inode: Dict[int, Optional[dict[bytes, RegistryItem[T]]]] = {}
+
+    def set_was_content_read(self, inode: int | InodesRegistryItem[T]):
+        self._dir_content_read.add(self.get_inode(inode))
+
+    def was_content_read(self, inode: int | InodesRegistryItem[T]):
+        return self.get_inode(inode) in self._dir_content_read
 
     @property
     def last_inode(self):
@@ -58,6 +74,31 @@ class InodesRegistry(Generic[T]):
 
     def get_inodes(self):
         return list([self.get_root().inode, *self._inodes.keys()])
+
+    def get_inodes_with_paths_str(self) -> list[tuple[int, list[str]]]:
+        result = []
+
+        for inode in self.get_inodes():
+            path = self.get_item_path(inode)
+            if path is not None:
+                path = list(map(lambda el: el.decode("utf-8"), path))
+            #     path = os.path.join(*path)
+            result.append((inode, path))
+
+        return result
+
+    def get_items_with_paths_str(self) -> list[tuple[InodesRegistryItem[T], list[str]]]:
+        result = []
+
+        for item in self.get_items():
+            path = self.get_item_path(item)
+
+            if path is not None:
+                path = bytes_to_str(path)
+            #     path = os.path.join(*path)
+            result.append((item, path))
+
+        return result
 
     def get_root(self):
         return self._root_item
@@ -78,7 +119,7 @@ class InodesRegistry(Generic[T]):
         return self.get_item_by_inode(item.parent_inode)
 
     @staticmethod
-    def get_inode(inode_or_item: int | RegistryItem[T] | RegistryRoot[T]) -> int:
+    def get_inode(inode_or_item: int | InodesRegistryItem[T]) -> int:
         if isinstance(inode_or_item, RegistryItem) or isinstance(
             inode_or_item, RegistryRoot
         ):
@@ -94,18 +135,28 @@ class InodesRegistry(Generic[T]):
         return item.name
 
     def remove_item_with_children(
-        self, inode_or_item: int | RegistryItem[T] | RegistryRoot[T]
-    ):
-        item = self.get_item_by_inode(InodesRegistry.get_inode(inode_or_item))
+        self, inode_or_item: int | InodesRegistryItem[T]
+    ) -> set[int] | None:
+        inode = InodesRegistry.get_inode(inode_or_item)
+        removed = set()
+        item = self.get_item_by_inode(inode)
 
         if item is None:
-            return
+            logger.error(
+                f"remove_item_with_children: item with inode={inode} was not found."
+            )
+            return None
 
         if (subinodes := self.get_item_children_inodes_recursively(item)) is not None:
             for _inode in subinodes:
+                removed.add(_inode)
+                self._dir_content_read -= {_inode}
                 del self._inodes[_inode]
 
+        removed.add(item.inode)
         del self._inodes[item.inode]
+        self._dir_content_read -= {item.inode}
+        return removed
 
     def get_item_children_inodes_recursively(
         self, inode_or_item: int | RegistryItem[T] | RegistryRoot[T]
@@ -116,6 +167,8 @@ class InodesRegistry(Generic[T]):
         if children is None:
             return None
 
+        result = result.union(set(item.inode for item in children))
+
         for subitem in children:
             _inodes = self.get_item_children_inodes_recursively(subitem)
 
@@ -125,6 +178,10 @@ class InodesRegistry(Generic[T]):
             result = result.union(_inodes)
 
         return result
+
+    def set_data_for_item(self, item: int | RegistryItem[T], data: T):
+        inode = self.get_inode(item)
+        self._inodes[inode].data = data
 
     def add_item_to_inodes(
         self,
@@ -139,8 +196,6 @@ class InodesRegistry(Generic[T]):
             inode, name, data, self.get_inode(parent_inode)
         )
 
-        # self._children_by_inode[inode] = None
-
         return item
 
     def get_item_by_inode(
@@ -154,9 +209,12 @@ class InodesRegistry(Generic[T]):
 
     def get_child_item_by_name(
         self,
-        name: bytes,
+        name: bytes | str,
         parent_inode: int | RegistryItem[T] | RegistryRoot[T] = ROOT_INODE,
     ) -> Optional[RegistryItem[T] | RegistryRoot[T]]:
+
+        if isinstance(name, str):
+            name = str_to_bytes(name)
 
         parent_inode = self.get_inode(parent_inode)
         parent_item = self.get_item_by_inode(parent_inode)
@@ -267,8 +325,18 @@ class InodesRegistry(Generic[T]):
 
         return self.get_by_path(rest, subitem)
 
+    @overload
+    @staticmethod
+    def join_path(path: list[str]) -> bytes:
+        ...
+
+    @overload
     @staticmethod
     def join_path(path: list[bytes]) -> bytes:
+        ...
+
+    @staticmethod
+    def join_path(path) -> str | bytes:
         return os.path.join(*path)
 
     def _new_inode(self):
@@ -278,25 +346,3 @@ class InodesRegistry(Generic[T]):
 
         self._last_inode += 1
         return self._last_inode
-
-
-""" @overload
-def join(__a: LiteralString, *paths: LiteralString) -> LiteralString:
-    pass
-
-
-@overload
-def join(__a: StrPath, *paths: StrPath) -> str:
-    pass
-
-
-@overload
-def join(__a: BytesPath, *paths: BytesPath) -> bytes:
-    pass
-
-
-@overload
-def join(__a, *paths):
-    pass
-
-join() """

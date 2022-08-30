@@ -54,6 +54,12 @@ class MountContext(Generic[P]):
     def path(self, *p: str):
         return os.path.join(self.tmpdir, *p)
 
+    def listdir(self, *p: str):
+        return set(os.listdir(self.path(*p)))
+
+    def exists(self, *p: str):
+        return os.path.exists(self.path(*p))
+
 
 async def __inner_mount_fs(
     main_function: MainFunction,
@@ -71,12 +77,7 @@ async def __inner_mount_fs(
 
     ops = await main_function(props, on_event)
 
-    mount_task = asyncio.create_task(
-        mount_ops(
-            ops,
-            mnt_dir,
-        )
-    )
+    mount_task = asyncio.create_task(mount_ops(ops, mount_dir=mnt_dir))
 
     async def on_event_wait(ev_task: asyncio.Task, cb: OnEventCallback):
         await ev_task

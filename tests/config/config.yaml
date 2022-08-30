@@ -22,8 +22,21 @@ message_sources:
     limit: 500
     reverse: False
     updates: True
+  ru_python:
+    entity: ru_python
+    limit: 500
+  NappingCat_Chat:
+    entity: NappingCat_Chat
+    limit: 500
+  ru_python_beginners:
+    entity: ru_python_beginners
+    limit: 500
+  my-mount:
+    entity: -1001678896566
+# definiton
 ogranized: &ogranized
   filter: { filter: [OnlyUniqueDocs], recursive: True }
+  # cache: { cache: memory1, filter: { ByExtension: .zip }, recursive: True }
   docs:
     filter:
       - MessageWithOtherDocument
@@ -38,6 +51,7 @@ ogranized: &ogranized
     filter: MessageWithMusic
   unpacked:
     filter: MessageWithZip
+    # it's recommended to use cache with ZipsAsDirs. otherwise it is slow
     cache: memory1
     wrappers:
       - ZipsAsDirs:
@@ -57,27 +71,50 @@ ogranized: &ogranized
   stickers:
     filter:
       Union: [MessageWithAnimated, MessageWithSticker]
+  messages:
+    filter: MessageWithText
+    treat_as: MessageWithText
   all:
     filter: All
   music-by-performer:
     filter:
       - MessageWithMusic
-      # - Last: 30
     producer:
       MusicByPerformer: { minimum: 2 }
-# root
+  forwareded-video:
+    filter:
+      And: [MessageForwarded, MessageWithVideo]
+  forwareded:
+    filter: MessageForwarded
+    producer: MessageByForward
+by-sender: &by-sender
+  filter: All
+  producer:
+    MessageBySender:
+      minimum: 2
+      sender_root:
+        <<: *ogranized
+        wrappers: ExcludeEmptyDirs
 root:
   ru2chmu:
     source: { source: ru2chmu, recursive: True }
     <<: *ogranized
-    by-sender:
-      filter: All
-      producer:
-        MessageBySender:
-          minimum: 2
-          sender_root:
-            <<: *ogranized
-            wrappers: ExcludeEmptyDirs
-  tmtc:
-    source: { source: tmtc, recursive: True }
+    by-sender: *by-sender
+  ru_python:
+    source: { source: ru_python, recursive: True }
+    <<: *ogranized
+    by-sender: *by-sender
+  # tmtc:
+  #   source: { source: tmtc, recursive: True }
+  #   <<: *ogranized
+  ru_python_beginners:
+    source: { source: ru_python_beginners, recursive: True }
+    <<: *ogranized
+    by-sender: *by-sender
+  NappingCat_Chat:
+    source: { source: NappingCat_Chat, recursive: True }
+    <<: *ogranized
+    by-sender: *by-sender
+  my-mount:
+    source: { source: my-mount, recursive: True }
     <<: *ogranized

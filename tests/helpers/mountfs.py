@@ -28,7 +28,7 @@ async def mount_fs_tree_main(
     init_logging(props["debug"])
     return fs.FileSystemOperations(
         vfs.root(
-            vfs.dir_from_tree(
+            vfs.dir_content_from_tree(
                 props["fs_tree"],
             )
         )

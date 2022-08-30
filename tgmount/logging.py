@@ -14,6 +14,8 @@ class ContextFilter(logging.Filter):
 
 
 def init_logging(debug=False, debugs=[]):
+    print(f"init_logging: {debug}")
+
     f = ContextFilter()
     formatter = logging.Formatter(
         "%(task_name)s\t%(levelname)s\t[%(name)s]\t%(message)s",
@@ -30,7 +32,7 @@ def init_logging(debug=False, debugs=[]):
         root_logger.handlers.clear()
 
     root_logger.addHandler(handler)
-    logging.getLogger("asyncio").setLevel(logging.DEBUG)
+    # logging.getLogger("asyncio").setLevel(logging.DEBUG)
 
     if debug:
         handler.setLevel(logging.DEBUG)
@@ -39,6 +41,7 @@ def init_logging(debug=False, debugs=[]):
         logging.getLogger("tgmount-zip").setLevel(logging.DEBUG)
         logging.getLogger("tgmount-cache").setLevel(logging.DEBUG)
         logging.getLogger("tgvfs-ops").setLevel(logging.DEBUG)
+        logging.getLogger("tgvfs-ops-updates").setLevel(logging.INFO)
         logging.getLogger("tgclient").setLevel(logging.DEBUG)
         logging.getLogger("tgmount-cli").setLevel(logging.DEBUG)
         logging.getLogger("telethon").setLevel(logging.INFO)
@@ -47,11 +50,12 @@ def init_logging(debug=False, debugs=[]):
         root_logger.setLevel(logging.INFO)
         logging.getLogger("tgvfs").setLevel(logging.INFO)
         logging.getLogger("tgvfs-ops").setLevel(logging.INFO)
-        logging.getLogger("tgmount-zip").setLevel(logging.DEBUG)
-        logging.getLogger("tgmount-cache").setLevel(logging.DEBUG)
+        logging.getLogger("tgvfs-ops-updates").setLevel(logging.INFO)
+        logging.getLogger("tgmount-zip").setLevel(logging.INFO)
+        logging.getLogger("tgmount-cache").setLevel(logging.INFO)
         logging.getLogger("tgmount-cli").setLevel(logging.INFO)
         logging.getLogger("tgclient").setLevel(logging.INFO)
         logging.getLogger("telethon").setLevel(logging.ERROR)
 
-    for d in debugs:
-        logging.getLogger(d).setLevel(logging.DEBUG)
+    # for d in debugs:
+    #     logging.getLogger(d).setLevel(logging.DEBUG)

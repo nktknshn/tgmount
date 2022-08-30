@@ -25,9 +25,7 @@ class FileLike:
 
     creation_time: datetime = datetime.now()
 
-    # @property
-    # def is_directory(self):
-    #     return False
+    extra: Optional[Any] = None
 
     @staticmethod
     def guard(item: Any) -> TypeGuard["FileLike"]:

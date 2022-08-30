@@ -1,8 +1,18 @@
-from typing import Type, Awaitable, Callable, Mapping
+from abc import abstractmethod
+from typing import Protocol, Type, Awaitable, Callable, Mapping
 from tgmount.cache import CacheFactory, CacheFactoryMemory
 
-from .types import CachesProviderProto
 from .error import TgmountError
+
+
+class CachesProviderProto(Protocol):
+    @abstractmethod
+    def get_caches(self) -> Mapping[str, Type[CacheFactory]]:
+        pass
+
+    @abstractmethod
+    async def get_cache_factory(self, cache_type: str) -> Type[CacheFactory]:
+        pass
 
 
 class CacheProviderBase(CachesProviderProto):

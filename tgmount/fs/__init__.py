@@ -4,7 +4,7 @@ from typing import Optional
 import pyfuse3
 from tgmount.vfs import DirContentItem
 
-from .operations2 import FileSystemOperations
+from .operations import FileSystemOperations
 from .update import FileSystemOperationsUpdatable
 
 

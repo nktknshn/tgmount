@@ -10,7 +10,7 @@ from tgmount.util import compose_guards
 # from .mixins import FileContentProvider, FileFunc, FileFuncSupported
 from tgmount.tgclient.guards import *
 
-from .types import FileContentProto, FileFactoryProto, FilenameProviderProto
+from .types import FileContentProviderProto, FileFactoryProto, FilenameProviderProto
 
 
 # def message_to_str(m: Message):

@@ -143,3 +143,12 @@ async def dir_content_read(content: DirContentProto) -> Iterable[DirContentItem]
     await content.releasedir_func(h)
 
     return items
+
+
+from tgmount.util import col
+
+
+async def dir_content_read_dict(
+    content: DirContentProto,
+) -> Mapping[str, DirContentItem]:
+    return {item.name: item for item in await dir_content_read(content)}

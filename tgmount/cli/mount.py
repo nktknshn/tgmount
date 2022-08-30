@@ -1,3 +1,4 @@
+import asyncio
 import os
 from argparse import ArgumentParser
 from typing import Optional
@@ -10,6 +11,8 @@ from tgmount.tgmount import TgmountBuilder
 from tgmount.tgmount import TgmountError
 from dataclasses import dataclass, replace
 
+from tgmount.controlserver import ControlServer
+
 from .logger import logger
 
 
@@ -20,6 +23,7 @@ async def mount(
     session: Optional[str] = None,
     mount_dir: Optional[str] = None,
     debug_fuse=False,
+    run_server=False,
     min_tasks=10,
 ):
     validator = ConfigValidator()
@@ -52,7 +56,7 @@ async def mount(
     try:
         await tgm.client.auth()
     except Exception as e:
-        await tgm.client.disconnect()
+        # await tgm.client.disconnect()
         raise TgmountError(f"Error while authenticating the client: {e}")
 
     if not tgm.client.is_connected():
@@ -60,7 +64,22 @@ async def mount(
             f"Error while connecting the client. Check api_id and api_hash"
         )
 
-    await tgm.mount(destination=mount_dir, debug_fuse=debug_fuse, min_tasks=min_tasks)
+    if run_server:
+        server_cor = ControlServer(tgm).start()
+        server_task = asyncio.create_task(server_cor)
+        mount_cor = tgm.mount(
+            destination=mount_dir, debug_fuse=debug_fuse, min_tasks=min_tasks
+        )
+        mount_task = asyncio.create_task(mount_cor)
+
+        return await asyncio.wait(
+            [mount_task, server_task],
+            return_when=asyncio.FIRST_COMPLETED,
+        )
+    else:
+        await tgm.mount(
+            destination=mount_dir, debug_fuse=debug_fuse, min_tasks=min_tasks
+        )
 
 
 def add_mount_arguments(command_mount: ArgumentParser):
@@ -70,6 +89,10 @@ def add_mount_arguments(command_mount: ArgumentParser):
     )
     command_mount.add_argument(
         "--debug-fuse", default=False, action="store_true", dest="debug_fuse"
+    )
+
+    command_mount.add_argument(
+        "--server", default=False, action="store_true", dest="run_server"
     )
 
     command_mount.add_argument("--min-tasks", default=10, type=int, dest="min_tasks")

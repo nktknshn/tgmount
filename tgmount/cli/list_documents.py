@@ -1,13 +1,12 @@
 from argparse import ArgumentParser
 from typing import Optional
-from tgmount.tgclient import (
-    TgmountTelegramClient,
-    document_or_photo_id,
-)
-from tgmount.tg_vfs.file_factory import FilenameMethod
+from tgmount.tgclient import TgmountTelegramClient
+from tgmount.tg_vfs import FileFactoryDefault
+from tgmount.tgclient.guards import MessageDownloadable
 from tgmount.tgmount.filters import OnlyUniqueDocs
-
+from tgmount import tgclient
 from telethon import hints
+from tgmount import util
 
 
 async def list_documents(
@@ -22,7 +21,9 @@ async def list_documents(
     print_all_matching_types=False,
     only_unique_docs=False,
 ):
-    fname = FilenameMethod()
+    factory = FileFactoryDefault(
+        files_source=tgclient.TelegramFilesSource(client), extra_files_source={}
+    )
 
     messages = await client.get_messages_typed(
         entity=entity,
@@ -31,17 +32,19 @@ async def list_documents(
     )
 
     if only_unique_docs:
-        messages = await OnlyUniqueDocs().filter(filter(fname.supports, messages))
+        messages = await OnlyUniqueDocs().filter(
+            filter(MessageDownloadable.guard, messages)
+        )
 
     for m in messages:
-        if fname.supports(m):
+        if factory.supports(m):
             if only_unsupported:
                 continue
 
             types_str = (
-                ",".join(fname.message_types(m))
+                ",".join(factory.message_types(m))
                 if print_all_matching_types
-                else fname.message_type(m)
+                else factory.message_type(m)
             )
 
             original_fname = (
@@ -50,8 +53,14 @@ async def list_documents(
                 else ""
             )
 
+            document_id = (
+                MessageDownloadable.document_or_photo_id(m)
+                if MessageDownloadable.guard(m)
+                else "<not a document>"
+            )
+
             print(
-                f"{m.id}\t{document_or_photo_id(m)}\t{types_str}\t{fname.size(m)}\t{fname.filename(m)}{original_fname}"
+                f"{m.id}\t{document_id}\t{types_str}\t{factory.size(m)}\t{factory.filename(m)}{original_fname}"
             )
 
             if print_message_object:
@@ -70,7 +79,7 @@ async def list_documents(
 
 
 def add_list_documents_arguments(command_list_documents: ArgumentParser):
-    command_list_documents.add_argument("entity", type=str)
+    command_list_documents.add_argument("entity", type=util.int_or_string)
     command_list_documents.add_argument("--limit", type=int, required=False)
     command_list_documents.add_argument("--reverse", action="store_true", default=False)
     command_list_documents.add_argument(

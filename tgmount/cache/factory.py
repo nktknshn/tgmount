@@ -6,7 +6,6 @@ from tgmount.tgclient.files_source import get_downloadable_item
 from .types import (
     CacheBlockReaderWriter,
     CacheBlockReaderWriterProto,
-    CacheBlocksStorage,
     CacheBlocksStorageProto,
     CacheFactoryProto,
     DocId,
@@ -17,7 +16,7 @@ from .util import get_bytes_count
 class CacheFactory(CacheFactoryProto[CacheBlockReaderWriterProto]):
     """This class is gonna decide how to store documents cache if needed"""
 
-    CacheBlocksStorage: Type[CacheBlocksStorage]
+    CacheBlocksStorage: Type[CacheBlocksStorageProto]
     CacheBlockReaderWriter: Type[CacheBlockReaderWriter]
 
     def __init__(self, *, block_size: int | str, capacity: int | str) -> None:

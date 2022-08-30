@@ -86,7 +86,12 @@ class ZipsAsDirs(vfs.DirContentProto[ZipsAsDirsHandle]):
         root_item = zip_tree_root_items[0]
 
         if self._opt_skip_folder_if_single_subfolder and isinstance(root_item, dict):
-            zip_dir_name = zip_tree_root_items_names[0]
+            if isinstance(file_like.extra, tuple):
+                message_id = file_like.extra[0]
+                zip_dir_name = f"{message_id}_{zip_tree_root_items_names[0]}"
+            else:
+                zip_dir_name = zip_tree_root_items_names[0]
+
             zip_dir = (
                 await self._dir_content_zip_factory.create_dir_content_from_ziptree(
                     file_like.content,
@@ -106,7 +111,11 @@ class ZipsAsDirs(vfs.DirContentProto[ZipsAsDirsHandle]):
         )
 
         result_items.append(
-            vfs.DirLike(zip_dir_name, zip_dir),
+            vfs.DirLike(
+                zip_dir_name,
+                zip_dir,
+                extra=file_like.extra,
+            ),
         )
 
     async def _create_dir_content(

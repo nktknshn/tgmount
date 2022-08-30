@@ -26,11 +26,12 @@ def vfile(
     fname: str,
     content: FileContentProto,
     creation_time: Optional[datetime] = None,
+    extra: Optional[Any] = None,
 ):
     if creation_time is None:
         creation_time = datetime.now()
 
-    return FileLike(fname, content, creation_time)
+    return FileLike(fname, content, creation_time, extra)
 
 
 def file_content(
@@ -48,7 +49,7 @@ def simple_read(content: str):
 
 
 def text_content(text: str):
-    return FileContent(size=len(text), read_func=simple_read(text))
+    return FileContent(size=len(text.encode("utf-8")), read_func=simple_read(text))
 
 
 def text_file(fname: str, text_str: str, creation_time=None):

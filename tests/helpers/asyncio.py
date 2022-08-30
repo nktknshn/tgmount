@@ -17,6 +17,7 @@ def wait_ev(
     def _inner():
         ev.wait()
         on_done()
+        # ev.clear()
 
     return _inner
 

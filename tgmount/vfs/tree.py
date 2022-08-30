@@ -56,9 +56,9 @@ def dir_content_from_source(content_source: DirContentSource) -> DirContentProto
                 content.append(vdir(k, dir_content_from_source(v)))
         return dir_content(*content)
     else:
-        if isinstance(content_source, (list, Iterable)):
+        if isinstance(content_source, (list,)):
             if not isinstance(content_source, Mapping):
-                dir_content(*content_source)
+                return dir_content(*content_source)
             else:
                 raise ValueError(f"{content_source} shouldnt be Mapping here")
         elif DirContentProto.guard(content_source):
