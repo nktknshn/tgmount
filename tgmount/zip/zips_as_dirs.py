@@ -27,6 +27,7 @@ class ZipsAsDirs(vfs.DirContentProto[ZipsAsDirsHandle]):
         zip_file_like_to_dir_name=lambda item: f"{item.name}_unzipped",
         recursive=False,
     ):
+
         self._source_dir_content = source_dir_content
         self._dir_content_zip_factory = (
             dir_content_zip_factory

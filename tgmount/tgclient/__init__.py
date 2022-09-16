@@ -8,7 +8,12 @@ from .types import (
     Photo,
     TypeInputFileLocation,
 )
-from .message_source import TelegramMessageSource, TelegramMessageSourceProto
+from .message_source import (
+    TelegramMessageSource,
+    MessageSourceProto,
+    MessageSourceSubscribableProto,
+)
+
 from .files_source import TelegramFilesSource
 
 # from .caps import Cap

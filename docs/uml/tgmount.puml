@@ -1,0 +1,25 @@
+@startuml
+
+left to right direction
+
+class VfsTree {
+    +init()
+    +create_dir(path)
+    +put_content(path, content: list[DirLike | FileLike])
+    +remove(path)
+    -asas
+}
+
+class VfsTreePlain {
+    +init(message_source, factory, filters, treat_as_prop)
+    +produce(tree: VfsTree)
+}
+
+class ProducerConfig {
+    message_source
+    factory
+    filters
+    treat_as_prop
+}
+
+@enduml

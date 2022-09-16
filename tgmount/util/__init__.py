@@ -1,6 +1,6 @@
 from typing import Optional, TypeGuard, TypeVar
 from .guards import compose_guards
-from .col import find
+from .col import find, sets_difference
 
 T = TypeVar("T")
 

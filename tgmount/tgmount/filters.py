@@ -14,6 +14,7 @@ from tgmount.util.guards import compose_try_gets
 T = TypeVar("T")
 
 FilterConfigValue = str | dict[str, dict] | list[str | dict[str, dict]]
+Set = frozenset
 
 
 class FilterFromConfigContext(Protocol):
@@ -55,7 +56,7 @@ class FilterAllMessagesProto(Protocol):
         pass
 
     @abstractmethod
-    async def filter(self, messages: Iterable[Message]) -> list[Message]:
+    async def filter(self, messages: Iterable[Message]) -> Set[Message]:
         ...
 
     @abstractstaticmethod
@@ -72,7 +73,7 @@ ParseFilter = Callable[[FilterConfigValue], list[Filter]]
 
 class FilterProviderProto(Protocol):
     @abstractmethod
-    def get_filters(self) -> Mapping[str, Type[Filter]]:
+    def get_filters(self) -> "FiltersMapping":
         pass
 
 
@@ -165,11 +166,12 @@ class Not(FilterAllMessagesProto):
         return Not(parse_filter(_filter))
 
     async def filter(self, messages: Iterable[Message]) -> list[Message]:
-        _ms = list(messages)
+        _ms = Set(messages)
+
         for f in self.filters:
             _ms = await f.filter(_ms)
 
-        return [m for m in messages if not col.contains(m, _ms)]
+        return [m for m in messages if not m in _ms]
 
 
 class Union(FilterAllMessagesProto):

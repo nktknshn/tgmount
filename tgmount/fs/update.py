@@ -1,7 +1,11 @@
+from collections.abc import Callable
+from dataclasses import dataclass, field
 import os
 from typing import Iterable
+from tgmount.util import sets_difference
 
 from tgmount.vfs import compare
+from tgmount.vfs.file import file_content
 from .operations import FileSystemOperations
 from .inode2 import InodesRegistry, RegistryItem
 
@@ -12,18 +16,46 @@ from .logger import logger, logger_update
 from .util import measure_time
 
 
+def map_keys(
+    mapper: Callable[[str], str],
+    d: dict,
+) -> dict:
+    return {mapper(k): v for k, v in d.items()}
+
+
+def prepend_path_cur(parent_path: str):
+    return lambda path: vfs.norm_path(parent_path + "/" + path, True)
+
+
+@dataclass
+class FileSystemOperationsUpdate:
+    update_dir_content: dict[str, vfs.DirContentProto] = field(default_factory=dict)
+    new_files: dict[str, vfs.FileLike] = field(default_factory=dict)
+    new_dirs: dict[str, vfs.DirContentProto] = field(default_factory=dict)
+    removed_dir_contents: list[str] = field(default_factory=list)
+    removed_files: list[str] = field(default_factory=list)
+
+    def prepend_paths(self, parent_path: str):
+        _func = prepend_path_cur(parent_path)
+        return FileSystemOperationsUpdate(
+            update_dir_content=map_keys(_func, self.update_dir_content),
+            new_files=map_keys(_func, self.new_files),
+            new_dirs=map_keys(_func, self.new_dirs),
+            removed_dir_contents=list(map(_func, self.removed_dir_contents)),
+            removed_files=list(map(_func, self.removed_files)),
+        )
+
+    def __repr__(self) -> str:
+        return f"FileSystemOperationsUpdate(update_dir_content={list(self.update_dir_content.keys())}, new_files={list(self.new_files.keys())}, new_dirs={list(self.new_dirs.keys())}, removed_files={self.removed_files}, removed_dir_contents={self.removed_dir_contents})"
+
+
 class FileSystemOperationsUpdatable(FileSystemOperations):
     def __init__(self, root: vfs.DirLike):
         super().__init__(root)
 
         self._removed_items = []
 
-    def print_stats(self):
-        print("inodes")
-        print(self._inodes._inodes.keys())
-
-        print("fhs")
-        print(self._handles._fhs.keys())
+        self._logger = logger
 
     async def _invalidate_children_by_path(
         self, path: list[bytes], parent_inode: int = InodesRegistry.ROOT_INODE
@@ -46,6 +78,107 @@ class FileSystemOperationsUpdatable(FileSystemOperations):
         for k, v in kids.items():
             await self._invalidate_children_by_path([k], v.inode)
             pyfuse3.invalidate_entry_async(v.inode, k)
+
+    async def _on_update(self, update: FileSystemOperationsUpdate):
+        for path, dir_content in update.update_dir_content.items():
+            item = self.inodes.get_by_path(path)
+
+            if item is None:
+                self._logger.info(
+                    f"on_update: update_dir_content: {path} is not in inodes"
+                )
+                continue
+
+            if not isinstance(item.data.structure_item, vfs.DirLike):
+                self._logger.error(
+                    f"on_update: update_dir_content: {path} is not a folder"
+                )
+                continue
+
+            await self._handle_dircontents(
+                vfs.napp(path, noslash=True),
+                item,
+                item.data.structure_item.content,
+                dir_content,
+            )
+
+            item.data.structure_item.content = dir_content
+
+    async def on_update(self, update: FileSystemOperationsUpdate):
+        for path, dir_content in update.update_dir_content.items():
+            item = self.inodes.get_by_path(path)
+
+            if item is None:
+                self._logger.info(
+                    f"on_update: update_dir_content: {path} is not in inodes"
+                )
+                continue
+
+            if not isinstance(item.data.structure_item, vfs.DirLike):
+                self._logger.error(
+                    f"on_update: update_dir_content: {path} is not a folder"
+                )
+                continue
+
+            item.data.structure_item.content = dir_content
+
+        for path, filelike in update.new_files.items():
+            parent_path = os.path.dirname(path)
+            parent_item = self.inodes.get_by_path(parent_path)
+
+            if parent_item is None:
+                self._logger.info(
+                    f"on_update: new_files: {parent_path} is not in inodes"
+                )
+                continue
+
+            if not self.inodes.was_content_read(parent_item):
+                continue
+
+            self.add_subitem(filelike, parent_item.inode)
+
+        for path, dir_content in update.new_dirs.items():
+            parent_path = os.path.dirname(path)
+            name = os.path.basename(path)
+            parent_item = self.inodes.get_by_path(parent_path)
+
+            if parent_item is None:
+                self._logger.info(f"on_update: new_files: {path} is not in inodes")
+                continue
+
+            if not self.inodes.was_content_read(parent_item):
+                continue
+
+            self.add_subitem(vfs.DirLike(name, content=dir_content), parent_item.inode)
+
+        for path in update.removed_files:
+            item = self.inodes.get_by_path(path)
+            if item is None:
+                self._logger.info(
+                    f"on_update: update_dir_content: {path} is not in inodes"
+                )
+                continue
+            if isinstance(item, RegistryItem):
+                pyfuse3.invalidate_entry_async(
+                    item.parent_inode, item.name, ignore_enoent=True
+                )
+
+            await self._remove_item(item)
+
+        for path in update.removed_dir_contents:
+            item = self.inodes.get_by_path(path)
+            if item is None:
+                self._logger.info(
+                    f"on_update: update_dir_content: {path} is not in inodes"
+                )
+                continue
+
+            if isinstance(item, RegistryItem):
+                pyfuse3.invalidate_entry_async(
+                    item.parent_inode, item.name, ignore_enoent=True
+                )
+
+            await self._remove_item(item)
 
     async def _update_by_path(
         self,
@@ -80,33 +213,33 @@ class FileSystemOperationsUpdatable(FileSystemOperations):
         )
         return result
 
-    async def _handle_dirlikes(
+    async def _handle_dircontents(
         self,
         path: list[str],
         old_fs_item: FileSystemOperations.FsRegistryItem,
-        old_item: vfs.DirLike,
-        new_item: vfs.DirLike,
+        old_item_content: vfs.DirContentProto,
+        new_item_content: vfs.DirContentProto,
     ):
 
         removed = set()
         updated = set()
 
+        if not isinstance(old_fs_item.data.structure_item, vfs.DirLike):
+            logger.error(f"old_fs_item is not DirLike")
+            return
+
         if not self.inodes.was_content_read(old_fs_item):
-            old_fs_item.data.structure_item = new_item
+            old_fs_item.data.structure_item.content = new_item_content
             return removed, updated
 
         path_str = self.inodes.join_path(path)
 
-        old_content = await vfs.dir_content_read_dict(old_item.content)
-        new_content = await vfs.dir_content_read_dict(new_item.content)
+        old_content = await vfs.dir_content_read_dict(old_item_content)
+        new_content = await vfs.dir_content_read_dict(new_item_content)
 
-        removed_keys = set(old_content.keys()) - set(new_content.keys())
-        new_keys = set(new_content.keys()) - set(old_content.keys())
-        common_keys = set(new_content.keys()).intersection(set(old_content.keys()))
-
-        # logger.info(
-        #     f"Updating folder content: {path_str}. removed_keys={removed_keys}, new_keys={new_keys}"
-        # )
+        removed_keys, new_keys, common_keys = sets_difference(
+            frozenset(old_content.keys()), frozenset(new_content.keys())
+        )
 
         for k in removed_keys:
             _item = self.inodes.get_child_item_by_name(k, old_fs_item.inode)
@@ -162,7 +295,8 @@ class FileSystemOperationsUpdatable(FileSystemOperations):
         logger.debug(
             f"_handle_dirlikes: Updating structure item for: {old_fs_item.data.structure_item.name}"
         )
-        old_fs_item.data.structure_item = new_item
+
+        old_fs_item.data.structure_item.content = new_item_content
 
         return removed, updated
 

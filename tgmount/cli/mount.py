@@ -5,7 +5,6 @@ from typing import Optional
 import yaml
 
 from tgmount.tgclient import TgmountTelegramClient
-from tgmount import logging, main
 from tgmount.config import Config, ConfigValidator
 from tgmount.tgmount import TgmountBuilder
 from tgmount.tgmount import TgmountError
@@ -54,6 +53,7 @@ async def mount(
     tgm = await builder.create_tgmount(cfg)
 
     try:
+        logger.info(f"Connecting Telegram")
         await tgm.client.auth()
     except Exception as e:
         # await tgm.client.disconnect()

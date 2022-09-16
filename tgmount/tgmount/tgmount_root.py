@@ -9,7 +9,7 @@ from telethon.tl.custom import Message
 from tgmount import config, tg_vfs, tgclient, vfs
 from tgmount.tg_vfs import FileFactoryProto
 from tgmount.tg_vfs.tree.message_tree import create_dir_content_source
-from tgmount.tgclient.message_source import TelegramMessageSourceProto
+from tgmount.tgclient.message_source import MessageSourceProto
 from tgmount.tgmount.filters import FilterConfigValue
 from tgmount.util import col, is_not_none, none_fallback
 
@@ -25,10 +25,10 @@ class CreateRootContext:
     current_path: list[str]
     file_factory: FileFactoryProto
     classifier: tg_vfs.ClassifierBase
-    recursive_source: Optional[TelegramMessageSourceProto] = None
+    recursive_source: Optional[MessageSourceProto] = None
     recursive_filters: Optional[list[Filter]] = None
 
-    def set_recursive_source(self, source: Optional[TelegramMessageSourceProto]):
+    def set_recursive_source(self, source: Optional[MessageSourceProto]):
         return replace(self, recursive_source=source)
 
     def set_recursive_filters(self, recursive_filters: Optional[list[Filter]]):
@@ -111,7 +111,7 @@ def get_filters(
 
 
 async def get_source_messages(
-    ms: TelegramMessageSourceProto,
+    ms: MessageSourceProto,
     filters: Optional[list[Filter]],
     file_factory: FileFactoryProto,
     treat_as: list[str],
@@ -240,7 +240,7 @@ async def _tgmount_root(
                     d,
                     resources=resources,
                     ctx=ctx.set_recursive_source(
-                        TelegramMessageSourceProto.from_messages(ms)
+                        MessageSourceProto.from_messages(ms)
                     ).add_path(producer_name),
                 )
 

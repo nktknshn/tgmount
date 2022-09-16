@@ -87,6 +87,9 @@ class FileContent(FileContentProto):
     # XXX
     tell_func: Optional[Callable[[Any], Awaitable[int]]] = None
 
+    def __repr__(self):
+        return f"FileContent(size={self.size})"
+
 
 @dataclass
 class FileContentHandle:

@@ -7,7 +7,6 @@ from telethon.tl.custom import Message
 from tgmount import vfs
 from tgmount.tg_vfs.error import FileFactoryError
 from tgmount.tgclient.guards import *
-from tgmount.tgclient.files_source import get_downloadable_item
 
 from tgmount.util import compose_guards
 from .error import FileFactoryError

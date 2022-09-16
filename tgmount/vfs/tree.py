@@ -15,6 +15,7 @@ from .types.dir import (
     DirLike,
 )
 from .types.file import FileContentProto, FileLike
+from .util import norm_and_parse_path
 
 DirContentSourceTreeValueDir = Union[
     DirContentProto,
@@ -65,3 +66,37 @@ def dir_content_from_source(content_source: DirContentSource) -> DirContentProto
             return content_source
 
     raise ValueError(f"incorrect tree value: {content_source}")
+
+
+def source_get_by_path(content_source: DirContentSource, path: str):
+    npath = norm_and_parse_path(path, noslash=True)
+
+    return _get_by_path(content_source, npath)
+
+
+def _get_by_path(content_source: DirContentSource, path: list[str]):
+
+    if path == []:
+        return content_source
+
+    if path == ["/"]:
+        return content_source
+
+    subitem = None
+    subitem_name, *rest = path
+
+    if is_tree(content_source):
+        subitem = content_source.get(subitem_name)
+    else:
+        if isinstance(content_source, (list,)):
+            for item in content_source:
+                if item.name == subitem_name:
+                    subitem = item
+                    break
+        elif DirContentProto.guard(content_source):
+            raise ValueError(f"Cannot go into dir content: {path}")
+
+    if len(rest) == 0:
+        return subitem
+    elif is_tree(subitem):
+        return _get_by_path(subitem, path)

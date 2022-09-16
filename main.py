@@ -3,7 +3,7 @@ from pprint import pprint
 
 import yaml
 
-from tgmount import logging, main
+from tgmount import tglog, main
 from tgmount.config import Config, ConfigValidator
 from tgmount.tgmount import TgmountBuilder
 
@@ -23,7 +23,7 @@ async def mount():
 
     args = get_parser().parse_args()
 
-    logging.init_logging(args.debug)
+    tglog.init_logging(args.debug)
 
     validator = ConfigValidator()
     builder = TgmountBuilder()

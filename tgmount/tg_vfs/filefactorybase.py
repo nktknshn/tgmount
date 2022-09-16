@@ -81,7 +81,9 @@ class FileFactoryBase(
     ) -> Optional[T]:
 
         if (klass := self.try_get_cls(input_item, treat_as)) is not None:
-            return klass.try_get(input_item)
+            msg = klass.try_get(input_item)
+
+            return msg
 
         return None
 

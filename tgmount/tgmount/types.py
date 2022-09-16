@@ -10,31 +10,32 @@ from typing import (
     Protocol,
     Type,
     TypeGuard,
+    TypeVar,
 )
 from dataclasses import dataclass, replace
 from tgmount import tg_vfs, tgclient, vfs
-from tgmount.cache import CacheFactory
+from tgmount.tgmount.vfs_wrappers import VfsWrapperProto
 
-from .producers import TreeProducer
 from .wrappers import DirContentWrapper
 
-from .filters import Filter
-
-# DirWrapper = Callable[[vfs.DirContentProto], Awaitable[vfs.DirContentProto]]
-# DirWrapperConstructor = Callable[[..., Any], Awaitable[DirWrapper]]
-
-# MessagesWrapper = Callable[[Iterable[Message]], Awaitable[list[Message]]]
+from .filters import Filter, FiltersMapping
+from .vfs_structure_producers_provider import VfsProducersProviderProto
+from .provider_sources import SourcesProviderProto
 
 
 @dataclass
 class CreateRootResources:
     file_factory: tg_vfs.FileFactoryProto
-    sources: Mapping[str, tgclient.TelegramMessageSourceProto]
-    filters: Mapping[str, Type[Filter]]
-    producers: Mapping[str, Type[TreeProducer]]
+    sources: SourcesProviderProto
+    filters: FiltersMapping
+    producers: VfsProducersProviderProto
     caches: Mapping[str, tg_vfs.FileFactoryProto]
     wrappers: Mapping[str, Type[DirContentWrapper]]
+    vfs_wrappers: Mapping[str, Type[VfsWrapperProto]]
     classifier: tg_vfs.ClassifierBase
+
+    def set_sources(self, sources: SourcesProviderProto):
+        return replace(self, sources=sources)
 
 
 TgmountRoot = Callable[

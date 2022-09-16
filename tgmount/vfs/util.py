@@ -38,8 +38,47 @@ def lazy_list_from_thunk(content_thunk: Callable[[], List]):
     return f
 
 
-# see test_util.py
-def norm_and_parse_path(p: str):
+""" 
+assert norm_and_parse_path("/") == ["/"]
+assert norm_and_parse_path("/a") == ["/", "a"]
+assert norm_and_parse_path("a") == ["a"]
+assert norm_and_parse_path("a/") == ["a"]
+assert norm_and_parse_path("/a/") == ["/", "a"]
+assert norm_and_parse_path("/a/b") == ["/", "a", "b"]
+assert norm_and_parse_path("a/b") == ["a", "b"]
+assert norm_and_parse_path("/a/b/") == ["/", "a", "b"]
+assert norm_and_parse_path("/a/b/c") == ["/", "a", "b", "c"]
+"""
+
+
+def path_join(*paths: str):
+    return os.path.join("/", *[path_remove_slash(p) for p in paths])
+
+
+def path_remove_slash(path: str):
+    if path.startswith("/"):
+        return path[1:]
+
+    return path
+
+
+def norm_path(p: str, addslash=False):
+    if p == "":
+        p = "/"
+
+    p = os.path.normpath(p)
+
+    if p.startswith("/") or not addslash:
+        return p
+
+    return "/" + p
+
+
+def parent_path(p: str):
+    return os.path.dirname(p)
+
+
+def norm_and_parse_path(p: str, noslash=False):
     p = os.path.normpath(p)
     dirs = p.split(os.sep)
     if dirs[0] == "":
@@ -49,7 +88,7 @@ def norm_and_parse_path(p: str):
     if dirs[-1] == "":
         del dirs[-1]
 
-    if p.startswith("/"):
+    if p.startswith("/") and not noslash:
         return dirs
 
     return dirs[1:]
@@ -58,7 +97,13 @@ def norm_and_parse_path(p: str):
 napp = norm_and_parse_path
 
 
-def nappb(path: str, encoding: str = "utf-8") -> list[bytes]:
-    lpath = norm_and_parse_path(path)
+def nappb(path: str, encoding: str = "utf-8", noslash=False) -> list[bytes]:
+    lpath = norm_and_parse_path(path, noslash)
 
     return [p.encode(encoding) for p in lpath]
+
+
+def split_path(path: str, addslash=False):
+    head, tail = os.path.split(path)
+
+    return norm_path(head, addslash), tail

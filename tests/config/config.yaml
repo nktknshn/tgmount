@@ -13,26 +13,30 @@ caches:
     capacity: 50MB
     block_size: 128KB
 # every source is a separate get_messages request
+count: &count 500
 message_sources:
+  # ru2chmu:
+  #   entity: ru2chmu
+  #   limit: *count
+  #   reverse: False
+  #   updates: True
+  ru_python:
+    entity: ru_python
+    limit: *count
+  NappingCat_Chat:
+    entity: NappingCat
+    limit: *count
+  ts_cool:
+    entity: ts_cool
+    limit: *count
+  ru_python_beginners:
+    entity: ru_python_beginners
+    limit: *count
+  my-mount:
+    entity: -1001678896566
   tmtc:
     entity: tgmounttestingchannel
     # filter: InputMessagesFilterMusic
-  ru2chmu:
-    entity: ru2chmu
-    limit: 500
-    reverse: False
-    updates: True
-  ru_python:
-    entity: ru_python
-    limit: 500
-  NappingCat_Chat:
-    entity: NappingCat_Chat
-    limit: 500
-  ru_python_beginners:
-    entity: ru_python_beginners
-    limit: 500
-  my-mount:
-    entity: -1001678896566
 # definiton
 ogranized: &ogranized
   filter: { filter: [OnlyUniqueDocs], recursive: True }
@@ -42,7 +46,8 @@ ogranized: &ogranized
       - MessageWithOtherDocument
       - Not:
           - ByExtension: .zip
-  audio:
+  mixed-audio:
+    filter: MessageWithZip
     music:
       filter: MessageWithMusic
     voices:
@@ -53,11 +58,11 @@ ogranized: &ogranized
     filter: MessageWithZip
     # it's recommended to use cache with ZipsAsDirs. otherwise it is slow
     cache: memory1
-    wrappers:
-      - ZipsAsDirs:
-          recursive: True
-          skip_folder_if_single_subfolder: True
-          hide_sources: True
+    wrappers: ZipsAsDirs
+    #   - ZipsAsDirs:
+    #       recursive: True
+    #       skip_folder_if_single_subfolder: True
+    #       hide_sources: True
   zips:
     filter: MessageWithZip
   personal:
@@ -76,45 +81,60 @@ ogranized: &ogranized
     treat_as: MessageWithText
   all:
     filter: All
-  music-by-performer:
-    filter:
-      - MessageWithMusic
-    producer:
-      MusicByPerformer: { minimum: 2 }
-  forwareded-video:
-    filter:
-      And: [MessageForwarded, MessageWithVideo]
-  forwareded:
-    filter: MessageForwarded
-    producer: MessageByForward
+  # music-by-performer:
+  #   filter:
+  #     - MessageWithMusic
+  #   producer:
+  #     MusicByPerformer: { minimum: 2 }
+  # forwareded-video:
+  #   filter:
+  #     And: [MessageForwarded, MessageWithVideo]
+  # forwareded:
+  #   filter: MessageForwarded
+  #   producer: MessageByForward
 by-sender: &by-sender
   filter: All
   producer:
     MessageBySender:
-      minimum: 2
+      minimum: 3
       sender_root:
         <<: *ogranized
         wrappers: ExcludeEmptyDirs
 root:
-  ru2chmu:
-    source: { source: ru2chmu, recursive: True }
-    <<: *ogranized
-    by-sender: *by-sender
+  # ru2chmu:
+  #   source: { source: ru2chmu, recursive: True }
+  #   <<: *ogranized
+  #   by-sender: *by-sender
   ru_python:
     source: { source: ru_python, recursive: True }
     <<: *ogranized
     by-sender: *by-sender
-  # tmtc:
-  #   source: { source: tmtc, recursive: True }
-  #   <<: *ogranized
   ru_python_beginners:
     source: { source: ru_python_beginners, recursive: True }
+    <<: *ogranized
+    by-sender: *by-sender
+  ts_cool:
+    source: { source: ts_cool, recursive: True }
     <<: *ogranized
     by-sender: *by-sender
   NappingCat_Chat:
     source: { source: NappingCat_Chat, recursive: True }
     <<: *ogranized
     by-sender: *by-sender
+  tmtc:
+    source: { source: tmtc, recursive: True }
+    <<: *ogranized
+    # by-sender: *by-sender
+    # music-by-performer:
+    #   filter:
+    #     - MessageWithMusic
+    #   producer:
+    #     MusicByPerformer: { minimum: 2 }
+    by-sender:
+      <<: *by-sender
+      wrappers: ExcludeEmptyDirs
+    wrappers: ExcludeEmptyDirs
   my-mount:
     source: { source: my-mount, recursive: True }
+    wrappers: ExcludeEmptyDirs
     <<: *ogranized

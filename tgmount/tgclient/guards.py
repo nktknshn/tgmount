@@ -33,10 +33,19 @@ from tgmount import util
 T = TypeVar("T")
 
 
+def add_hash(msg: Message):
+    if type(msg).__hash__ is None:
+        type(msg).__hash__ = lambda self: (
+            self.id,
+            MessageDownloadable.try_document_or_photo_id(self),
+        ).__hash__()
+    return msg
+
+
 class ClassWithGuard(Protocol[T]):
     @staticmethod
     @abc.abstractmethod
-    def guard(msg: Message) -> TypeGuard[Type[T]]:
+    def guard(msg: Message) -> TypeGuard[T]:
         ...
 
 
@@ -101,12 +110,21 @@ class MessageDownloadable(
     def document_or_photo_id(
         m: "MessageDownloadable",
     ) -> int:
+        if (_id := MessageDownloadable.try_document_or_photo_id(m)) is not None:
+            return _id
+
+        raise ValueError(f"incorrect input message: {m}")
+
+    @staticmethod
+    def try_document_or_photo_id(
+        m: "MessageDownloadable",
+    ) -> int | None:
         if MessageWithDocument.guard(m):
             return m.document.id
         elif MessageWithCompressedPhoto.guard(m):
             return m.photo.id
 
-        raise ValueError(f"incorrect input message: {m}")
+        return None
 
     @staticmethod
     def filename(message: "MessageDownloadable"):
@@ -280,11 +298,8 @@ class MessageWithVideo(
     @staticmethod
     def guard(msg: Any) -> TypeGuard["MessageWithVideo"]:
 
-        return (
-            TelegramMessage.guard(msg)
-            and bool(msg.video)
-            or MessageWithVideoDocument.guard(msg)
-            or bool(msg.gif)
+        return TelegramMessage.guard(msg) and (
+            bool(msg.video) or MessageWithVideoDocument.guard(msg) or bool(msg.gif)
         )
 
     @staticmethod

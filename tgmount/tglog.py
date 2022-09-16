@@ -1,5 +1,24 @@
 import logging
 import asyncio
+import sys
+
+TRACE = 5
+logging.addLevelName(TRACE, "TRACE")
+
+
+class TgmountLogger(logging.Logger):
+    def __init__(self, name: str, level=logging.NOTSET) -> None:
+        super().__init__(name, level)
+
+    def trace(self, msg, *args, **kwargs):
+        self.log(TRACE, msg, *args, **kwargs)
+
+
+logging.setLoggerClass(TgmountLogger)
+
+
+def getLogger(name: str) -> TgmountLogger:
+    return logging.getLogger(name)  # type: ignore
 
 
 class ContextFilter(logging.Filter):
@@ -14,7 +33,7 @@ class ContextFilter(logging.Filter):
 
 
 def init_logging(debug=False, debugs=[]):
-    print(f"init_logging: {debug}")
+    print(f"init_logging: {debug}", file=sys.stderr)
 
     f = ContextFilter()
     formatter = logging.Formatter(

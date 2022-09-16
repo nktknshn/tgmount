@@ -294,15 +294,23 @@ class InodesRegistry(Generic[T]):
 
     def get_by_path(
         self,
-        path: list[bytes],
+        path: list[bytes] | str,
         parent: int | RegistryItem[T] | RegistryRoot[T] = ROOT_INODE,
     ) -> Optional[RegistryItem[T] | RegistryRoot[T]]:
-        parent_inode = self.get_inode(parent)
 
+        if isinstance(path, str):
+            path = str_to_bytes(path.split(os.path.sep))
+            if len(path) > 0 and path[0] == b"":
+                path = path[1:]
+
+        parent_inode = self.get_inode(parent)
         parent_item = self.get_item_by_inode(parent_inode)
 
         if parent_item is None:
             return
+
+        if path == b"" or path == [b""]:
+            return parent_item
 
         if path == []:
             return parent_item

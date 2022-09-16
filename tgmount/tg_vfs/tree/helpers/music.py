@@ -13,7 +13,7 @@ T = TypeVar("T")
 def group_by_performer(
     messages: Iterable["MessageWithMusic"],
     minimum=2,
-) -> tuple[dict[str, list["MessageWithMusic"]], list["MessageWithMusic"]]:
+) -> tuple[dict[str, list["MessageWithMusic"]], frozenset["MessageWithMusic"]]:
 
     messages = list(messages)
     no_performer = [t for t in messages if t.file.performer is None]
@@ -29,21 +29,21 @@ def group_by_performer(
         else:
             result.append((perf, tracks))
 
-    return dict(result), no_performer
+    return dict(result), frozenset(no_performer)
 
 
-def music_by_performer(
-    messages: Iterable[MessageWithMusic], *, minimum=2
-) -> MessagesTreeValueDir[MessageWithMusic]:
+# def music_by_performer(
+#     messages: Iterable[MessageWithMusic], *, minimum=2
+# ) -> MessagesTreeValueDir[MessageWithMusic]:
 
-    perf, noperf = group_by_performer(
-        messages,
-        minimum=minimum,
-    )
+#     perf, noperf = group_by_performer(
+#         messages,
+#         minimum=minimum,
+#     )
 
-    perf_dirs = [Virt.Dir(perf, tracks) for perf, tracks in perf.items()]
+#     perf_dirs = [Virt.Dir(perf, tracks) for perf, tracks in perf.items()]
 
-    return [
-        *perf_dirs,
-        *noperf,
-    ]
+#     return [
+#         *perf_dirs,
+#         *noperf,
+#     ]

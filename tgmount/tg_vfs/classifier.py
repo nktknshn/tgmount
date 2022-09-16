@@ -55,6 +55,10 @@ class ClassifierProto(Protocol[I, O]):
     def classify(self, input_item: I) -> list[Type[O]]:
         ...
 
+    @abstractmethod
+    def try_get_guard(self, class_name: str) -> Optional[Callable[[Any], bool]]:
+        ...
+
 
 class ClassifierBase(ClassifierProto[Any, TelegramMessageClasses]):
     def __init__(self) -> None:

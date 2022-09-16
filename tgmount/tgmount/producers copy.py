@@ -48,7 +48,6 @@ class TreeProducerNoop(TreeProducerProto):
     async def produce_tree(self, messages: Iterable[T]) -> tg_vfs.MessagesTree[T]:
         return list(messages)
 
-    @abstractstaticmethod
     def from_config(*args) -> "TreeProducerProto":
         return TreeProducerNoop()
 
@@ -103,6 +102,7 @@ class MessageBySender(TreeProducerProto[Message]):
     async def produce_tree(
         self, messages: Iterable[Message]
     ) -> tg_vfs.MessagesTree[Message]:
+
         return await messages_by_user(
             messages,
             minimum=self.minimum,

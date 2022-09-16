@@ -1,10 +1,12 @@
 from abc import abstractmethod
-from typing import Optional, Protocol, TypeGuard, TypeVar
+from typing import Iterable, Optional, Protocol, TypeGuard, TypeVar
 
 from tgmount import vfs
 from tgmount.tg_vfs.tree.types import MessagesTree
 from tgmount.tgclient import guards
 from telethon.tl.custom import Message
+
+from tgmount.util import is_not_none
 
 T = TypeVar("T")
 
@@ -73,3 +75,10 @@ class FileFactoryProto(Protocol[T]):
     @abstractmethod
     def size(self, message: Message) -> int:
         ...
+
+    def filter_supported(
+        self, messages: Iterable[T], treat_as: Optional[list[str]] = None
+    ):
+        msgs = [self.try_get(m, treat_as) for m in messages]
+
+        return frozenset(filter(is_not_none, msgs))

@@ -11,7 +11,7 @@ from tgmount.cli.util import get_tgapp_and_session, ClientEnv
 
 # import list_dialogs, list_documents, add_list_documents_arguments
 from tgmount.main.util import run_main
-from tgmount.logging import init_logging
+from tgmount.tglog import init_logging
 from tgmount import main as main_settings
 
 """

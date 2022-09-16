@@ -40,9 +40,19 @@ from .tree import (
     is_tree,
     DirContentSource,
     DirContentSourceTreeValueDir,
+    source_get_by_path,
 )
 from .types import Tree
-from .util import napp, nappb, norm_and_parse_path
+from .util import (
+    napp,
+    nappb,
+    norm_and_parse_path,
+    norm_path,
+    parent_path,
+    split_path,
+    path_remove_slash,
+    path_join,
+)
 
 from .lookup import dirlike_ls as ls, dirlike_get_by_path_list
 
