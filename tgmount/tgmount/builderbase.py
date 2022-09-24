@@ -8,11 +8,11 @@ from tgmount.tgclient import TgmountTelegramClient
 from .provider_sources import SourcesProvider
 from .types import VfsProducersProviderProto
 
-from .caches import CachesProviderProto
+from .provider_caches import CachesProviderProto
 from .filters import FilterProviderProto
 from .tgmountbase import Tgmount
 from .types import CreateRootResources
-from .wrappers import DirWrapperProviderProto
+from .provider_wrappers import DirWrapperProviderProto
 
 
 class TgmountBuilderBase(abc.ABC):

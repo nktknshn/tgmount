@@ -18,7 +18,7 @@ Set = frozenset
 
 
 class FilterFromConfigContext(Protocol):
-    file_factory: tg_vfs.SupportsMethodBase
+    file_factory: tg_vfs.FileFactoryBase
     classifier: tg_vfs.ClassifierBase
 
 

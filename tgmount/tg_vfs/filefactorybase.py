@@ -41,8 +41,6 @@ class FileFactoryItem:
 
 ClassName = str
 
-import functools
-
 
 class FileFactoryBase(FileFactoryProto[T]):
     def __init__(self) -> None:

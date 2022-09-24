@@ -1,11 +1,6 @@
-from collections.abc import Mapping
-from dataclasses import dataclass
-from typing import Optional, TypeGuard
-
-import telethon
 from telethon.tl.custom import Message
 
-from tgmount import cache, tg_vfs, tgclient, vfs
+from tgmount import cache, tgclient, vfs
 from tgmount.tg_vfs.classifier import ClassifierBase
 from tgmount.tg_vfs.filefactorybase import (
     FileFactoryBase,
@@ -17,11 +12,11 @@ from tgmount.tgclient.guards import MessageWithText
 from tgmount.tgmount.providers import DirWrappersProvider, FilterProvider
 
 from .builderbase import TgmountBuilderBase
-from .caches import CachesProviderProto
+from .provider_caches import CachesProviderProto
 from .filters import FilterProviderProto
 from .providers import CachesProvider, VfsProducersProvider
 from .provider_sources import SourcesProvider
-from .wrappers import DirWrapperProviderProto
+from .provider_wrappers import DirWrapperProviderProto
 
 
 class MyFileFactoryDefault(
