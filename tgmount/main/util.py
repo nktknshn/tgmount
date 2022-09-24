@@ -61,7 +61,7 @@ async def mount_ops(
     await pyfuse3.main(min_tasks=min_tasks)
 
 
-def run_main(main_func, forever=False):
+def run_main(main_func, forever=None):
     loop = asyncio.new_event_loop()
     # loop.set_debug(True)
     # warnings.simplefilter('always', ResourceWarning)
@@ -72,7 +72,7 @@ def run_main(main_func, forever=False):
     try:
         loop.run_until_complete(main_func())
 
-        if main.run_forever:
+        if forever is True or (main.run_forever):
             loop.run_forever()
 
     except KeyboardInterrupt:

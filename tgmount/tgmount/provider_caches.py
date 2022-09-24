@@ -1,7 +1,6 @@
 from abc import abstractmethod
-from typing import Protocol, Type, Awaitable, Callable, Mapping
-from tgmount.cache import CacheFactory, CacheFactoryMemory
-
+from typing import Protocol, Type, Mapping
+from tgmount.cache import CacheFactory
 from .error import TgmountError
 
 

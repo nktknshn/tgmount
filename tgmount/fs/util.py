@@ -11,7 +11,26 @@ import time
 
 import pyfuse3
 
-logger = logging.getLogger("tgvfs")
+# logger = logging.getLogger("tgvfs")
+
+# from tgmount import tglog
+
+
+def measure_time_sync(*, logger_func):
+    def measure_time(func):
+        @wraps(func)
+        def inner_function(*args, **kwargs):
+            started = time.time_ns()
+            res = func(*args, **kwargs)
+            duration = time.time_ns() - started
+
+            logger_func(f"{func} = {int(duration/1000/1000)} ms")
+
+            return res
+
+        return inner_function
+
+    return measure_time
 
 
 def measure_time(*, logger_func):

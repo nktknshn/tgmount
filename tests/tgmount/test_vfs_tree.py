@@ -57,7 +57,6 @@ async def test_vfs_tree(config_from_file):
     await my_mount.create_dir("/messages")
 
     tmtc = await root_dir.create_dir("/tmtc")
-    tmtc._wrappers = [remove_empty_dirs_content]
 
     await tmtc.create_dir("/audio")
     await tmtc.create_dir("/video")
@@ -207,6 +206,42 @@ async def test_vfs_tree_zip(config_from_file):
     tree_producer = VfsTreeProducer(resources=resources.set_sources(source_provider))
 
     await tree_producer.produce(tree, cfg_dict.root.content)
+    dir_content = await tree.get_dir_content()
+
+    pprint(await vfs.dir_content_to_tree(dir_content))
+
+
+@pytest.mark.asyncio
+async def test_vfs_tree_huge(config_from_file):
+    print()
+
+    print("generating messages")
+    users = [f"user{idx}" for idx in range(0, 100)]
+    messages = [msg(text="aaa", username=u) for u in users for idx in range(0, 1000)]
+
+    cfg_dict = Config.from_yaml(config_from_file)
+
+    builder = DummyTgmountBuilder()
+    client = await builder.create_client(cfg_dict)
+    resources = await builder.create_resources(client, cfg_dict)
+
+    source_mymount = builder.get_source("my-mount")
+    source_tmtc = builder.get_source("tmtc")
+
+    await source_tmtc.set_messages(Set(messages))
+
+    tree = VfsTree()
+
+    source_provider = SourcesProviderAccumulating(
+        tree=tree, source_map=resources.sources.as_mapping()
+    )
+
+    tree_producer = VfsTreeProducer(resources=resources.set_sources(source_provider))
+    print("generating tree")
+
+    await tree_producer.produce(tree, cfg_dict.root.content)
+
+    print("generating dir content")
     dir_content = await tree.get_dir_content()
 
     pprint(await vfs.dir_content_to_tree(dir_content))

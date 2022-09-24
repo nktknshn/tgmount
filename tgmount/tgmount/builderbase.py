@@ -1,24 +1,23 @@
 import abc
-from typing import Mapping, Type
+from typing import Type
 
-from telethon.tl.custom import Message
 
-from tgmount import cache, config, tg_vfs, tgclient
+from tgmount import cache, config, tg_vfs, tgclient, tglog
 from tgmount.tg_vfs import classifier
 from tgmount.tgclient import TgmountTelegramClient
-from tgmount.tgmount.exclude_empty import ExcludeEmptyWrappr
-from tgmount.tgmount.provider_sources import SourcesProvider
-from tgmount.tgmount.vfs_structure_producers_provider import VfsProducersProviderProto
+from .provider_sources import SourcesProvider
+from .types import VfsProducersProviderProto
 
 from .caches import CachesProviderProto
 from .filters import FilterProviderProto
 from .tgmountbase import Tgmount
-from .types import CreateRootResources, SourcesProviderProto, TgmountRoot
+from .types import CreateRootResources
 from .wrappers import DirWrapperProviderProto
-from .tgmount_root_producer import TgmountRootProducer
 
 
 class TgmountBuilderBase(abc.ABC):
+    logger = tglog.getLogger(f"TgmountBuilderBase()")
+
     TelegramClient: Type[tgclient.TgmountTelegramClient]
     MessageSource: Type[tgclient.TelegramMessageSource]
     FilesSource: Type[tgclient.TelegramFilesSource]
@@ -40,13 +39,7 @@ class TgmountBuilderBase(abc.ABC):
         )
 
     async def create_resources(self, client: TgmountTelegramClient, cfg: config.Config):
-
-        message_sources = self.SourcesProvider(
-            {
-                k: self.MessageSource(client, ms.entity, ms.limit)
-                for k, ms in cfg.message_sources.sources.items()
-            }
-        )
+        self.logger.trace(f"Creating resources...")
 
         caches: dict[str, cache.CacheFactory] = {}
         cached_factories = {}
@@ -65,6 +58,16 @@ class TgmountBuilderBase(abc.ABC):
         files_source = self.FilesSource(client)
         file_factory = self.FileFactory(files_source, cached_factories)
 
+        message_sources = self.SourcesProvider(
+            {
+                k: self.MessageSource(client, ms.entity, ms.limit)
+                for k, ms in cfg.message_sources.sources.items()
+            }
+        )
+
+        for src in message_sources.as_mapping().values():
+            src.filters.append(file_factory.supports)
+
         return CreateRootResources(
             file_factory=file_factory,
             sources=message_sources,
@@ -73,7 +76,8 @@ class TgmountBuilderBase(abc.ABC):
             caches=cached_factories,
             wrappers=self.wrappers.get_wrappers(),
             classifier=self.classifier,
-            vfs_wrappers={"ExcludeEmptyDirs": ExcludeEmptyWrappr},
+            vfs_wrappers={}
+            # vfs_wrappers={"ExcludeEmptyDirs": ExcludeEmptyWrappr},
         )
 
     async def create_tgmount(self, cfg: config.Config) -> Tgmount:
@@ -87,18 +91,8 @@ class TgmountBuilderBase(abc.ABC):
 
         return tgm
 
-    # async def create_message_source(
-    #     self,
-    #     client: tgclient.TgmountTelegramClient,
-    #     ms: config.MessageSource,
-    # ) -> tgclient.TelegramMessageSource:
-    #     return self.MessageSource(client, ms.entity, ms.limit)
-
     async def create_cache(
         self, client: TgmountTelegramClient, cache_config: config.Cache
     ):
         cache_factory_cls = await self.caches.get_cache_factory(cache_config.type)
         return cache_factory_cls(**cache_config.kwargs)
-
-    def parse_root_dict(self, d: dict) -> TgmountRoot:
-        return lambda resources: TgmountRootProducer().get_root(d, resources=resources)

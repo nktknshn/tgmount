@@ -1,16 +1,14 @@
 import errno
-import logging
 import os
 import time
 from dataclasses import dataclass, replace
 from typing import Any, Optional, TypedDict, overload
 
 import pyfuse3
-from tgmount import vfs
+from tgmount import vfs, tglog
 
 from .fh import FileSystemHandels
 from .inode2 import InodesRegistry, RegistryItem, RegistryRoot
-from .logger import logger
 from .util import (
     create_directory_attributes,
     create_file_attributes,
@@ -47,6 +45,7 @@ InodesRegistryItem = RegistryItem[FileSystemItem] | RegistryRoot[FileSystemItem]
 InodesTreeFile = TypedDict(
     "InodesTreeFile", inode=int, path=list[str], path_str=str, name=str, extra=Any
 )
+
 InodesTree = TypedDict(
     "InodesTree",
     inode=int,
@@ -105,6 +104,9 @@ class FileSystemOperationsMixin:
         )
 
 
+measure_time_logger = tglog.getLogger(f"FileSystemOperations()")
+
+
 class FileSystemOperations(pyfuse3.Operations, FileSystemOperationsMixin):
     FsRegistryItem = RegistryItem[FileSystemItem] | RegistryRoot[FileSystemItem]
 
@@ -114,12 +116,15 @@ class FileSystemOperations(pyfuse3.Operations, FileSystemOperationsMixin):
     ):
         super(FileSystemOperations, self).__init__()
         self._root = root
+        self._logger = tglog.getLogger(f"FileSystemOperations()")
         self._init_root(root)
         self._init_handers()
-        self._update_lock = MyLock("FileSystemOperations.update_lock", logger=logger)
+        self._update_lock = MyLock(
+            "FileSystemOperations.update_lock", logger=self._logger
+        )
 
     def _init_root(self, root: vfs.DirLike, last_inode=None):
-        logger.debug(f"_init_root")
+        self._logger.debug(f"_init_root")
         self._inodes = InodesRegistry[FileSystemItem](
             self.create_FileSystemItem(
                 root,
@@ -185,7 +190,7 @@ class FileSystemOperations(pyfuse3.Operations, FileSystemOperationsMixin):
 
     def add_subitem(self, vfs_item: vfs.DirContentItem, parent_inode: int):
 
-        logger.info(
+        self._logger.debug(
             f"add_subitem: {vfs_item.name}, parent_inode={parent_inode} ({self.inodes.get_item_path(parent_inode)})"
         )
 
@@ -215,26 +220,26 @@ class FileSystemOperations(pyfuse3.Operations, FileSystemOperationsMixin):
 
     @exception_handler
     async def getattr(self, inode: int, ctx=None):
-        logger.debug(f"= getattr({inode},)")
+        self._logger.debug(f"= getattr({inode},)")
         item = self._inodes.get_item_by_inode(inode)
 
         if item is None:
-            logger.error(f"= getattr({inode}): missing in inodes registry")
+            self._logger.error(f"= getattr({inode}): missing in inodes registry")
             raise pyfuse3.FUSEError(errno.ENOENT)
 
-        logger.debug(f"= getattr({inode},)\t{item.data.structure_item.name}")
+        self._logger.debug(f"= getattr({inode},)\t{item.data.structure_item.name}")
 
         return item.data.attrs
 
     @exception_handler
     async def _read_dir_content(self, parent_item: InodesRegistryItem):
-        logger.debug(f"_read_dir_content {parent_item.name}")
+        self._logger.debug(f"_read_dir_content {parent_item.name}")
 
         handle = None
         structure_item = parent_item.data.structure_item
 
         if not isinstance(structure_item, vfs.DirLike):
-            logger.error("_read_content(): parent_item is not DirLike")
+            self._logger.error("_read_content(): parent_item is not DirLike")
             raise pyfuse3.FUSEError(errno.ENOENT)
 
         handle = await structure_item.content.opendir_func()
@@ -249,7 +254,7 @@ class FileSystemOperations(pyfuse3.Operations, FileSystemOperationsMixin):
 
         return res
 
-    @measure_time(logger_func=logger.debug)
+    @measure_time(logger_func=measure_time_logger.debug)
     @exception_handler
     async def lookup(
         self, parent_inode: int, name: bytes, ctx=None
@@ -257,18 +262,20 @@ class FileSystemOperations(pyfuse3.Operations, FileSystemOperationsMixin):
         # Calls to lookup acquire a read-lock on the inode of the parent directory (meaning that lookups in the same
         #         directory may run concurrently, but never at the same time as e.g. a rename or mkdir operation).
 
-        logger.debug(f"= lookup({parent_inode}, {name})")
+        self._logger.debug(f"= lookup({parent_inode}, {name})")
 
         parent_item = self._inodes.get_item_by_inode(parent_inode)
 
         if parent_item is None:
-            logger.error(f"lookup({parent_inode}): missing parent_inode={parent_inode}")
+            self._logger.error(
+                f"lookup({parent_inode}): missing parent_inode={parent_inode}"
+            )
             raise pyfuse3.FUSEError(errno.ENOENT)
 
-        logger.debug(f"lookup(): parent_item={parent_item.name}")
+        self._logger.debug(f"lookup(): parent_item={parent_item.name}")
 
         if not vfs.DirLike.guard(parent_item.data.structure_item):
-            logger.error("lookup(): parent_item is not DirLike")
+            self._logger.error("lookup(): parent_item is not DirLike")
             raise pyfuse3.FUSEError(errno.ENOENT)
 
         # child_inodes = self._inodes.get_items_by_parent(parent_inode)
@@ -280,34 +287,36 @@ class FileSystemOperations(pyfuse3.Operations, FileSystemOperationsMixin):
         item = self._inodes.get_child_item_by_name(name, parent_inode)
 
         if item is None:
-            logger.debug(f"lookup(parent_inode={parent_inode},name={name}): not found")
+            self._logger.debug(
+                f"lookup(parent_inode={parent_inode},name={name}): not found"
+            )
             raise pyfuse3.FUSEError(errno.ENOENT)
 
-        logger.debug(f"lookup(): returning {item}")
+        self._logger.debug(f"lookup(): returning {item}")
 
         return item.data.attrs
 
     @exception_handler
     async def forget(self, inode_list):
-        logger.debug(f"= forget({inode_list}")
+        self._logger.debug(f"= forget({inode_list}")
 
-    @measure_time(logger_func=logger.debug)
+    @measure_time(logger_func=measure_time_logger.debug)
     @exception_handler
     async def opendir(self, inode: int, ctx):
-        logger.debug(f"= opendir({inode})")
+        self._logger.debug(f"= opendir({inode})")
 
         item = self._inodes.get_item_by_inode(inode)
 
         if item is None:
-            logger.error(
+            self._logger.error(
                 f"opendir({inode}): missing item. inodes: {list(self._inodes._inodes.keys())}"
             )
             raise pyfuse3.FUSEError(errno.EBADF)
 
-        logger.debug(f"= opendir({inode}) {item.data.structure_item.name}")
+        self._logger.debug(f"= opendir({inode}) {item.data.structure_item.name}")
 
         if not vfs.DirLike.guard(item.data.structure_item):
-            logger.error(f"opendir({inode}): structure_item is not DirLike")
+            self._logger.error(f"opendir({inode}): structure_item is not DirLike")
             raise pyfuse3.FUSEError(errno.ENOTDIR)
 
         path = self._inodes.get_item_path(item.inode)
@@ -316,37 +325,39 @@ class FileSystemOperations(pyfuse3.Operations, FileSystemOperationsMixin):
             vfs_path = InodesRegistry.join_path(path)
 
             if vfs_path is None:
-                logger.error("opendir(): missing vfs_path")
+                self._logger.error("opendir(): missing vfs_path")
                 raise pyfuse3.FUSEError(errno.ENOENT)
 
-            logger.debug(f"opendir(): vfs_path = {vfs_path}")
+            self._logger.debug(f"opendir(): vfs_path = {vfs_path}")
 
         handle = await item.data.structure_item.content.opendir_func()
 
         fh = self._handles.open_fh(item, handle)
 
-        logger.debug(f"opendir({inode}) = {fh}")
+        self._logger.debug(f"opendir({inode}) = {fh}")
         return fh
 
-    @measure_time(logger_func=logger.debug)
+    @measure_time(logger_func=measure_time_logger.debug)
     @exception_handler
     async def readdir(self, fh, off, token: pyfuse3.ReaddirToken):
         dir_item, handle = self._handles.get_by_fh(fh)
 
         if dir_item is None:
-            logger.error("= readdir(fh={fh}, off={off}): missing dir_item")
+            self._logger.error("= readdir(fh={fh}, off={off}): missing dir_item")
             raise pyfuse3.FUSEError()
 
-        logger.debug(f"= readdir({dir_item.name}, fh={fh}, off={off})")
+        self._logger.debug(f"= readdir({dir_item.name}, fh={fh}, off={off})")
 
         if isinstance(dir_item, vfs.DirLike):
-            logger.error("= readdir(fh={fh}, off={off}): dir_item is not a folder")
+            self._logger.error(
+                "= readdir(fh={fh}, off={off}): dir_item is not a folder"
+            )
             raise pyfuse3.FUSEError(errno.ENOTDIR)
 
         content = self._inodes.get_items_by_parent(dir_item)
 
         if content is None:
-            logger.error(
+            self._logger.error(
                 "= readdir(fh={fh}, off={off}): dir_item is not registered  in inodes"
             )
             raise pyfuse3.FUSEError(errno.ENOENT)
@@ -374,48 +385,48 @@ class FileSystemOperations(pyfuse3.Operations, FileSystemOperationsMixin):
         item, handle = self._handles.get_by_fh(fh)
 
         if item is None:
-            logger.debug(f"releasedir(): missing {fh} in open handles")
+            self._logger.debug(f"releasedir(): missing {fh} in open handles")
             return
 
-        logger.debug(f"= releasedir({item.name}, {fh})")
+        self._logger.debug(f"= releasedir({item.name}, {fh})")
 
         if item is None:
-            logger.error(f"releasedir(): missing item with handle {fh}")
+            self._logger.error(f"releasedir(): missing item with handle {fh}")
             raise pyfuse3.FUSEError(errno.ENOENT)
 
         if not vfs.DirLike.guard(item.data.structure_item):
-            logger.error(f"releasedir(): item is not a folder {item}")
+            self._logger.error(f"releasedir(): item is not a folder {item}")
             raise pyfuse3.FUSEError()
 
         await item.data.structure_item.content.releasedir_func(handle)
 
         self._handles.release_fh(fh)
-        logger.debug("= releasedir(): ok")
+        self._logger.debug("= releasedir(): ok")
 
-    @measure_time(logger_func=logger.debug)
+    @measure_time(logger_func=measure_time_logger.debug)
     @exception_handler
     async def open(self, inode, flags, ctx):
 
         handle = None
 
         if flags & os.O_RDWR or flags & os.O_WRONLY:
-            logger.error("readonly")
+            self._logger.error("readonly")
             raise pyfuse3.FUSEError(errno.EPERM)
 
         item = self._inodes.get_item_by_inode(inode)
 
         if item is None:
-            logger.error(f"open({inode}) missing inode")
+            self._logger.error(f"open({inode}) missing inode")
             raise pyfuse3.FUSEError(errno.ENOENT)
 
-        logger.debug(f"= open({inode}) = {item.data.structure_item.name}")
+        self._logger.debug(f"= open({inode}) = {item.data.structure_item.name}")
 
         if not vfs.FileLike.guard(item.data.structure_item):
-            logger.error(f"open({inode}): is not file")
+            self._logger.error(f"open({inode}): is not file")
             raise pyfuse3.FUSEError(errno.EIO)
 
         # if item.data.structure_item.content is None:
-        #     logger.debug(f"open({inode}): file has no content")
+        #     self._logger.debug(f"open({inode}): file has no content")
 
         # if (
         #     item.data.structure_item.content
@@ -425,54 +436,54 @@ class FileSystemOperations(pyfuse3.Operations, FileSystemOperationsMixin):
 
         fh = self._handles.open_fh(item, handle)
 
-        logger.debug(
+        self._logger.debug(
             f"- done open({inode}): fh={fh}, name={item.data.structure_item.name}"
         )
 
         return pyfuse3.FileInfo(fh=fh)
 
-    @measure_time(logger_func=logger.debug)
+    @measure_time(logger_func=measure_time_logger.debug)
     @exception_handler
     async def read(self, fh, off, size):
-        logger.debug(f"= read(fh={fh},off={off},size={size}).")
+        self._logger.debug(f"= read(fh={fh},off={off},size={size}).")
 
         item, handle = self._handles.get_by_fh(fh)
 
         if item is None:
-            logger.error(f"read(fh={fh}): missing item in open handles")
+            self._logger.error(f"read(fh={fh}): missing item in open handles")
             raise pyfuse3.FUSEError(errno.ENOENT)
 
         if not vfs.FileLike.guard(item.data.structure_item):
-            logger.error(f"open(fh={fh}): is not file")
+            self._logger.error(f"open(fh={fh}): is not file")
             raise pyfuse3.FUSEError(errno.EIO)
 
         if item.data.structure_item.content is None:
-            logger.debug("open(): file has no content")
+            self._logger.debug("open(): file has no content")
             return
 
         chunk = await item.data.structure_item.content.read_func(handle, off, size)
-        logger.debug(
+        self._logger.debug(
             f"- read(fh={fh},off={off},size={size}) returns { len(chunk)} bytes"
         )
         return chunk
 
     @exception_handler
     async def release(self, fh):
-        logger.debug(f"= release({fh})")
+        self._logger.debug(f"= release({fh})")
         item, data = self._handles.get_by_fh(fh)
 
         if item is None:
-            logger.error(f"release(fh={fh}): missing item in open handles")
+            self._logger.error(f"release(fh={fh}): missing item in open handles")
             return
 
         if not vfs.FileLike.guard(
             item.data.structure_item,
         ):
-            logger.error(f"release({fh}): is not file")
+            self._logger.error(f"release({fh}): is not file")
             raise pyfuse3.FUSEError(errno.EIO)
 
         # if item.data.structure_item.content is None:
-        # logger.debug("release(): file has no content")
+        # self._logger.debug("release(): file has no content")
         # self._handlers.release_fh(fh)
         # return
 

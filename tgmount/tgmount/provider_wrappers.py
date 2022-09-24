@@ -1,11 +1,8 @@
 from abc import abstractmethod, abstractstaticmethod
 from typing import Mapping, Protocol, Type, TypeVar
 
-from tgmount import vfs, zip as z
-from .error import (
-    TgmountError,
-)
-from tgmount.tg_vfs.tree.helpers.remove_empty import remove_empty_dirs_content
+from tgmount import vfs
+from .error import TgmountError
 
 T = TypeVar("T")
 
@@ -52,34 +49,3 @@ class DirWrappersProviderBase(DirWrapperProviderProto):
             raise TgmountError(f"Missing wrapper with type: {wrapper_type}")
 
         return wrapper_cls
-
-
-DirContentWrapper = DirContentWrapperProto
-
-
-class ZipsAsDirsWrapper(DirContentWrapperProto):
-    def __init__(self, **kwargs) -> None:
-        self.kwargs = kwargs
-
-    async def wrap_dir_content(
-        self, dir_content: vfs.DirContentProto
-    ) -> vfs.DirContentProto:
-        return z.zips_as_dirs(dir_content, **self.kwargs)
-
-    @staticmethod
-    def from_config(d: dict) -> "ZipsAsDirsWrapper":
-        return ZipsAsDirsWrapper(**d)
-
-
-class ExcludeEmptyDirs(DirContentWrapperProto):
-    def __init__(self) -> None:
-        pass
-
-    async def wrap_dir_content(
-        self, dir_content: vfs.DirContentProto
-    ) -> vfs.DirContentProto:
-        return remove_empty_dirs_content(dir_content)
-
-    @staticmethod
-    def from_config(d: dict) -> "ExcludeEmptyDirs":
-        return ExcludeEmptyDirs()

@@ -120,7 +120,7 @@ class DummyMessageSource(TelegramMessageSourceSimple):
         return super().subscribe(listener)
 
     def unsubscribe(self, listener):
-        return super().subscribe(listener)
+        return super().unsubscribe(listener)
 
 
 class DummyTgmountBuilder(TgmountBuilder):

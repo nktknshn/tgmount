@@ -16,10 +16,8 @@ from .error import FileFactoryError
 from .types import (
     FileContentProviderProto,
     FileFactoryProto,
-    MessagesTree,
 )
 
-from .tree.message_tree import DirContentSourceCreatorMixin
 
 T = TypeVar("T")
 C = TypeVar("C", bound=WithTryGetMethodProto)
@@ -43,13 +41,14 @@ class FileFactoryItem:
 
 ClassName = str
 
+import functools
 
-class FileFactoryBase(
-    FileFactoryProto[T],
-    DirContentSourceCreatorMixin,
-):
+
+class FileFactoryBase(FileFactoryProto[T]):
     def __init__(self) -> None:
         self._supported: dict[ClassName, FileFactoryItem] = {}
+
+        self._cache: dict[Message, Optional[Type[T]]] = {}
 
     def register(
         self,
@@ -79,12 +78,16 @@ class FileFactoryBase(
     def try_get(
         self, input_item: Any, treat_as: Optional[list[str]] = None
     ) -> Optional[T]:
+        # if input_item in self._cache:
+        # return self._cache[input_item]
 
         if (klass := self.try_get_cls(input_item, treat_as)) is not None:
             msg = klass.try_get(input_item)
+            # self._cache[input_item] = msg
 
             return msg
 
+        # self._cache[input_item] = None
         return None
 
     def try_get_cls(
@@ -176,12 +179,11 @@ FileFactorySupportedTypes = (
 
 class FileFactoryDefault(
     FileFactoryBase[FileFactorySupportedTypes],
-    DirContentSourceCreatorMixin,
 ):
     def __init__(
         self,
         files_source: FileContentProviderProto,
-        extra_files_source: Mapping[str, FileContentProviderProto] = None,
+        extra_files_source: Mapping[str, FileContentProviderProto] | None = None,
     ) -> None:
         super().__init__()
         self._files_source = files_source

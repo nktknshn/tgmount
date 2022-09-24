@@ -1,18 +1,13 @@
-from abc import abstractmethod
 from collections.abc import Mapping
 from datetime import datetime
 from typing import Callable, ClassVar, Protocol, TypeGuard, TypeVar
 
 from telethon.tl.custom import Message
 from tgmount import vfs
-from tgmount.tg_vfs.error import FileFactoryError
 from tgmount.tgclient.guards import *
 
-from tgmount.util import compose_guards
 from .error import FileFactoryError
-
-from .tree.message_tree import DirContentSourceCreatorMixin
-from .types import FileContentProviderProto, FileFactoryProto, MessagesTree
+from .types import FileContentProviderProto
 
 T = TypeVar("T")
 

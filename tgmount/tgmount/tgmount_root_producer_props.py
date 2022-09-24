@@ -2,6 +2,7 @@ from .tgmount_root_producer_types import *
 from .filters import FilterConfigValue
 from .util import to_list_of_single_key_dicts
 from .types import CreateRootResources
+from tgmount.util import col
 
 
 class RootProducerPropsReader:

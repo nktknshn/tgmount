@@ -4,21 +4,16 @@ from typing import Any, Iterable, Optional, Protocol, Type, TypedDict, TypeVar, 
 from telethon.tl.custom import Message
 
 from tgmount import config, tg_vfs, tgclient, vfs
-from tgmount.tg_vfs import FileFactoryProto
-from tgmount.tg_vfs.tree.message_tree import create_dir_content_source
+from tgmount.tg_vfs.types import FileFactoryProto
 from tgmount.tgclient.guards import MessageDownloadable
 from tgmount.tgclient.message_source import (
     MessageSourceSubscribableProto,
     MessageSourceProto,
 )
-from tgmount.tgmount.vfs_wrappers import VfsWrapperProto
-from tgmount.util import col, is_not_none, none_fallback
+from tgmount.util import none_fallback
 
 from .filters import Filter
-from .logger import logger
-from .util import to_list_of_single_key_dicts
 
-from .vfs_structure_types import VfsStructureProducerProto
 from .types import CreateRootResources
 
 Set = frozenset
@@ -52,42 +47,70 @@ class ProducedDirContent:
     result_content: vfs.DirContentProto
 
 
-@dataclass
 class ProducerConfig:
     message_source: MessageSourceSubscribableProto
     factory: FileFactoryProto
     filters: list[Filter]
     treat_as_prop: Optional[list[str]] = None
 
-    async def apply_filters(self, messages: MessagesSet) -> MessagesSet:
+    def __init__(
+        self,
+        message_source: MessageSourceSubscribableProto,
+        factory: FileFactoryProto,
+        filters: list[Filter],
+        treat_as_prop: Optional[list[str]] = None,
+    ) -> None:
+        # print("ProducerConfig")
+        self.message_source = message_source
+        self.factory = factory
+        self.filters = filters
+        self.treat_as_prop = treat_as_prop
+
+        # self.message_source.subscribe(self.on_update)
+
+        self._messages: MessagesSet | None = None
+
+    # async def on_update(self, source, messages):
+    #     self._messages = await self._apply_all_filters(messages)
+
+    async def _apply_filters(self, messages: MessagesSet) -> MessagesSet:
         for f in self.filters:
             messages = await f.filter(messages)
 
         return frozenset(messages)
 
-    async def apply_all_filters(self, input_messages: Iterable[Message]):
-        supported = await self.filter_supported(input_messages)
-        filtered = await self.apply_filters(supported)
+    async def _apply_all_filters(self, input_messages: Iterable[Message]):
+        # supported = await self.filter_supported(input_messages)
+        filtered = await self._apply_filters(input_messages)
         return filtered
 
     async def filter_supported(self, input_messages: Iterable[Message]) -> MessagesSet:
+        print(f"filter_supported")
         return self.factory.filter_supported(input_messages)
 
     async def get_messages(self) -> MessagesSet:
         messages = await self.message_source.get_messages()
-        return await self.apply_all_filters(messages)
+
+        if self._messages is None:
+            self._messages = await self._apply_all_filters(messages)
+
+        return self._messages
 
     def set_message_source(self, message_source: MessageSourceSubscribableProto):
-        return replace(self, message_source=message_source)
+        return ProducerConfig(
+            message_source=message_source,
+            factory=self.factory,
+            filters=self.filters,
+            treat_as_prop=self.treat_as_prop,
+        )
 
 
 @dataclass
 class VfsStructureConfig:
-    vfs_producer: Type[VfsStructureProducerProto]
+    vfs_producer: Type[Any]
     source_dict: dict
     vfs_producer_name: str | None = None
     vfs_producer_arg: Optional[dict] = None
-    vfs_wrappers: list[VfsWrapperProto] = field(default_factory=list)
 
     producer_config: Optional[ProducerConfig] = None
 

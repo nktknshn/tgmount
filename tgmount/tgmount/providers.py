@@ -1,52 +1,28 @@
-from typing import Iterable, Mapping, Type, TypeVar
+from typing import Any, Mapping, Type
 
-from telethon.tl.custom import Message
-
-from tgmount import vfs
-from tgmount import zip as z
-from tgmount import tgclient
 from tgmount.cache import CacheFactoryMemory
-from tgmount.tg_vfs.tree.helpers.remove_empty import remove_empty_dirs_content
-from tgmount.tgclient import guards
-from tgmount.tgmount.provider_sources import SourcesProviderProto
-from tgmount.tgmount.vfs_structure_plain import VfsStructureProducerPlain
-from .vfs_structure_producers_provider import VfsProducersProviderProto
-from tgmount.util import col, func
 
-from .caches import CacheProviderBase
+from .provider_caches import CacheProviderBase
 from .filters import (
     All,
     And,
     ByExtension,
     ByTypes,
-    FiltersMapping,
-    Not,
     FilterProviderBase,
+    FiltersMapping,
     First,
     Last,
+    Not,
     OnlyUniqueDocs,
-    Union,
     Seq,
+    Union,
     from_context_classifier,
 )
-from .wrappers import DirWrappersProviderBase, ExcludeEmptyDirs, ZipsAsDirsWrapper
-from .by_user import MessageByUser
-from .vfs_structure_types import VfsStructureProducerProto
-from .by_performer import MessageByPerformer
-
-# async def zips_as_dirs(**kwargs) -> DirWrapper:
-#     async def _inner(content: vfs.DirContentProto) -> vfs.DirContentProto:
-#         return z.zips_as_dirs(content, **kwargs)
-
-#     return _inner
+from .provider_wrappers import DirWrappersProviderBase
 
 
 class DirWrappersProvider(DirWrappersProviderBase):
-    wrappers = {
-        "ZipsAsDirs": ZipsAsDirsWrapper,
-        "ExcludeEmptyDirs": ExcludeEmptyDirs,
-        # "exclude_empty_dirs": lambda args: remove_empty_dirs_content,
-    }
+    wrappers = {}
 
 
 class CachesProvider(CacheProviderBase):
@@ -55,24 +31,13 @@ class CachesProvider(CacheProviderBase):
     }
 
 
-# class TreeProducersProvider(TreeProducersProviderBase):
-#     producers = {
-#         "MusicByPerformer": MusicByPerformer,
-#         "MessageBySender": MessageBySender,
-#         "MessageByForward": MessageByForwardSource,
-#     }
-
-
-class VfsProducersProvider(VfsProducersProviderProto):
+class VfsProducersProvider:
     @property
     def default(self):
-        return VfsStructureProducerPlain
+        return None
 
-    def get_producers(self) -> Mapping[str, Type[VfsStructureProducerProto]]:
-        return {
-            "MessageBySender": MessageByUser,
-            "MusicByPerformer": MessageByPerformer,
-        }
+    def get_producers(self) -> Mapping[str, Type[Any]]:
+        return {}
 
 
 class FilterProvider(FilterProviderBase):

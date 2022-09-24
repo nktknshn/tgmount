@@ -3,9 +3,9 @@ from collections.abc import Callable
 from typing import Any, Iterable, Mapping, Optional, Protocol, Type, TypeGuard, TypeVar
 
 from telethon.tl.custom import Message
+
 from tgmount import tg_vfs
 from tgmount.config import ConfigError
-from tgmount.tg_vfs.file_factory import SupportsMethodBase, TryGetFunc
 from tgmount.tgclient import guards
 from tgmount.tgclient.guards import MessageDownloadable
 from tgmount.util import col, compose_guards, func, none_fallback
@@ -18,7 +18,7 @@ Set = frozenset
 
 
 class FilterFromConfigContext(Protocol):
-    file_factory: SupportsMethodBase
+    file_factory: tg_vfs.SupportsMethodBase
     classifier: tg_vfs.ClassifierBase
 
 
@@ -64,10 +64,10 @@ class FilterAllMessagesProto(Protocol):
         ...
 
 
-FilterSingleMessage = Callable[[Message], T | None]
+FilterSingleMessage = Callable[[Message], T | None | bool]
 FilterAllMessages = FilterAllMessagesProto
 
-Filter = FilterAllMessages
+Filter = FilterAllMessages | FilterSingleMessage
 ParseFilter = Callable[[FilterConfigValue], list[Filter]]
 
 
@@ -329,12 +329,12 @@ class FiltersMapping:
     def __init__(
         self,
         *,
-        filters: Mapping[str, Type[Filter]] = {},
+        filters: Mapping[str, Type[Filter]] | None = None,
         # taken
         filter_getters: Optional[list[FilterGetter]] = None,
     ) -> None:
         super().__init__()
-        self._filters: Mapping[str, Type[Filter]] = filters
+        self._filters: Mapping[str, Type[Filter]] = none_fallback(filters, {})
         self._filter_getters = none_fallback(filter_getters, [])
 
     def append_filter_getter(self, fgetter: FilterGetter):

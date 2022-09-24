@@ -11,3 +11,4 @@ tgapp.txt
 .vscode
 *.session
 *.session-journal
+*.stats

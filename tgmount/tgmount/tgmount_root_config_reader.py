@@ -1,26 +1,9 @@
-import abc
 import logging
 import os
-import traceback
-from abc import abstractmethod
-from collections.abc import Awaitable, Callable, Mapping
-from dataclasses import dataclass, field, make_dataclass, replace
-from typing import Any, Optional, Protocol, Type, TypedDict, TypeVar
-
+from typing import TypeVar
 from telethon.tl.custom import Message
-
-from tgmount import config, tg_vfs, tgclient, vfs
-from tgmount.tg_vfs import FileFactoryProto
-from tgmount.tg_vfs.tree.message_tree import create_dir_content_source
-from tgmount.tgclient import message_source
-from tgmount.tgclient.guards import MessageDownloadable
-from tgmount.tgclient.message_source import (
-    MessageSourceProto,
-)
-from tgmount.util import col, is_not_none, none_fallback
-
-from .filters import Filter, FilterConfigValue
-
+from tgmount import config
+from tgmount.util import none_fallback
 from .tgmount_root_producer_props import RootProducerPropsReader
 from .tgmount_root_producer_types import (
     ProducerConfig,
@@ -29,7 +12,6 @@ from .tgmount_root_producer_types import (
     CreateRootContext,
 )
 from .types import CreateRootResources
-from .util import to_list_of_single_key_dicts
 
 T = TypeVar("T")
 
@@ -37,67 +19,6 @@ import tgmount.tglog as log
 
 logger = log.getLogger("TgmountConfigReaderWalker")
 logger.setLevel(logging.CRITICAL)
-
-
-class TgmountConfigReader2:
-    def __init__(
-        self,
-        resources: CreateRootResources,
-        logger=logger,
-    ) -> None:
-        self._logger = logger
-        self._resources = resources
-
-    def walk(
-        self,
-        dir_cfg: TgmountRootSource,
-    ):
-        yield from self.walk_with_ctx(
-            dir_cfg,
-            ctx=CreateRootContext(
-                current_path=[],
-                file_factory=self._resources.file_factory,
-                classifier=self._resources.classifier,
-            ),
-        )
-
-    def walk_with_ctx(self, dir_cfg: TgmountRootSource, ctx: CreateRootContext):
-        cfg_reader = TgmountConfigReader()
-
-        yield from cfg_reader.walk_config_with_ctx(
-            dir_cfg, resources=self._resources, ctx=ctx
-        )
-
-
-class TgmountConfigReaderWalker:
-    def __init__(
-        self,
-        *,
-        dir_cfg: TgmountRootSource,
-        resources: CreateRootResources,
-        logger=logger,
-    ) -> None:
-        self._logger = logger
-        self._dir = dir_cfg
-        self._resources = resources
-
-    def walk(self):
-        yield from self.walk_with_ctx(
-            ctx=CreateRootContext(
-                current_path=[],
-                file_factory=self._resources.file_factory,
-                classifier=self._resources.classifier,
-            ),
-        )
-
-    def walk_with_ctx(self, ctx: CreateRootContext):
-        cfg_reader = TgmountConfigReader()
-
-        yield from cfg_reader.walk_config_with_ctx(
-            self._dir,
-            resources=self._resources,
-            ctx=ctx,
-        )
 
 
 class TgmountConfigReader(RootProducerPropsReader):
@@ -243,12 +164,12 @@ class TgmountConfigReader(RootProducerPropsReader):
             if producer_name is not None:
                 self._logger.info(f"Content will be produced by {producer_name}")
 
-                producer_cls = resources.producers.get_producers().get(producer_name)
+                # producer_cls = resources.producers.get_producers().get(producer_name)
 
-                if producer_cls is None:
-                    raise config.ConfigError(
-                        f"Missing producer: {producer_name}. path: {ctx.current_path}"
-                    )
+                # if producer_cls is None:
+                #     raise config.ConfigError(
+                #         f"Missing producer: {producer_name}. path: {ctx.current_path}"
+                #     )
 
         vfs_wrappers = []
 
@@ -277,7 +198,7 @@ class TgmountConfigReader(RootProducerPropsReader):
             vfs_producer_name=producer_name,
             vfs_producer=producer_cls,
             vfs_producer_arg=producer_arg,
-            vfs_wrappers=vfs_wrappers,
+            # vfs_wrappers=vfs_wrappers,
             producer_config=producer_config,
         )
 

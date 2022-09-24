@@ -1,4 +1,4 @@
-import logging
+from tgmount import tglog
 
-logger = logging.getLogger("tgvfs-ops")
-logger_update = logging.getLogger("tgvfs-ops-update")
+logger = tglog.getLogger("tgvfs-ops")
+logger_update = tglog.getLogger("tgvfs-ops-update")

@@ -4,7 +4,7 @@ from tgmount.vfs.types.dir import DirContentItem
 from tgmount.zip.zip_dir_factory import DirContentZipFactory
 from dataclasses import dataclass
 from .zip_dir import DirContentZip
-from tgmount import util
+from tgmount import util, tglog
 from .util import get_uniq_name
 
 
@@ -27,6 +27,7 @@ class ZipsAsDirs(vfs.DirContentProto[ZipsAsDirsHandle]):
         zip_file_like_to_dir_name=lambda item: f"{item.name}_unzipped",
         recursive=False,
     ):
+        self._logger = tglog.getLogger(f"ZipsAsDirs()")
 
         self._source_dir_content = source_dir_content
         self._dir_content_zip_factory = (
@@ -177,60 +178,3 @@ def zips_as_dirs(
         )
 
     return ZipsAsDirs(tree_or_content, **kwargs)
-
-
-# def zip_as_dir(
-#     file: vfs.FileLike,
-# ):
-#     return vfs.DirLike(
-#         file.name,
-#         DirContentZip.create_dir_content_zip(file.content),
-#     )
-
-
-# def zip_as_dir_in_content(
-#     content: vfs.DirContentProto,
-# ):
-#     return vfs.map_dir_content_items(
-#         lambda item: zip_as_dir(item)
-#         if vfs.FileLike.guard(item) and item.name.endswith(".zip")
-#         else item,
-#         content,
-#     )
-
-
-# async def zip_as_dir_async(
-#     file: vfs.FileLike,
-# ):
-#     return vfs.DirLike(
-#         file.name,
-#         DirContentZip.create_dir_content_zip(file.content),
-#     )
-
-
-# def zip_as_dir_s(
-#     *,
-#     skip_folder_if_single_subfolder=False,
-#     skip_folder_prefix=None,
-# ):
-#     async def _zip_as_dir_s(
-#         file: vfs.FileLike,
-#     ):
-
-#         if skip_folder_if_single_subfolder:
-#             root_dir_name = await DirContentZip(file.content).get_single_root_dir()
-
-#             if root_dir_name:
-#                 return vfs.DirLike(
-#                     root_dir_name
-#                     if skip_folder_prefix is None
-#                     else f"{skip_folder_prefix}_{root_dir_name}",
-#                     DirContentZip.create_dir_content_zip(file.content, [root_dir_name]),
-#                 )
-
-#         return vfs.DirLike(
-#             file.name,
-#             DirContentZip.create_dir_content_zip(file.content),
-#         )
-
-#     return _zip_as_dir_s

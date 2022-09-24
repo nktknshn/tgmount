@@ -1,44 +1,29 @@
 import os
-from collections.abc import Awaitable, Callable, Mapping
-from dataclasses import dataclass, fields
-import logging
 from typing import Any, Optional, Type, TypeGuard
 
-import telethon
-from telethon import events, types
 
 from tgmount import config, fs, main, tg_vfs, tgclient, tglog, vfs
-from tgmount.cache import CacheFactory
 from tgmount.fs.util import measure_time
-from tgmount.tg_vfs import classifier
-from tgmount.tg_vfs.classifier import ClassifierBase
-from tgmount.tgclient import TelegramMessageSource, guards
 from tgmount.tgclient.message_source import (
     MessageSourceProto,
     MessageSourceProto,
-    MessageSourceSubscribableProto,
 )
-from tgmount.tgmount.exclude_empty import ExcludeEmptyWrappr
-from tgmount.tgmount.filters import FiltersMapping
-from tgmount.tgmount.vfs_structure_producer3 import (
-    SourcesProviderAccumulating,
+from tgmount.tgmount.vfs_tree import (
     UpdateNewDirs,
     UpdateNewItems,
     UpdateRemovedDirs,
     UpdateRemovedItems,
     UpdateType,
+)
+from tgmount.tgmount.vfs_tree_producer import (
+    SourcesProviderAccumulating,
     VfsTree,
     VfsTreeProducer,
 )
-from tgmount.tgmount.vfs_structure_types import VfsStructureProducerProto
-from tgmount.util import col, compose_guards
-from tgmount.vfs.util import MyLock
+
 
 from .error import TgmountError
-from .types import CreateRootResources, Filter, TgmountRoot
-from .wrappers import DirContentWrapper
-from .vfs_structure_producer import VfsStructureFromConfigProducer
-from .vfs_structure_producers_provider import VfsProducersProviderProto
+from .types import CreateRootResources
 from tgmount.tgclient.add_hash import add_hash
 
 add_hash()
@@ -87,16 +72,19 @@ class Tgmount:
     def fs(self) -> fs.FileSystemOperationsUpdatable | None:
         return self._fs
 
-    @measure_time(logger_func=logger.info)
+    # @measure_time(logger_func=logger.info)
     async def build_root(self) -> vfs.VfsRoot:
         tree = VfsTree()
         source_provider = SourcesProviderAccumulating(
             tree=tree, source_map=self._resources.sources.as_mapping()
         )
 
-        @measure_time(logger_func=Tgmount.logger.info)
+        # @measure_time(logger_func=Tgmount.logger.info)
         async def on_update(provider, source, updates: list[UpdateType]):
             update = fs.FileSystemOperationsUpdate()
+
+            if len(updates) == 0:
+                return
 
             for u in updates:
                 path = u.update_path
@@ -134,39 +122,6 @@ class Tgmount:
         await tree_producer.produce(tree, self._root)
 
         return vfs.root(await tree.get_dir_content())
-
-    @measure_time(logger_func=logger.info)
-    async def _build_root(self) -> vfs.VfsRoot:
-        producer = VfsStructureFromConfigProducer(
-            self._root,
-            resources=self._resources,
-        )
-
-        @measure_time(logger_func=Tgmount.logger.info)
-        async def on_update(source, update: fs.FileSystemOperationsUpdate):
-            self.logger.info(
-                f"UPDATE: new_files={list(update.new_files.keys())} removed_files={list(update.removed_files)} update_dir_content={list(update.update_dir_content.keys())} new_dir_content={list(update.new_dirs.keys())} removed_dirs={update.removed_dir_contents}"
-            )
-
-            if self._fs is None:
-                self.logger.error(f"self._fs is not created yet.")
-                return
-
-            async with self._fs._update_lock:
-                await self._fs.on_update(update)
-
-        await producer.produce_vfs_struct()
-
-        producer.subscribe(on_update)
-
-        return vfs.root(await producer.get_dir_content())
-
-    async def update(
-        self,
-        message_source: MessageSourceProto,
-        messages: list[Message],
-    ):
-        pass
 
     async def create_fs(self):
         self.logger.info(f"Building root...")

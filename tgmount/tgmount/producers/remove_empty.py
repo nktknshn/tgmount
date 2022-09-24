@@ -1,4 +1,3 @@
-from ..types import MessagesTree, MessagesTreeValue, MessagesTreeValueDir, Virt
 from tgmount import vfs
 
 
@@ -14,9 +13,3 @@ def remove_empty_dirs_content(
     d: vfs.DirContentProto,
 ) -> vfs.DirContentProto:
     return vfs.dir_content_filter_items(filter_empty, d)
-
-
-def skip_empty_dirs(
-    d: MessagesTreeValueDir,
-) -> MessagesTreeValueDir:
-    return Virt.MapContent(remove_empty_dirs_content, d)

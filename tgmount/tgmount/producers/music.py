@@ -2,10 +2,8 @@ import argparse
 import logging
 from typing import Callable, TypedDict, TypeGuard, TypeVar, Union
 
-from telethon.tl.custom import Message
 from tgmount.tgclient.guards import *
 
-from ..types import MessagesTreeValue, MessagesTreeValueDir, Virt
 
 T = TypeVar("T")
 
