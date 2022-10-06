@@ -1,19 +1,15 @@
 import abc
-from typing import Any, Iterable, Optional, Protocol, Type, TypeGuard, TypeVar, overload
+from typing import Any, Optional, Protocol, TypeGuard, TypeVar
 
 import telethon
 from telethon import types
-
 from telethon.tl.custom import Message
 from telethon.tl.custom.file import File
 
-# from telethon.tl.types import TypeDocumentAttribute
-
-from ..util import func
 from .types import Document
 
+# from telethon.tl.types import TypeDocumentAttribute
 
-from tgmount import util
 
 # MessageMedia = (
 #     types.MessageMediaContact

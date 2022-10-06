@@ -1,9 +1,3 @@
-from dataclasses import dataclass
-from datetime import datetime
-from typing import Callable, Any, Optional, Protocol, TypeGuard, TypeVar, Union
-
-from telethon.tl.custom import Message
-
 import telethon
 
 DocId = int

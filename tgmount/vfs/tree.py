@@ -9,7 +9,6 @@ from .dir import vdir, dir_content
 from .file import vfile
 from .types import Tree
 from .types.dir import (
-    DirContent,
     DirContentItem,
     DirContentProto,
     DirLike,

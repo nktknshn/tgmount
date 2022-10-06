@@ -1,7 +1,5 @@
 from typing import (
     Callable,
-    Iterable,
-    List,
     Mapping,
     Optional,
     Sequence,
@@ -10,7 +8,6 @@ from typing import (
 )
 
 T = TypeVar("T")
-from .func import group_by, group_by0, group_by_func_async
 
 
 def find(pred: Callable[[T], bool], col: Sequence[T]) -> Optional[T]:

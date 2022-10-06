@@ -1,25 +1,25 @@
 import logging
-from datetime import datetime
-from random import random
-from time import time
-from typing import Any, Awaitable, Callable, Optional, TypeVar
+from typing import Any, TypeVar
 
 import telethon
-from telethon.tl.custom import Message
 from telethon.errors import FileReferenceExpiredError
+from telethon.tl.custom import Message
+
 from tgmount import vfs
-
-from tgmount.tgclient import TgmountTelegramClient, TypeInputFileLocation, guards
-
-from ._source import (
-    SourceItem,
-    SourceItemDocument,
-    SourceItemPhoto,
-)
-
-from ._source.types import InputSourceItem
-from ._source.util import BLOCK_SIZE, split_range
+from . import guards
+from .client import TgmountTelegramClient
 from .guards import MessageDownloadable
+from .source.document import (
+    SourceItemDocument,
+)
+from .source.item import (
+    SourceItem,
+
+)
+from .source.photo import SourceItemPhoto
+from .source.types import InputSourceItem
+from .source.util import BLOCK_SIZE, split_range
+from .types import TypeInputFileLocation
 
 logger = logging.getLogger("tgclient")
 

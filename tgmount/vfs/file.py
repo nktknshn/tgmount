@@ -1,21 +1,16 @@
-from datetime import datetime
-from io import BytesIO
 import logging
 import os
-from dataclasses import dataclass
+from datetime import datetime
+from io import BytesIO
 from typing import (
-    IO,
     Any,
     Awaitable,
-    ByteString,
     Callable,
-    Iterable,
-    List,
     Optional,
-    Union,
 )
 
 import aiofiles
+
 from tgmount.vfs.types.file import FileContent, FileContentProto, FileLike
 from tgmount.vfs.util import MyLock
 

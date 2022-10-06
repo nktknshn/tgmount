@@ -1,4 +1,4 @@
-from typing import Awaitable, Callable, Optional, Protocol, TypeVar
+from typing import Optional
 
 import telethon
 

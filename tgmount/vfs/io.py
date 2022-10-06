@@ -1,8 +1,6 @@
-import asyncio
-from typing import Any, Optional, IO
-
 # every item should get inode
 import logging
+from typing import Any, Optional, IO
 
 import greenback
 

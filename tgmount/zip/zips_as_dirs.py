@@ -1,10 +1,10 @@
-from typing import Iterable, Mapping, Optional, Sequence
+from dataclasses import dataclass
+from typing import Iterable, Optional
+
+from tgmount import tglog
 from tgmount import vfs
 from tgmount.vfs.types.dir import DirContentItem
 from tgmount.zip.zip_dir_factory import DirContentZipFactory
-from dataclasses import dataclass
-from .zip_dir import DirContentZip
-from tgmount import util, tglog
 from .util import get_uniq_name
 
 

@@ -1,6 +1,6 @@
 from typing import Optional, Protocol
 
-from tgmount.tgclient import TypeInputFileLocation
+from ..types import TypeInputFileLocation
 
 SourceItemId = int
 

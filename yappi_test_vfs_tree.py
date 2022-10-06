@@ -1,49 +1,33 @@
 import os
-from typing import Any, Callable, Optional, TypedDict
-from typing_extensions import dataclass_transform
-
 import random
-from dataclasses import dataclass, field, asdict
-import pytest
-import pytest_asyncio
-from telethon.tl.custom.message import Message, File
+import time
+
+# factory = FileFactoryDefault(files_source)
+from pprint import pprint
+from typing import Any, Callable, Optional, TypedDict
+
+from tests.helpers.dummy_classes import *
+from tgmount import main, tglog, vfs
 from tgmount.config.types import Config
-from tgmount.fs.util import measure_time
-from tgmount.tg_vfs.classifier import ClassifierProto
-from tgmount.tg_vfs.filefactorybase import FileFactoryDefault
-from tgmount.tg_vfs.tree.helpers.remove_empty import remove_empty_dirs_content
-from tgmount.tg_vfs.types import FileContentProviderProto
-from tgmount.tgclient.client import TgmountTelegramClient
 from tgmount.tgclient.message_source import (
     MessageSourceSubscribable,
     Subscribable,
     TelegramMessageSource,
-    TelegramMessageSourceSimple,
+    MessageSourceSimple,
 )
 from tgmount.tgmount.builder import TgmountBuilder
 from tgmount.tgmount.builderbase import TgmountBuilderBase
 from tgmount.tgmount.error import TgmountError
-from tgmount.tgmount.provider_sources import (
-    SourcesProvider,
-)
-from tgmount.tgmount.types import CreateRootResources
-
-from tgmount.tgmount.vfs_structure import VfsStructure
-from tgmount.tgmount.vfs_structure_producer2 import VfsStructureFromConfigProducer
-
-from tgmount import vfs
-from tgmount.tgmount.vfs_structure_types import VfsStructureProto
-
-from tests.helpers.dummy_classes import *
-from tgmount.tgmount.vfs_structure_producer3 import *
-from tgmount import tglog, main
-import time
+from tgmount.tgmount.provider_sources import SourcesProvider
+from tgmount.tgmount.tgmount_types import TgmountResources
+from tgmount.tgmount.types import Set
+from tgmount.tgmount.vfs_tree import VfsTree, VfsTreeDir
+from tgmount.tgmount.vfs_tree_message_source import SourcesProviderAccumulating
+from tgmount.tgmount.vfs_tree_producer import VfsTreeProducer
 
 # source = DummyMessageSource()
 # files_source = DummyFileSource()
 
-# factory = FileFactoryDefault(files_source)
-from pprint import pprint
 
 msg = DummyMessage
 
@@ -51,45 +35,6 @@ msg = DummyMessage
 def config_from_file():
     with open("tests/config/config.yaml", "r+") as f:
         return f.read()
-
-
-# class SourcesProviderMessageSourceSupported(SourcesProviderMessageSource):
-#     def __init__(
-#         self,
-#         factory: "FileFactoryDefault",
-#         tree: VfsTree,
-#         source: tgclient.MessageSourceSubscribableProto,
-#     ) -> None:
-#         super().__init__(tree, source)
-#         self._factory = factory
-#         self._filtered_messages = None
-
-#     async def set_messages(self, messages):
-#         self._filtered_messages = self._factory.filter_supported(messages)
-#         await super().on_update(self, self, self._filtered_messages)
-
-#     async def get_messages(self) -> MessagesSet:
-
-#         if self._filtered_messages is None:
-#             messages = await super().get_messages()
-#             self._filtered_messages = self._factory.filter_supported(messages)
-
-#         return self._filtered_messages
-
-#     async def on_update(self, source, messages):
-
-#         return await super().on_update(source, messages)
-
-
-# def get_provider(factory):
-#     class SourcesProviderAccumulatingSupported(SourcesProviderAccumulating):
-#         MessageSource = (
-#             lambda self, tree, source: SourcesProviderMessageSourceSupported(
-#                 factory, tree, source
-#             )
-#         )
-
-#     return SourcesProviderAccumulatingSupported
 
 
 async def test_vfs_tree_huge():
@@ -122,7 +67,9 @@ async def test_vfs_tree_huge():
         tree=tree, source_map=resources.sources.as_mapping()
     )
 
-    tree_producer = VfsTreeProducer(resources=resources.set_sources(source_provider))
+    tree_producer = VfsTreeProducer(
+        resources=resources.set_sources(source_provider),
+    )
 
     print("generating tree")
     time1 = time.time_ns()

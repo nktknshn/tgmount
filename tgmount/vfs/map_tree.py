@@ -1,7 +1,6 @@
 from dataclasses import dataclass, field, replace
-from typing import Callable, Iterable, Mapping, Protocol, TypedDict, TypeGuard, TypeVar
+from typing import Callable, Mapping, TypeGuard, TypeVar
 
-from telethon.tl.custom import Message
 from tgmount import vfs
 
 T = TypeVar("T")

@@ -1,12 +1,5 @@
-from collections.abc import Mapping
-from dataclasses import dataclass, fields
-from typing import Optional, Union
-import typing
-from tgmount.util import col
-from tgmount import vfs
 from .helpers import *
-from .logger import logger
-
+from dataclasses import dataclass
 
 @dataclass
 class ContentDir:

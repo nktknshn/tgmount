@@ -1,15 +1,13 @@
 from typing import Any, Mapping, Type
 
 from tgmount.cache import CacheFactoryMemory
-
-from .provider_caches import CacheProviderBase
+from tgmount.tgmount.producers.producer_by_user import VfsTreeDirByUser
+from tgmount.tgmount.producers.producer_plain import VfsTreePlainDir
+from tgmount.tgmount.vfs_tree_producer_types import VfsTreeProducerProto
 from .filters import (
     All,
     And,
     ByExtension,
-    ByTypes,
-    FilterProviderBase,
-    FiltersMapping,
     First,
     Last,
     Not,
@@ -18,7 +16,10 @@ from .filters import (
     Union,
     from_context_classifier,
 )
+from .provider_caches import CacheProviderBase
+from .provider_filters import FilterProviderBase, FiltersMapping
 from .provider_wrappers import DirWrappersProviderBase
+from .provider_producers import ProducersProviderBase
 
 
 class DirWrappersProvider(DirWrappersProviderBase):
@@ -27,17 +28,24 @@ class DirWrappersProvider(DirWrappersProviderBase):
 
 class CachesProvider(CacheProviderBase):
     caches = {
-        "memory": CacheFactoryMemory,
+        "memory": CacheFactoryMemory,  # type: ignore XXX
     }
 
 
-class VfsProducersProvider:
-    @property
-    def default(self):
-        return None
+class ProducersProvider(ProducersProviderBase):
+    producers: Mapping[str, Type[VfsTreeProducerProto]] = {
+        "PlainDir": VfsTreePlainDir,
+        "MessageBySender": VfsTreeDirByUser,
+    }
 
-    def get_producers(self) -> Mapping[str, Type[Any]]:
-        return {}
+
+# class VfsProducersProvider:
+#     @property
+#     def default(self):
+#         return None
+
+#     def get_producers(self) -> Mapping[str, Type[Any]]:
+#         return {}
 
 
 class FilterProvider(FilterProviderBase):

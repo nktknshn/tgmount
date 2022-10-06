@@ -13,7 +13,7 @@ from tgmount.tgmount.providers import (
 )
 from tgmount.tgmount.tgmount_root_config_reader import TgmountConfigReader
 from tgmount.config import Config, ConfigValidator
-from tgmount.tgmount.types import CreateRootResources
+from tgmount.tgmount.tgmount_types import TgmountResources
 from tgmount.tgclient import MessageSourceProto
 
 from ..config.fixtures import config_from_file

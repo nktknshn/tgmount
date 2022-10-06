@@ -1,11 +1,13 @@
+import asyncio
 import logging
-from typing import Optional, Union
 import typing
+from typing import Optional
+
 import telethon
 from telethon import TelegramClient
-import asyncio
+
 from .auth import TelegramAuthen
-from .search import TelegramSearch
+from .search.search import TelegramSearch
 
 logger = logging.getLogger("tgclient")
 

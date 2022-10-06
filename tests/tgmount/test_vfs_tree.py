@@ -9,16 +9,12 @@ import pytest_asyncio
 from telethon.tl.custom.message import Message, File
 from tgmount.config.types import Config
 from tgmount.fs.util import measure_time
-from tgmount.tg_vfs.classifier import ClassifierProto
-from tgmount.tg_vfs.filefactorybase import FileFactoryDefault
-from tgmount.tg_vfs.tree.helpers.remove_empty import remove_empty_dirs_content
-from tgmount.tg_vfs.types import FileContentProviderProto
 from tgmount.tgclient.client import TgmountTelegramClient
 from tgmount.tgclient.message_source import (
     MessageSourceSubscribable,
     Subscribable,
     TelegramMessageSource,
-    TelegramMessageSourceSimple,
+    MessageSourceSimple,
 )
 from tgmount.tgmount.builder import TgmountBuilder
 from tgmount.tgmount.builderbase import TgmountBuilderBase
@@ -26,17 +22,15 @@ from tgmount.tgmount.error import TgmountError
 from tgmount.tgmount.provider_sources import (
     SourcesProvider,
 )
-from tgmount.tgmount.types import CreateRootResources
+from tgmount.tgmount.tgmount_types import TgmountResources
 
-from tgmount.tgmount.vfs_structure import VfsStructure
-from tgmount.tgmount.vfs_structure_producer2 import VfsStructureFromConfigProducer
 
 from tgmount import vfs
-from tgmount.tgmount.vfs_structure_types import VfsStructureProto
 
 from ..config.fixtures import config_from_file
 from ..helpers.dummy_classes import *
-from tgmount.tgmount.vfs_structure_producer3 import *
+
+from tgmount.tgmount.vfs_tree import VfsTree, VfsTreeDir
 
 # source = DummyMessageSource()
 # files_source = DummyFileSource()

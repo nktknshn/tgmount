@@ -1,4 +1,4 @@
-from typing import Any, TypeVar, Callable, Awaitable, TypeGuard, overload
+from typing import Any, TypeVar, Callable, Awaitable, TypeGuard
 
 from telethon.tl.custom import Message
 

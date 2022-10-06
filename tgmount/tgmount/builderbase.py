@@ -1,18 +1,17 @@
 import abc
 from typing import Type
 
-
-from tgmount import cache, config, tg_vfs, tgclient, tglog
-from tgmount.tg_vfs import classifier
+from tgmount import cache, config, tgclient, tglog
 from tgmount.tgclient import TgmountTelegramClient
-from .provider_sources import SourcesProvider
-from .types import VfsProducersProviderProto
-
+from .file_factory import classifier, FileFactoryDefault
 from .provider_caches import CachesProviderProto
-from .filters import FilterProviderProto
-from .tgmountbase import Tgmount
-from .types import CreateRootResources
+from .provider_filters import FilterProviderProto
+from .provider_sources import SourcesProvider
 from .provider_wrappers import DirWrapperProviderProto
+from .provider_producers import ProducersProviderBase
+
+from .tgmount_types import TgmountResources
+from .tgmountbase import TgmountBase
 
 
 class TgmountBuilderBase(abc.ABC):
@@ -21,7 +20,7 @@ class TgmountBuilderBase(abc.ABC):
     TelegramClient: Type[tgclient.TgmountTelegramClient]
     MessageSource: Type[tgclient.TelegramMessageSource]
     FilesSource: Type[tgclient.TelegramFilesSource]
-    FileFactory: Type[tg_vfs.FileFactoryDefault]
+    FileFactory: Type[FileFactoryDefault]
     FilesSourceCaching: Type[cache.FilesSourceCaching]
     SourcesProvider: Type[SourcesProvider]
 
@@ -29,7 +28,7 @@ class TgmountBuilderBase(abc.ABC):
     caches: CachesProviderProto
     filters: FilterProviderProto
     wrappers: DirWrapperProviderProto
-    producers: VfsProducersProviderProto
+    producers: ProducersProviderBase
 
     async def create_client(self, cfg: config.Config):
         return self.TelegramClient(
@@ -68,7 +67,7 @@ class TgmountBuilderBase(abc.ABC):
         for src in message_sources.as_mapping().values():
             src.filters.append(file_factory.supports)
 
-        return CreateRootResources(
+        return TgmountResources(
             file_factory=file_factory,
             sources=message_sources,
             filters=self.filters.get_filters(),
@@ -80,10 +79,10 @@ class TgmountBuilderBase(abc.ABC):
             # vfs_wrappers={"ExcludeEmptyDirs": ExcludeEmptyWrappr},
         )
 
-    async def create_tgmount(self, cfg: config.Config) -> Tgmount:
+    async def create_tgmount(self, cfg: config.Config) -> TgmountBase:
         client = await self.create_client(cfg)
 
-        tgm = Tgmount(
+        tgm = TgmountBase(
             client=client,
             root=cfg.root.content,
             resources=await self.create_resources(client, cfg),

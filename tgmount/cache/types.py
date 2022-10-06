@@ -1,10 +1,8 @@
 from abc import abstractmethod
 from typing import (
-    AnyStr,
     Awaitable,
     Callable,
     Generic,
-    List,
     Optional,
     Protocol,
     Set,
@@ -12,7 +10,6 @@ from typing import (
 )
 
 import telethon
-
 
 T = TypeVar("T", covariant=True)
 

@@ -2,25 +2,17 @@ import logging
 import os
 from dataclasses import dataclass
 from typing import (
-    Any,
     Dict,
     Generic,
-    List,
-    Mapping,
     Optional,
-    Protocol,
-    TypedDict,
     TypeVar,
-    Union,
     overload,
 )
 
 import pyfuse3
-from tgmount.util import none_fallback
-from typing_extensions import LiteralString
 
-from .util import bytes_to_str, str_to_bytes
 from .logger import logger
+from .util import bytes_to_str, str_to_bytes
 
 T = TypeVar("T")
 

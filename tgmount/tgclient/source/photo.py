@@ -2,7 +2,7 @@ from typing import Optional
 
 from telethon.tl.custom.file import File
 
-from tgmount.tgclient import (
+from ..types import (
     InputPhotoFileLocation,
     Photo,
     TypeInputFileLocation,

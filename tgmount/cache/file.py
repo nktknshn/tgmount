@@ -1,11 +1,11 @@
 import logging
 import os
-from typing import IO, Dict, Optional, Protocol, Set
+from typing import IO, Optional, Set
 
 import aiofiles
 from aiofiles.threadpool.binary import AsyncBufferedReader
-from tgmount.vfs.util import MyLock
 
+from tgmount.vfs.util import MyLock
 from .types import CacheBlocksStorageProto
 
 logger = logging.getLogger("tgmount-cache")

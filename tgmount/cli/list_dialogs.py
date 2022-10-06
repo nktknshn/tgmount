@@ -1,7 +1,7 @@
-from telethon.utils import get_display_name
-from tgmount.tgclient import TgmountTelegramClient
-
 from telethon.tl.types import User, Channel, Chat
+from telethon.utils import get_display_name
+
+from tgmount.tgclient import TgmountTelegramClient
 
 
 def get_entity_type_str(entity):

@@ -4,27 +4,19 @@ from typing import (
     Any,
     Awaitable,
     Callable,
-    Coroutine,
     Iterable,
-    List,
     Mapping,
-    Optional,
-    TypeGuard,
-    TypeVar,
-    Union,
-    overload,
 )
 
-from .file import file_content_from_file, text_content, vfile
-from .types import Tree, FileLikeTree
+from .file import file_content_from_file
+from .types import FileLikeTree
 from .types.dir import (
     DirContent,
     DirContentItem,
-    DirContentList,
     DirContentProto,
     DirLike,
 )
-from .types.file import FileContent, FileContentProto, FileLike
+from .types.file import FileLike
 from .util import lazy_list_from_thunk
 
 
@@ -143,9 +135,6 @@ async def dir_content_read(content: DirContentProto) -> Iterable[DirContentItem]
     await content.releasedir_func(h)
 
     return items
-
-
-from tgmount.util import col
 
 
 async def dir_content_read_dict(

@@ -1,6 +1,7 @@
 from typing import cast
-from telethon import hints
+
 from telethon import helpers
+
 from .types import TotalListTyped
 
 

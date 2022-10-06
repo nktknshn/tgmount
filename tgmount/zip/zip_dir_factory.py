@@ -1,4 +1,4 @@
-import io
+import logging
 import logging
 import os
 import zipfile
@@ -6,22 +6,17 @@ from typing import (
     Any,
     Awaitable,
     Callable,
-    Iterable,
     List,
-    Mapping,
-    Optional,
-    Protocol,
-    Tuple,
 )
 
 import greenback
-from tgmount import vfs
 
+from tgmount import vfs
+from tgmount.vfs.io import FileContentIOGreenlet
 from .types import ZipFileAsyncThunk
 from .util import ZipTree, get_zip_tree, get_zipinfo_list, ls_zip_tree
-from .zip_file import FileContentZip, FileContentZipHandle
+from .zip_file import FileContentZip
 from .zip_file_id3v1_fix import FileContentZipFixingId3v1
-from tgmount.vfs.io import FileContentIOGreenlet
 
 logger = logging.getLogger("tgmount-zip")
 

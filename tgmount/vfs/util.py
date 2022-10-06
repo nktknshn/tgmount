@@ -62,6 +62,10 @@ def path_remove_slash(path: str):
     return path
 
 
+from functools import lru_cache
+
+
+@lru_cache
 def norm_path(p: str, addslash=False):
     if p == "":
         p = "/"
@@ -103,7 +107,9 @@ def nappb(path: str, encoding: str = "utf-8", noslash=False) -> list[bytes]:
     return [p.encode(encoding) for p in lpath]
 
 
+@lru_cache
 def split_path(path: str, addslash=False):
+    """Splits path into parent and child normalizing parent path optionally adding leading slash"""
     head, tail = os.path.split(path)
 
     return norm_path(head, addslash), tail

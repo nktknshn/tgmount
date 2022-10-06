@@ -1,6 +1,6 @@
 from typing import Optional
 
-from tgmount.tgclient import Document, InputDocumentFileLocation, TypeInputFileLocation
+from ..types import Document, InputDocumentFileLocation, TypeInputFileLocation
 from .item import SourceItemId, SourceItem
 
 

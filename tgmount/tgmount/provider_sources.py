@@ -3,14 +3,10 @@ from typing import Mapping, Protocol, TypeVar
 
 from tgmount import tgclient
 
-
 MS = TypeVar("MS", bound=tgclient.MessageSourceSubscribableProto)
 
 
 class SourcesProviderProto(Protocol[MS]):
-    # def __init__(self) -> None:
-    #     pass
-
     @abstractmethod
     def __getitem__(self, source_name: str) -> MS:
         ...

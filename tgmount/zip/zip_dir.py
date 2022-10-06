@@ -1,26 +1,24 @@
-import io
+import logging
 import logging
 import os
 import zipfile
-from typing import Any, Iterable, List, Mapping, Optional, Protocol, Tuple
+from typing import Iterable, List, Optional
 
 import greenback
-from tgmount.vfs.dir import DirContentList, DirContentProto, DirLike
+
+from tgmount import vfs
+from tgmount.vfs.dir import DirContentProto, DirLike
 from tgmount.vfs.file import FileLike
 from tgmount.vfs.io import FileContentIOGreenlet
 from tgmount.vfs.types.dir import DirContentItem
-from tgmount.vfs.types.file import FileContentHandle, FileContentProto
-
-from .types import ZipFileAsyncThunk
-
-from .zip_file import FileContentZip
+from tgmount.vfs.types.file import FileContentProto
 from .util import (
     ZipTree,
     get_zipinfo_list,
     get_zip_tree,
     ls_zip_tree,
 )
-from tgmount import vfs
+from .zip_file import FileContentZip
 
 logger = logging.getLogger("tgmount-zip")
 

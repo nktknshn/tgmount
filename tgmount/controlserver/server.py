@@ -1,9 +1,9 @@
 import asyncio
+import json
 import os
 import tempfile
-import json
-from tgmount import tgmount
-from tgmount.tgmount import Tgmount
+
+from tgmount.tgmount import TgmountBase
 
 SOCKET_DIR = tempfile.gettempdir()
 SOCKET_FILE_NAME = "tgmount.socket"
@@ -19,7 +19,7 @@ SOCKET_FILE = os.path.join(SOCKET_DIR, SOCKET_FILE_NAME)
 
 
 class ControlServer:
-    def __init__(self, tgmount: Tgmount, socket_file=SOCKET_FILE) -> None:
+    def __init__(self, tgmount: TgmountBase, socket_file=SOCKET_FILE) -> None:
         self._socket_file = socket_file
         self._server: asyncio.Server
         self._tgmount = tgmount

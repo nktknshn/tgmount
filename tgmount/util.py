@@ -1,6 +1,6 @@
 import json
 from datetime import datetime
-from typing import Callable, List, Optional, TypeVar
+from typing import List
 
 import socks
 

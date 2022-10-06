@@ -1,17 +1,15 @@
 import asyncio
 import os
 from argparse import ArgumentParser
+from dataclasses import replace
 from typing import Optional
+
 import yaml
 
-from tgmount.tgclient import TgmountTelegramClient
 from tgmount.config import Config, ConfigValidator
+from tgmount.controlserver import ControlServer
 from tgmount.tgmount import TgmountBuilder
 from tgmount.tgmount import TgmountError
-from dataclasses import dataclass, replace
-
-from tgmount.controlserver import ControlServer
-
 from .logger import logger
 
 
@@ -68,7 +66,7 @@ async def mount(
         server_cor = ControlServer(tgm).start()
         server_task = asyncio.create_task(server_cor)
         mount_cor = tgm.mount(
-            destination=mount_dir, debug_fuse=debug_fuse, min_tasks=min_tasks
+            mount_dir=mount_dir, debug_fuse=debug_fuse, min_tasks=min_tasks
         )
         mount_task = asyncio.create_task(mount_cor)
 
@@ -77,9 +75,7 @@ async def mount(
             return_when=asyncio.FIRST_COMPLETED,
         )
     else:
-        await tgm.mount(
-            destination=mount_dir, debug_fuse=debug_fuse, min_tasks=min_tasks
-        )
+        await tgm.mount(mount_dir=mount_dir, debug_fuse=debug_fuse, min_tasks=min_tasks)
 
 
 def add_mount_arguments(command_mount: ArgumentParser):

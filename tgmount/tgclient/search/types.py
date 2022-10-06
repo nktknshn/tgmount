@@ -9,17 +9,12 @@ from typing import (
     TypedDict,
     Union,
 )
+
 import telethon
 from telethon import hints
-from telethon import helpers
-from telethon import types
-from telethon.client.messages import RequestIter
-from telethon.hints import EntityLike, DateLike
-from telethon.client import TelegramClient
 
 # from tgmount.util import AsyncTypeGuard
 from tgmount.tgclient.types import TypeMessagesFilter
-from tgmount.util.guards import SyncTypeGuard
 
 T = TypeVar("T", contravariant=True)
 

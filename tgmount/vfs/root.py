@@ -1,12 +1,12 @@
 from typing import overload
+
 from .dir import DirLike, DirContentList, DirContentItem, DirContentProto
+from .file import FileLike
 from .tree import (
     DirContentSourceMapping,
-    DirContentSourceTreeValue,
     DirContentSourceTreeValueDir,
     dir_content_from_source,
 )
-from .file import FileLike
 
 VfsRoot = DirLike
 

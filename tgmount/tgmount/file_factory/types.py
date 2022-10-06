@@ -1,11 +1,11 @@
 from abc import abstractmethod
 from typing import Iterable, Optional, Protocol, TypeGuard, TypeVar
 
-from tgmount import vfs
-from tgmount.fs.util import measure_time, measure_time_sync
-from tgmount.tgclient import guards
 from telethon.tl.custom import Message
 
+from tgmount import vfs
+from tgmount.fs.util import measure_time_sync
+from tgmount.tgclient import guards
 from tgmount.util import is_not_none
 
 T = TypeVar("T")

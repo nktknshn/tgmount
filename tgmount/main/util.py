@@ -1,14 +1,13 @@
+import asyncio
+import logging
 import os
+import warnings
+
 import pyfuse3
 import pyfuse3_asyncio
-import logging
-import asyncio
-import warnings
-import traceback
 
-from tgmount.tgclient import TgmountTelegramClient
 from tgmount import main
-
+from tgmount.tgclient import TgmountTelegramClient
 
 logger = logging.getLogger("tgvfs")
 

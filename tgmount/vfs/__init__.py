@@ -1,3 +1,4 @@
+from .compare import *
 from .dir import (
     DirContent,
     DirContentItem,
@@ -18,7 +19,6 @@ from .dir_util import (
     dir_content_extend,
     dir_content_read_dict,
 )
-from .compare import *
 from .file import (
     FileContent,
     FileContentProto,
@@ -32,6 +32,7 @@ from .file import (
     file_content_from_bytes,
     file_content,
 )
+from .lookup import dirlike_ls as ls, dirlike_get_by_path_list
 from .root import VfsRoot, root
 from .tree import (
     DirContentSourceMapping,
@@ -53,7 +54,5 @@ from .util import (
     path_remove_slash,
     path_join,
 )
-
-from .lookup import dirlike_ls as ls, dirlike_get_by_path_list
 
 dir_content_from_tree = dir_content_from_source

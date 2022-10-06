@@ -1,11 +1,10 @@
-import io
 import logging
-import os
+import logging
 import zipfile
-from typing import IO, Callable, Tuple
+from typing import Tuple
 
 import greenback
-from tgmount.vfs.file import FileContent, FileLike
+
 from tgmount.vfs.types.file import FileContentProto
 from tgmount.vfs.util import MyLock
 from tgmount.zip.types import ZipFileAsyncThunk

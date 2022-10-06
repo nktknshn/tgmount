@@ -1,21 +1,15 @@
-import time
 from dataclasses import dataclass
+from datetime import datetime
 from typing import (
     Any,
     Awaitable,
-    ByteString,
     Callable,
     Generic,
-    Iterable,
-    List,
     Optional,
     Protocol,
     TypeGuard,
     TypeVar,
-    Union,
 )
-
-from datetime import datetime
 
 
 @dataclass

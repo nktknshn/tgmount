@@ -1,9 +1,9 @@
-from collections.abc import Callable, Mapping
-from dataclasses import dataclass, fields
-from typing import Optional, Type, TypeGuard, TypeVar, Union
 import typing
+from collections.abc import Callable, Mapping
+from dataclasses import fields
+from typing import Optional, Type, TypeGuard, TypeVar, Union
+
 from tgmount.util import col
-from tgmount import vfs
 from .logger import logger
 
 T = TypeVar("T")

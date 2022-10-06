@@ -1,38 +1,17 @@
-from abc import abstractmethod, abstractstaticmethod
-from collections.abc import Callable
-from typing import Any, Iterable, Mapping, Optional, Protocol, Type, TypeGuard, TypeVar
+from abc import abstractmethod
+from typing import Any, Iterable, Optional, Protocol, Type, TypeVar, Callable
 
 from telethon.tl.custom import Message
 
-from tgmount import tg_vfs
-from tgmount.config import ConfigError
 from tgmount.tgclient import guards
 from tgmount.tgclient.guards import MessageDownloadable
-from tgmount.util import col, compose_guards, func, none_fallback
+from tgmount.util import col, func
 from tgmount.util.guards import compose_try_gets
+from .filters_types import FilterConfigValue, FilterFromConfigContext, InstanceFromConfigProto, \
+    FilterFromConfigProto, FilterAllMessagesProto, FilterSingleMessage, Filter, ParseFilter
+from .types import Set
 
 T = TypeVar("T")
-
-FilterConfigValue = str | dict[str, dict] | list[str | dict[str, dict]]
-Set = frozenset
-
-
-class FilterFromConfigContext(Protocol):
-    file_factory: tg_vfs.FileFactoryBase
-    classifier: tg_vfs.ClassifierBase
-
-
-class InstanceFromConfigProto(Protocol[T]):
-    @abstractstaticmethod
-    def from_config(*args) -> Optional[T]:
-        ...
-
-
-class FilterFromConfigProto(InstanceFromConfigProto["FilterAllMessagesProto"]):
-    @abstractstaticmethod
-    def from_config(*args) -> Optional["FilterAllMessagesProto"]:
-        ...
-
 
 def from_function(
     func: Callable[
@@ -48,33 +27,6 @@ def from_function(
             return func(d, ctx, parse_filter)
 
     return FilterFromConfig
-
-
-class FilterAllMessagesProto(Protocol):
-    @abstractmethod
-    def __init__(self, **kwargs) -> None:
-        pass
-
-    @abstractmethod
-    async def filter(self, messages: Iterable[Message]) -> Set[Message]:
-        ...
-
-    @abstractstaticmethod
-    def from_config(*args) -> "FilterAllMessagesProto":
-        ...
-
-
-FilterSingleMessage = Callable[[Message], T | None | bool]
-FilterAllMessages = FilterAllMessagesProto
-
-Filter = FilterAllMessages | FilterSingleMessage
-ParseFilter = Callable[[FilterConfigValue], list[Filter]]
-
-
-class FilterProviderProto(Protocol):
-    @abstractmethod
-    def get_filters(self) -> "FiltersMapping":
-        pass
 
 
 class ByTypes(FilterAllMessagesProto):
@@ -319,55 +271,3 @@ class ProviderMappingProto(Protocol[T]):
     @abstractmethod
     def get(self, key) -> Optional[Type[InstanceFromConfigProto[T]]]:
         ...
-
-
-"""Taken filter name return `FilterFromConfigProto` class"""
-FilterGetter = Callable[[str], Type[FilterFromConfigProto]]
-
-
-class FiltersMapping:
-    def __init__(
-        self,
-        *,
-        filters: Mapping[str, Type[Filter]] | None = None,
-        # taken
-        filter_getters: Optional[list[FilterGetter]] = None,
-    ) -> None:
-        super().__init__()
-        self._filters: Mapping[str, Type[Filter]] = none_fallback(filters, {})
-        self._filter_getters = none_fallback(filter_getters, [])
-
-    def append_filter_getter(self, fgetter: FilterGetter):
-        self._filter_getters.append(fgetter)
-
-    def get(self, key) -> Optional[Type[FilterFromConfigProto]]:
-        _filter = self._filters.get(key)
-
-        if _filter is not None:
-            return _filter
-
-        if len(self._filter_getters) == 0:
-            return
-
-        _fgs: list[Type[FilterFromConfigProto]] = []
-
-        for fg in self._filter_getters:
-            _fgs.append(fg(key))
-
-        class _FromConfig(FilterFromConfigProto):
-            @staticmethod
-            def from_config(d, ctx: FilterFromConfigContext, parse_filter: ParseFilter):
-                for fg in _fgs:
-                    if _f := fg.from_config(d, ctx, parse_filter):
-                        return _f
-                raise ConfigError(f"Invalid filter: {key}")
-
-        return _FromConfig
-
-
-class FilterProviderBase(FilterProviderProto):
-
-    filters: FiltersMapping = FiltersMapping()
-
-    def get_filters(self) -> FiltersMapping:
-        return self.filters

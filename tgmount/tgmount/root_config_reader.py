@@ -1,37 +1,35 @@
 import logging
 import os
-from typing import TypeVar
-from telethon.tl.custom import Message
-from tgmount import config
+from typing import TypeVar, Generator
+
+from tgmount import config, tglog
 from tgmount.util import none_fallback
-from .tgmount_root_producer_props import RootProducerPropsReader
-from .tgmount_root_producer_types import (
-    ProducerConfig,
-    VfsStructureConfig,
-    TgmountRootSource,
-    CreateRootContext,
-)
-from .types import CreateRootResources
+from .root_config_reader_props import RootProducerPropsReader
+from .root_config_types import RootConfigContext
+from .tgmount_types import TgmountResources
+from .types import TgmountRootSource
+from .vfs_tree_producer_types import ProducerConfig, VfsStructureConfig
 
 T = TypeVar("T")
 
-import tgmount.tglog as log
-
-logger = log.getLogger("TgmountConfigReaderWalker")
+logger = tglog.getLogger("TgmountConfigReader")
 logger.setLevel(logging.CRITICAL)
 
 
 class TgmountConfigReader(RootProducerPropsReader):
-    def __init__(self, logger=logger) -> None:
+
+    DEFAULT_PRODUCER_NAME = "PlainDir"
+
+    def __init__(self) -> None:
         self._logger = logger
 
     def walk_config_with_ctx(
         self,
         d: TgmountRootSource,
         *,
-        resources: CreateRootResources,
-        ctx: CreateRootContext,
-    ):
+        resources: TgmountResources,
+        ctx: RootConfigContext,
+    ) -> Generator[tuple[str, set, VfsStructureConfig, RootConfigContext], None, None]:
 
         current_path_str = (
             f"/{os.path.join(*ctx.current_path)}" if len(ctx.current_path) > 0 else "/"
@@ -59,14 +57,9 @@ class TgmountConfigReader(RootProducerPropsReader):
         producer_name = None
         producer_arg = None
         producer = None
-        producer_cls = resources.producers.default
+        producer_cls = None
+        # producer_cls = resources.producers.default
         producer_config = None
-
-        supported_source_messages = []
-        input_messages = []
-        filtered_source_messages = []
-        produced_tree = None
-        content_from_source = None
 
         if cache_prop is not None:
             self._logger.info(f"Cache {cache_prop} will be used for files contents")
@@ -161,15 +154,19 @@ class TgmountConfigReader(RootProducerPropsReader):
         if message_source is not None:
             self._logger.info(f"The folder will be containing files")
 
-            if producer_name is not None:
-                self._logger.info(f"Content will be produced by {producer_name}")
+            # if producer_name is not None:
+            producer_name = none_fallback(producer_name, self.DEFAULT_PRODUCER_NAME)
 
-                # producer_cls = resources.producers.get_producers().get(producer_name)
+            self._logger.info(f"Content will be produced by {producer_name}")
 
-                # if producer_cls is None:
-                #     raise config.ConfigError(
-                #         f"Missing producer: {producer_name}. path: {ctx.current_path}"
-                #     )
+            producer_cls = resources.producers.get_by_name(producer_name)
+
+            # producer_cls = resources.producers.get_producers().get(producer_name)
+
+            if producer_cls is None:
+                raise config.ConfigError(
+                    f"Missing producer: {producer_name}. path: {ctx.current_path}"
+                )
 
         vfs_wrappers = []
 
@@ -213,12 +210,12 @@ class TgmountConfigReader(RootProducerPropsReader):
 
         # return content_from_source
 
-    def walk_config(self, d: dict, *, resources: CreateRootResources):
+    def walk_config(self, d: dict, *, resources: TgmountResources):
 
         yield from self.walk_config_with_ctx(
             d,
             resources=resources,
-            ctx=CreateRootContext(
+            ctx=RootConfigContext(
                 current_path=[],
                 file_factory=resources.file_factory,
                 classifier=resources.classifier,

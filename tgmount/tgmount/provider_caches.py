@@ -1,5 +1,6 @@
 from abc import abstractmethod
 from typing import Protocol, Type, Mapping
+
 from tgmount.cache import CacheFactory
 from .error import TgmountError
 
@@ -21,7 +22,7 @@ class CacheProviderBase(CachesProviderProto):
         return self.caches
 
     async def get_cache_factory(self, cache_type: str) -> Type[CacheFactory]:
-        cache = self.get_caches().get(cache_type)
+        cache = self.caches.get(cache_type)
 
         if cache is None:
             raise TgmountError(f"Missing cache with type: {cache_type}")

@@ -1,15 +1,14 @@
-import asyncio
 import errno
-import functools
-import logging
+import errno
 import os
 import stat
+import time
 import traceback
 from functools import wraps
-from typing import Any, Callable, List, Optional, overload
-import time
+from typing import Optional, overload
 
 import pyfuse3
+
 
 # logger = logging.getLogger("tgvfs")
 

@@ -1,12 +1,9 @@
-from argparse import ArgumentParser, Namespace
-from typing import Optional
-from .logger import logger
-from tgmount.controlserver.server import ControlServer, SOCKET_FILE
 import asyncio
-import os
-import tempfile
 import json
-from tgmount import main
+import os
+from argparse import ArgumentParser, Namespace
+
+from tgmount.controlserver.server import SOCKET_FILE
 
 
 def print_output(obj, func, print_json=False):

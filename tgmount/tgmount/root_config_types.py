@@ -3,13 +3,13 @@ from typing import Optional
 
 from tgmount.tgclient import MessageSourceSubscribableProto, MessageSourceProto
 from tgmount.tgmount.file_factory import FileFactoryProto, ClassifierBase
-from tgmount.tgmount.filters import Filter
+from tgmount.tgmount.filters_types import Filter
 from tgmount.tgmount.tgmount_types import TgmountResources
 from tgmount.util import none_fallback
 
 
 @dataclass
-class ReadRootConfigContext:
+class RootConfigContext:
     """Immutable context to traverse root config dictionary"""
 
     current_path: list[str]
@@ -45,7 +45,7 @@ class ReadRootConfigContext:
         current_path: list[str] | None = None,
         recursive_source: Optional[MessageSourceSubscribableProto] = None,
     ):
-        return ReadRootConfigContext(
+        return RootConfigContext(
             current_path=none_fallback(current_path, []),
             recursive_source=recursive_source,
             file_factory=resources.file_factory,

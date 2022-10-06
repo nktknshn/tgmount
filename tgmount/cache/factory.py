@@ -1,8 +1,8 @@
 from typing import Type
 
 from telethon.tl.custom import Message
-from tgmount.tgclient.files_source import get_downloadable_item
 
+from tgmount.tgclient.files_source import get_downloadable_item
 from .types import (
     CacheBlockReaderWriter,
     CacheBlockReaderWriterProto,

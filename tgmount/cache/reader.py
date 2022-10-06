@@ -1,8 +1,6 @@
 import logging
-from typing import Awaitable, Callable, Generic, Optional, Protocol, Set, TypeVar
 
 from .types import BlockFetcher, CacheBlocksStorageProto, CacheBlockReaderWriter
-
 
 logger = logging.getLogger("tgmount-cache")
 

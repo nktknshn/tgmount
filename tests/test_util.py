@@ -1,5 +1,11 @@
 import os
 from tgmount.vfs.util import norm_and_parse_path
+from tgmount import vfs
+
+
+def test_vfs_split_path():
+    print(vfs.split_path("/"))
+    # assert vfs.split_path("/") == "/", ""
 
 
 def test_parse_path():

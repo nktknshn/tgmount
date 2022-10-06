@@ -9,16 +9,13 @@ from typing import (
     TypeVar,
 )
 
-from telethon import events, types
-from telethon.client.telegrambaseclient import abc
+from telethon import events
 from telethon.tl.custom import Message
 
-from tgmount.fs.util import measure_time
-from .logger import logger
-from .client import TgmountTelegramClient
-from tgmount.util import sets_difference
-
 from tgmount import tglog
+from tgmount.util import sets_difference
+from .client import TgmountTelegramClient
+from .logger import logger
 
 T = TypeVar("T")
 Arg = TypeVar("Arg")
@@ -135,12 +132,12 @@ class TelegramMessageSource(MessageSourceSubscribable):
         if self._messages is None:
             self._messages = []
 
-        self._messages.append(event.message)
-
         for f in self._filters:
             if not f(event.message):
                 self._logger.info(f"Filtered out message: {event.message}")
                 return
+
+        self._messages.append(event.message)
 
         self._logger.info(f"New message: {event.message}")
 
@@ -206,7 +203,7 @@ class TelegramMessageSource(MessageSourceSubscribable):
         return TelegramMessageSource()
 
 
-class TelegramMessageSourceSimple(MessageSourceSubscribable):
+class MessageSourceSimple(MessageSourceSubscribable):
     def __init__(self, messages=None) -> None:
         super().__init__()
         self._messages: Optional[MessagesSet] = messages
@@ -217,18 +214,28 @@ class TelegramMessageSourceSimple(MessageSourceSubscribable):
         self.event_new_messages = Subscribable()
         self.event_removed_messages = Subscribable()
 
+    @property
+    def filters(self):
+        return self._filters
+
     def add_filter(self, filt):
         self._filters.append(filt)
 
-    async def _filter_messages(self, messages: list[Message]):
-        for f in self._filters:
-            pass
+    async def _filter_messages(self, messages: Iterable[Message]):
+        res = []
+        for m in messages:
+            for f in self._filters:
+                if not f(m):
+                    break
+            res.append(m)
+
+        return res
 
     async def add_messages(self, messages: list[Message]):
         if self._messages is None:
             self._messages = Set()
 
-        self._messages |= Set(messages)
+        self._messages |= Set(await self._filter_messages(messages))
 
         await self.event_new_messages.notify(messages)
 
@@ -249,7 +256,7 @@ class TelegramMessageSourceSimple(MessageSourceSubscribable):
 
     async def set_messages(self, messages: MessagesSet):
         if self._messages is None:
-            self._messages = messages
+            self._messages = Set(await self._filter_messages(messages))
 
         removed, new, common = sets_difference(self._messages, messages)  # type: ignore
 

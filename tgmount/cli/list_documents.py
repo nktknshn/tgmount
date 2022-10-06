@@ -1,12 +1,14 @@
 from argparse import ArgumentParser
 from typing import Optional
+
+from telethon import hints
+from tgmount.tgmount.file_factory import FileFactoryDefault
+
+from tgmount import tgclient
+from tgmount import util
 from tgmount.tgclient import TgmountTelegramClient
-from tgmount.tg_vfs import FileFactoryDefault
 from tgmount.tgclient.guards import MessageDownloadable
 from tgmount.tgmount.filters import OnlyUniqueDocs
-from tgmount import tgclient
-from telethon import hints
-from tgmount import util
 
 
 async def list_documents(

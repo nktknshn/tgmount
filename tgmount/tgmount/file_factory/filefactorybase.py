@@ -1,23 +1,16 @@
 from abc import abstractmethod
-from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Callable, ClassVar, Protocol, TypeGuard, TypeVar
+from typing import Callable, Mapping, Type
 
-from telethon.tl.custom import Message
 from tgmount import vfs
-from tgmount.tg_vfs.classifier import ClassifierBase
-from tgmount.tg_vfs.error import FileFactoryError
 from tgmount.tgclient.guards import *
 from tgmount.util import is_not_none, none_fallback
-
 from .error import FileFactoryError
-
 from .types import (
     FileContentProviderProto,
     FileFactoryProto,
 )
-
 
 T = TypeVar("T")
 C = TypeVar("C", bound=WithTryGetMethodProto)

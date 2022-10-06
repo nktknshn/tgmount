@@ -1,8 +1,7 @@
-from typing import Union
-
 from tgmount import vfs, tglog, zip as z
 from .producers.remove_empty import remove_empty_dirs_content
-from .vfs_tree import UpdateType, VfsTreeDir, Wrapper, UpdateRemovedDirs, UpdateNewDirs
+from .vfs_tree import VfsTreeDir
+from .vfs_tree_types import UpdateRemovedDirs, UpdateNewDirs, UpdateType, Wrapper
 
 logger = tglog.getLogger("VfsStructureProducer")
 logger.setLevel(tglog.TRACE)
@@ -46,7 +45,7 @@ class WrapperEmpty(Wrapper):
 
     async def _is_empty(self, subdir: "VfsTreeDir") -> bool:
         sds = await subdir.get_subdirs()
-        cs = await subdir.get_content()
+        cs = await subdir.get_dir_content_items()
 
         return (len(sds) + len(cs)) == 0
 

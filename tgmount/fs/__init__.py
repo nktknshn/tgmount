@@ -1,9 +1,3 @@
-from dataclasses import dataclass
-from typing import Optional
-
-import pyfuse3
-from tgmount.vfs import DirContentItem
-
 from .operations import FileSystemOperations
 from .update import FileSystemOperationsUpdatable, FileSystemOperationsUpdate
 

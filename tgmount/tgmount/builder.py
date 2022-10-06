@@ -1,22 +1,19 @@
-from telethon.tl.custom import Message
-
 from tgmount import cache, tgclient, vfs
-from tgmount.tg_vfs.classifier import ClassifierBase
-from tgmount.tg_vfs.filefactorybase import (
+from tgmount.tgclient.guards import MessageWithText
+from tgmount.tgmount.providers import DirWrappersProvider, FilterProvider
+from .builderbase import TgmountBuilderBase
+from .file_factory import ClassifierBase
+from .file_factory.filefactorybase import (
     FileFactoryBase,
     FileFactoryDefault,
     FileFactorySupportedTypes,
 )
-from tgmount.tg_vfs.types import FileContentProviderProto
-from tgmount.tgclient.guards import MessageWithText
-from tgmount.tgmount.providers import DirWrappersProvider, FilterProvider
-
-from .builderbase import TgmountBuilderBase
+from .file_factory.types import FileContentProviderProto
+from .provider_filters import FilterProviderProto
 from .provider_caches import CachesProviderProto
-from .filters import FilterProviderProto
-from .providers import CachesProvider, VfsProducersProvider
 from .provider_sources import SourcesProvider
 from .provider_wrappers import DirWrapperProviderProto
+from .providers import CachesProvider, ProducersProvider
 
 
 class MyFileFactoryDefault(
@@ -51,4 +48,4 @@ class TgmountBuilder(TgmountBuilderBase):
     filters: FilterProviderProto = FilterProvider()
     caches: CachesProviderProto = CachesProvider()
     wrappers: DirWrapperProviderProto = DirWrappersProvider()
-    producers = VfsProducersProvider()
+    producers = ProducersProvider()

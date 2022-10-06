@@ -1,7 +1,5 @@
 import zipfile
-from typing import Any, Callable, Awaitable, Tuple
-import dataclasses
-from ..vfs.types.file import FileContentHandle
+from typing import Callable, Awaitable
 
 # returns handle for the underlying file content and ZipFile
 ZipFileAsyncThunk = Callable[[], Awaitable[zipfile.ZipFile]]

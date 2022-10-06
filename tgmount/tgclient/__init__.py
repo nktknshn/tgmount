@@ -1,5 +1,11 @@
-from .search.search import TelegramSearch
 from .client import TgmountTelegramClient
+from .files_source import TelegramFilesSource
+from .message_source import (
+    TelegramMessageSource,
+    MessageSourceProto,
+    MessageSourceSubscribableProto,
+)
+from .search.search import TelegramSearch
 from .types import (
     Document,
     InputDocumentFileLocation,
@@ -8,12 +14,5 @@ from .types import (
     Photo,
     TypeInputFileLocation,
 )
-from .message_source import (
-    TelegramMessageSource,
-    MessageSourceProto,
-    MessageSourceSubscribableProto,
-)
-
-from .files_source import TelegramFilesSource
 
 # from .caps import Cap

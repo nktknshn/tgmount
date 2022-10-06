@@ -1,15 +1,15 @@
 import os
 from typing import Optional
 from zipfile import ZipFile, ZipInfo
-from tgmount.vfs import Tree
-from tgmount import util
 
-from tgmount.vfs.util import norm_and_parse_path
+from tgmount import util
 from tgmount.util.func import (
     fst,
     group_by,
     list_filter,
 )
+from tgmount.vfs import Tree
+from tgmount.vfs.util import norm_and_parse_path
 
 ZipTree = Tree[ZipInfo]
 

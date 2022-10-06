@@ -1,6 +1,6 @@
-from typing import Any, Awaitable, Callable, Iterable, Mapping, Optional, TypeVar
+from typing import Awaitable, Callable, Iterable, Mapping, Optional, TypeVar
+
 import funcy as funcy
-import functools
 
 cmap = funcy.curry(map)
 compose = funcy.compose

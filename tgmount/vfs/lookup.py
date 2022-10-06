@@ -1,11 +1,10 @@
-import os
 from typing import Iterable, List, Optional
 
 from tgmount.vfs.types.dir import (
     DirContentItem,
     DirLike,
 )
-from tgmount.vfs.util import norm_and_parse_path, napp
+from tgmount.vfs.util import norm_and_parse_path
 from .dir_util import dir_content_read
 
 

@@ -13,25 +13,25 @@ caches:
     capacity: 50MB
     block_size: 128KB
 # every source is a separate get_messages request
-count: &count 500
+count: &count 300
 message_sources:
   # ru2chmu:
   #   entity: ru2chmu
   #   limit: *count
   #   reverse: False
   #   updates: True
-  # ru_python:
-  #   entity: ru_python
-  #   limit: *count
-  # NappingCat_Chat:
-  #   entity: NappingCat
-  #   limit: *count
-  # ts_cool:
-  #   entity: ts_cool
-  #   limit: *count
-  # ru_python_beginners:
-  #   entity: ru_python_beginners
-  #   limit: *count
+  ru_python:
+    entity: ru_python
+    limit: *count
+  NappingCat:
+    entity: NappingCat
+    limit: *count
+  ts_cool:
+    entity: ts_cool
+    limit: *count
+  ru_python_beginners:
+    entity: ru_python_beginners
+    limit: *count
   my-mount:
     entity: -1001678896566
   tmtc:
@@ -100,41 +100,33 @@ by-sender: &by-sender
       # minimum: 1
       sender_root:
         <<: *ogranized
-        wrappers: ExcludeEmptyDirs
+        # wrappers: ExcludeEmptyDirs
 root:
   # ru2chmu:
   #   source: { source: ru2chmu, recursive: True }
   #   <<: *ogranized
   #   by-sender: *by-sender
-  # ru_python:
-  #   source: { source: ru_python, recursive: True }
-  #   <<: *ogranized
-  #   by-sender: *by-sender
-  # ru_python_beginners:
-  #   source: { source: ru_python_beginners, recursive: True }
-  #   <<: *ogranized
-  #   by-sender: *by-sender
-  # ts_cool:
-  #   source: { source: ts_cool, recursive: True }
-  #   <<: *ogranized
-  #   by-sender: *by-sender
-  # NappingCat_Chat:
-  #   source: { source: NappingCat_Chat, recursive: True }
-  #   <<: *ogranized
-  #   by-sender: *by-sender
+  ru_python_beginners:
+    source: { source: ru_python_beginners, recursive: True }
+    <<: *ogranized
+    by-sender: *by-sender
+  ru_python:
+    source: { source: ru_python, recursive: True }
+    <<: *ogranized
+    by-sender: *by-sender
+  ts_cool:
+    source: { source: ts_cool, recursive: True }
+    <<: *ogranized
+    by-sender: *by-sender
+  NappingCat_Chat:
+    source: { source: NappingCat, recursive: True }
+    <<: *ogranized
+    by-sender: *by-sender
   tmtc:
     source: { source: tmtc, recursive: True }
     <<: *ogranized
-    # by-sender: *by-sender
-    # music-by-performer:
-    #   filter:
-    #     - MessageWithMusic
-    #   producer:
-    #     MusicByPerformer: { minimum: 2 }
     by-sender:
       <<: *by-sender
-      # wrappers: ExcludeEmptyDirs
-    # wrappers: ExcludeEmptyDirs
   my-mount:
     source: { source: my-mount, recursive: True }
     wrappers: ExcludeEmptyDirs

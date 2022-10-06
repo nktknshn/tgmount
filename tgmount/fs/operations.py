@@ -1,12 +1,13 @@
 import errno
 import os
-import time
 from dataclasses import dataclass, replace
 from typing import Any, Optional, TypedDict, overload
 
 import pyfuse3
-from tgmount import vfs, tglog
 
+from tgmount import vfs, tglog
+from tgmount.util import none_fallback
+from tgmount.vfs.util import MyLock
 from .fh import FileSystemHandels
 from .inode2 import InodesRegistry, RegistryItem, RegistryRoot
 from .util import (
@@ -16,8 +17,6 @@ from .util import (
     measure_time,
 )
 
-from tgmount.util import none_fallback
-from tgmount.vfs.util import MyLock
 
 # from tgmount.vfs import DirContentItem, DirLike, FileLike
 
@@ -231,6 +230,7 @@ class FileSystemOperations(pyfuse3.Operations, FileSystemOperationsMixin):
 
         return item.data.attrs
 
+    @measure_time(logger_func=measure_time_logger.debug)
     @exception_handler
     async def _read_dir_content(self, parent_item: InodesRegistryItem):
         self._logger.debug(f"_read_dir_content {parent_item.name}")

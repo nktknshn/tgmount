@@ -1,13 +1,10 @@
 import logging
-from typing import Any, Awaitable, Callable, Generic, Optional, Protocol, Set, TypeVar
 
 import telethon
-from tgmount import vfs
 
 from tgmount.tgclient import TelegramFilesSource, TgmountTelegramClient
 from tgmount.tgclient import guards
-from tgmount.tgclient._source.util import BLOCK_SIZE
-
+from tgmount.tgclient.source.util import BLOCK_SIZE
 from .types import CacheFactory
 
 logger = logging.getLogger("tgmount-cache")

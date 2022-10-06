@@ -1,8 +1,13 @@
-from .tgmount_root_producer_types import *
-from .filters import FilterConfigValue
-from .util import to_list_of_single_key_dicts
-from .types import CreateRootResources
+from typing import TypeVar, Mapping, Optional, Any
+
+from tgmount import config
 from tgmount.util import col
+from .filters_types import FilterConfigValue, Filter
+from .root_config_types import RootConfigContext
+from .tgmount_types import TgmountResources
+from .types import TgmountRootSource
+
+T = TypeVar("T")
 
 
 class RootProducerPropsReader:
@@ -53,7 +58,7 @@ class RootProducerPropsReader:
 
         return dict(filters=filters, recursive=filter_recursive)
 
-    def read_prop_cache(self, d: dict):
+    def read_prop_cache(self, d: TgmountRootSource):
         _cache = d.get("cache")
 
         if _cache is None:
@@ -61,7 +66,7 @@ class RootProducerPropsReader:
 
         return _cache
 
-    def read_prop_wrappers(self, d: dict) -> Optional[list[tuple[str, Any | None]]]:
+    def read_prop_wrappers(self, d: TgmountRootSource) -> Optional[list[tuple[str, Any | None]]]:
         _wrappers = d.get("wrappers")
 
         if _wrappers is None:
@@ -83,7 +88,7 @@ class RootProducerPropsReader:
 
         return wrappers
 
-    def read_prop_producer(self, d: dict) -> tuple[str, Any] | None:
+    def read_prop_producer(self, d: TgmountRootSource) -> tuple[str, Any] | None:
         _producer_dict = d.get("producer")
 
         if _producer_dict is None:
@@ -102,7 +107,7 @@ class RootProducerPropsReader:
         return producer_name, producer_arg
 
     def get_filters_from_prop(
-        self, filter_prop: list, resources: CreateRootResources, ctx: CreateRootContext
+            self, filter_prop: list, resources: TgmountResources, ctx: RootConfigContext
     ) -> list[Filter]:
         def _parse_filter(filt: FilterConfigValue) -> list[Filter]:
             filter_prop = self.read_prop_filter({"filter": filt})
@@ -124,3 +129,17 @@ class RootProducerPropsReader:
             filters.append(_filter)
 
         return filters
+
+
+def to_list_of_single_key_dicts(
+        items: list[str | dict[str, dict]]
+) -> list[str | dict[str, dict]]:
+    res = []
+
+    for item in items:
+        if isinstance(item, str):
+            res.append(item)
+        else:
+            res.extend(dict([t]) for t in item.items())
+
+    return res

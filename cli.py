@@ -15,8 +15,7 @@ from tgmount.tglog import init_logging
 from tgmount import main as main_settings
 
 """
-export TGAPP=111111:ac7e6350d04adeadbeedf1af778773d6f0
-export TGSESSION=tgfs
+export TGAPP=111111:ac7e6350d04adeadbeedf1af778773d6f0 TGSESSION=tgfs
 
 tgmount auth [session]
 tgmount list dialogs
@@ -101,7 +100,7 @@ if __name__ == "__main__":
     try:
         run_main(
             main,
-            forever=True,
+            forever=main_settings.run_forever,
         )
     except TgmountError as e:
         print(f"Error happened: {e}")

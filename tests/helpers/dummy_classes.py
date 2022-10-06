@@ -1,22 +1,15 @@
 import os
-from typing import Any, Callable, Optional
-
 import random
 from dataclasses import dataclass, field
-import pytest
-import pytest_asyncio
-from telethon.tl.custom.message import Message, File
-from tgmount.tg_vfs.types import FileContentProviderProto
-from tgmount.tgclient.client import TgmountTelegramClient
-from tgmount.tgclient.message_source import (
-    TelegramMessageSourceSimple,
-)
 
-
+from telethon.tl.custom.message import File, Message
 from tgmount import vfs
-from tgmount.tgmount.vfs_structure_types import VfsStructureProto
-from tgmount.tgmount.types import CreateRootResources
+from tgmount.tgclient.client import TgmountTelegramClient
+from tgmount.tgclient.message_source import MessageSourceSimple
 from tgmount.tgmount.builder import TgmountBuilder
+from tgmount.tgmount.file_factory.types import FileContentProviderProto
+from tgmount.tgmount.tgmount_types import TgmountResources
+
 from ..config.fixtures import config_from_file
 
 
@@ -61,6 +54,7 @@ def next_message_id():
 class DummyMessage(Message):
     class Sender:
         username: str | None
+        id: int
 
     def __repr__(self) -> str:
         return f"DummyMessage({self.id})"
@@ -73,7 +67,9 @@ class DummyMessage(Message):
 
         self._sender = DummyMessage.Sender()
         self._sender.username = username
+        self._sender.id = hash(username)
         self._file = file
+        self._filters = []
 
         self._document = DummyDocument() if file else None
 
@@ -105,7 +101,7 @@ class DummyFileSource(FileContentProviderProto):
         return vfs.text_content("dummy content")
 
 
-class DummyMessageSource(TelegramMessageSourceSimple):
+class DummyMessageSource(MessageSourceSimple):
     def __init__(self, *args, **kwargs):
         super().__init__()
         # self._chat_id = chat_id
@@ -128,7 +124,7 @@ class DummyTgmountBuilder(TgmountBuilder):
     MessageSource = DummyMessageSource
     FilesSource = DummyFileSource
 
-    _resources: CreateRootResources
+    _resources: TgmountResources
 
     def __init__(self) -> None:
         super().__init__()
