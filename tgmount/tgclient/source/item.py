@@ -1,4 +1,4 @@
-from typing import Any, Optional, Protocol, TypeVar
+from typing import Optional, Protocol
 
 from tgmount.tgclient import TypeInputFileLocation
 

@@ -1,14 +1,12 @@
-from dataclasses import dataclass
-from typing import Any, Optional, TypeVar
+from typing import Optional
+
+from telethon.tl.custom.file import File
 
 from tgmount.tgclient import (
-    Document,
     InputPhotoFileLocation,
     Photo,
     TypeInputFileLocation,
 )
-
-from telethon.tl.custom.file import File
 from .item import SourceItemId, SourceItem
 
 
