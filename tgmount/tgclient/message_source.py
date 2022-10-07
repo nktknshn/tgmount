@@ -116,8 +116,8 @@ class TelegramMessageSource(MessageSourceSubscribable):
 
         self._listeners: list[Listener] = []
 
-        self.event_new_messages = Subscribable()
-        self.event_removed_messages = Subscribable()
+        self.event_new_messages: Subscribable = Subscribable()
+        self.event_removed_messages: Subscribable = Subscribable()
 
         self._filters = []
         self._logger = tglog.getLogger(f"TelegramMessageSource({self._chat_id})")
@@ -211,8 +211,8 @@ class MessageSourceSimple(MessageSourceSubscribable):
 
         self._filters = []
 
-        self.event_new_messages = Subscribable()
-        self.event_removed_messages = Subscribable()
+        self.event_new_messages: Subscribable = Subscribable()
+        self.event_removed_messages: Subscribable = Subscribable()
 
     @property
     def filters(self):

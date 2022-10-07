@@ -4,8 +4,6 @@ from telethon.tl.custom import Message
 
 
 Set = frozenset
-MessagesSet = frozenset[Message]
+MessagesSet = Set[Message]
 TgmountRootSource = Mapping
 MessageTuple = tuple[int, int | None]
-
-

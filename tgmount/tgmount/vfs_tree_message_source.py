@@ -4,7 +4,7 @@ from telethon.tl.custom import Message
 
 from tgmount import tgclient, tglog
 from tgmount.tgclient.message_source import Subscribable
-from tgmount.tgmount.provider_sources import SourcesProvider
+from tgmount.tgmount.providers.provider_sources import SourcesProvider
 from tgmount.tgmount.vfs_tree import VfsTree
 from tgmount.tgmount.vfs_tree_types import UpdateType
 
@@ -18,24 +18,30 @@ class SourcesProviderMessageSource(
     """
 
     def __init__(
-        self, tree: VfsTree, source: tgclient.MessageSourceSubscribableProto
+        self,
+        tree: VfsTree,
+        wrapped_source: tgclient.MessageSourceSubscribableProto,
     ) -> None:
         Subscribable.__init__(self)
-        self._source = source
+        self._wrapped_source = wrapped_source
         self._tree = tree
 
-        # self._source.subscribe(self.on_update)
-        self._source.event_removed_messages.subscribe(self.removed_messages)
-        self._source.event_new_messages.subscribe(self.update_new_message)
+        self._wrapped_source.event_removed_messages.subscribe(self.removed_messages)
+        self._wrapped_source.event_new_messages.subscribe(self.update_new_message)
 
-        self.updates = Subscribable()
-        self.event_new_messages = Subscribable()
-        self.event_removed_messages = Subscribable()
+        """ Events for file system """
+        self.accumulated_updates: Subscribable = Subscribable()
+
+        """ Events for dependednt message sources """
+        self.event_new_messages: Subscribable = Subscribable()
+
+        """ Events for dependednt message sources """
+        self.event_removed_messages: Subscribable = Subscribable()
 
         self._logger = tglog.getLogger(f"SourcesProviderMessageSource()")
 
     async def get_messages(self) -> list[Message]:
-        return await self._source.get_messages()
+        return await self._wrapped_source.get_messages()
 
     async def update_new_message(self, source, messages: list[Message]):
 
@@ -44,10 +50,12 @@ class SourcesProviderMessageSource(
         async def append_update(source, updates: list[UpdateType]):
             _updates.extend(updates)
 
+        # start accumulating updates
         self._tree.subscribe(append_update)
         await self.event_new_messages.notify(messages)
         self._tree.unsubscribe(append_update)
-        await self.updates.notify(_updates)
+
+        await self.accumulated_updates.notify(_updates)
 
     async def removed_messages(self, source, messages: list[Message]):
         self._logger.debug("removed_messages")
@@ -59,8 +67,9 @@ class SourcesProviderMessageSource(
 
         self._tree.subscribe(append_update)
         await self.event_removed_messages.notify(messages)
+
         self._tree.unsubscribe(append_update)
-        await self.updates.notify(_updates)
+        await self.accumulated_updates.notify(_updates)
 
 
 class SourcesProviderAccumulating(SourcesProvider[SourcesProviderMessageSource]):
@@ -77,7 +86,7 @@ class SourcesProviderAccumulating(SourcesProvider[SourcesProviderMessageSource])
         source_map: Mapping[str, tgclient.MessageSourceSubscribableProto],
     ) -> None:
 
-        self.updates = Subscribable()
+        self.accumulated_updates: Subscribable = Subscribable()
         self._tree = tree
 
         super().__init__(
@@ -85,4 +94,4 @@ class SourcesProviderAccumulating(SourcesProvider[SourcesProviderMessageSource])
         )
 
         for k, v in self._source_map.items():
-            v.updates.subscribe(self.updates.notify)
+            v.accumulated_updates.subscribe(self.accumulated_updates.notify)

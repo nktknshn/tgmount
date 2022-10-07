@@ -1,5 +1,7 @@
 from typing import Optional, TypeGuard, TypeVar
 
+import pathvalidate
+
 from .col import find, sets_difference
 from .guards import compose_guards
 
@@ -19,3 +21,12 @@ def int_or_string(value: int | str):
         return int(value)
     except ValueError:
         return str(value)
+
+
+def sanitize_string_for_path(name: str) -> str:
+    name = name.replace("/", "")
+
+    if len(name) > 0 and name[0] == "-":
+        name = "~" + name[1:]
+
+    return name

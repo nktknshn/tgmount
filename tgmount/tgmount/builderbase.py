@@ -4,11 +4,12 @@ from typing import Type
 from tgmount import cache, config, tgclient, tglog
 from tgmount.tgclient import TgmountTelegramClient
 from .file_factory import classifier, FileFactoryDefault
-from .provider_caches import CachesProviderProto
-from .provider_filters import FilterProviderProto
-from .provider_sources import SourcesProvider
-from .provider_wrappers import DirWrapperProviderProto
-from .provider_producers import ProducersProviderBase
+
+from .providers.provider_caches import CachesProviderProto
+from .providers.provider_filters import FilterProviderProto
+from .providers.provider_sources import SourcesProvider
+from .providers.provider_wrappers import DirWrapperProviderProto
+from .providers.provider_producers import ProducersProviderBase
 
 from .tgmount_types import TgmountResources
 from .tgmountbase import TgmountBase
@@ -75,17 +76,18 @@ class TgmountBuilderBase(abc.ABC):
             caches=cached_factories,
             wrappers=self.wrappers.get_wrappers(),
             classifier=self.classifier,
-            vfs_wrappers={}
-            # vfs_wrappers={"ExcludeEmptyDirs": ExcludeEmptyWrappr},
+            vfs_wrappers={},
         )
 
     async def create_tgmount(self, cfg: config.Config) -> TgmountBase:
         client = await self.create_client(cfg)
+        resources = await self.create_resources(client, cfg)
 
         tgm = TgmountBase(
             client=client,
             root=cfg.root.content,
-            resources=await self.create_resources(client, cfg),
+            resources=resources,
+            mount_dir=cfg.mount_dir,
         )
 
         return tgm

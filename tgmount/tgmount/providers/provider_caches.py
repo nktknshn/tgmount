@@ -2,7 +2,7 @@ from abc import abstractmethod
 from typing import Protocol, Type, Mapping
 
 from tgmount.cache import CacheFactory
-from .error import TgmountError
+from ..error import TgmountError
 
 
 class CachesProviderProto(Protocol):

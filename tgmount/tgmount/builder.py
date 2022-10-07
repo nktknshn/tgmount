@@ -1,6 +1,6 @@
 from tgmount import cache, tgclient, vfs
 from tgmount.tgclient.guards import MessageWithText
-from tgmount.tgmount.providers import DirWrappersProvider, FilterProvider
+
 from .builderbase import TgmountBuilderBase
 from .file_factory import ClassifierBase
 from .file_factory.filefactorybase import (
@@ -9,11 +9,16 @@ from .file_factory.filefactorybase import (
     FileFactorySupportedTypes,
 )
 from .file_factory.types import FileContentProviderProto
-from .provider_filters import FilterProviderProto
-from .provider_caches import CachesProviderProto
-from .provider_sources import SourcesProvider
-from .provider_wrappers import DirWrapperProviderProto
-from .providers import CachesProvider, ProducersProvider
+from .tgmount_providers import (
+    CachesProvider,
+    DirWrappersProvider,
+    FilterProvider,
+    ProducersProvider,
+)
+from .providers.provider_caches import CachesProviderProto
+from .providers.provider_filters import FilterProviderProto
+from .providers.provider_sources import SourcesProvider
+from .providers.provider_wrappers import DirWrapperProviderProto
 
 
 class MyFileFactoryDefault(

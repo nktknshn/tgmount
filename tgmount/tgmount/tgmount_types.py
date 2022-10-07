@@ -2,9 +2,9 @@ from dataclasses import dataclass, replace
 from typing import Mapping, Type, Any
 
 from tgmount.tgmount.file_factory import FileFactoryProto, ClassifierBase
-from tgmount.tgmount.provider_filters import FiltersMapping
-from tgmount.tgmount.provider_sources import SourcesProviderProto
-from tgmount.tgmount.provider_producers import ProducersProviderBase
+from tgmount.tgmount.providers.provider_filters import FiltersMapping
+from tgmount.tgmount.providers.provider_sources import SourcesProviderProto
+from tgmount.tgmount.providers.provider_producers import ProducersProviderBase
 
 
 @dataclass

@@ -126,6 +126,7 @@ class VfsTreeDir(VfsTreeDirMixin):
 
     @property
     def path(self):
+        """Dir global path"""
         return self._path
 
     def _globalpath(self, subpath: str):

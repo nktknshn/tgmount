@@ -55,7 +55,7 @@ class VfsTreePlainDir(VfsTreeProducerProto):
             f"update_new_messages({list(map(lambda m: m.id, new_messages))})"
         )
 
-        new_messages_set = await self._config._apply_filters(Set(new_messages))
+        new_messages_set = await self._config.apply_filters(Set(new_messages))
 
         new_files: list[vfs.FileLike] = [
             self._config.factory.file(m) for m in new_messages_set
@@ -78,29 +78,3 @@ class VfsTreePlainDir(VfsTreeProducerProto):
 
         for f in removed_files:
             await self._dir.remove_content(f)
-
-    # async def update(self, source, messages: list[Message]):
-    #     print(f"updating {self._dir.path}")
-    #     messages_set = await self._config.get_messages()
-
-    #     removed_messages, new_messages, common_messages = sets_difference(
-    #         self._messages, messages_set
-    #     )
-
-    #     removed_files = [self._message_to_file[m] for m in removed_messages]
-    #     old_files = [self._message_to_file[m] for m in common_messages]
-    #     new_files: list[vfs.FileLike] = [
-    #         self._config.factory.file(m) for m in new_messages
-    #     ]
-
-    #     self._messages = messages_set
-    #     self._message_to_file = {
-    #         **{m: f for m, f in zip(new_messages, new_files)},
-    #         **{m: f for m, f in zip(common_messages, old_files)},
-    #     }
-
-    #     for f in removed_files:
-    #         await self._dir.remove_content(f)
-
-    #     if len(new_files):
-    #         await self._dir.put_content(new_files)

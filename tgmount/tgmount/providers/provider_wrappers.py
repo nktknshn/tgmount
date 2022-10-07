@@ -2,7 +2,7 @@ from abc import abstractmethod, abstractstaticmethod
 from typing import Mapping, Protocol, Type, TypeVar
 
 from tgmount import vfs
-from .error import TgmountError
+from ..error import TgmountError
 
 T = TypeVar("T")
 

@@ -59,7 +59,7 @@ class ProducerConfig:
     # async def on_update(self, source, messages):
     #     self._messages = await self._apply_all_filters(messages)
 
-    async def _apply_filters(self, messages: MessagesSet) -> MessagesSet:
+    async def apply_filters(self, messages: Iterable[Message]) -> MessagesSet:
         for f in self.filters:
             messages = await f.filter(messages)
 
@@ -67,7 +67,7 @@ class ProducerConfig:
 
     async def _apply_all_filters(self, input_messages: MessagesSet):
         # supported = await self.filter_supported(input_messages)
-        filtered = await self._apply_filters(input_messages)
+        filtered = await self.apply_filters(input_messages)
         return filtered
 
     async def filter_supported(self, input_messages: Iterable[Message]) -> MessagesSet:
@@ -75,6 +75,7 @@ class ProducerConfig:
         return self.factory.filter_supported(input_messages)
 
     async def get_messages(self) -> MessagesSet:
+        """Get messages list from message_source, make set and apply filters"""
         messages = await self.message_source.get_messages()
 
         if self._messages is None:

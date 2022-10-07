@@ -3,7 +3,12 @@ from typing import Mapping, Optional, Protocol, Type, Callable
 
 from tgmount.config import ConfigError
 from tgmount.util import none_fallback
-from .filters_types import FilterFromConfigContext, FilterFromConfigProto, Filter, ParseFilter
+from ..filters_types import (
+    FilterFromConfigContext,
+    FilterFromConfigProto,
+    Filter,
+    ParseFilter,
+)
 
 """Taken filter name return `FilterFromConfigProto` class"""
 FilterGetter = Callable[[str], Type[FilterFromConfigProto]]
@@ -17,11 +22,11 @@ class FilterProviderProto(Protocol):
 
 class FiltersMapping:
     def __init__(
-            self,
-            *,
-            filters: Mapping[str, Type[Filter]] | None = None,
-            # taken
-            filter_getters: Optional[list[FilterGetter]] = None,
+        self,
+        *,
+        filters: Mapping[str, Type[Filter]] | None = None,
+        # taken
+        filter_getters: Optional[list[FilterGetter]] = None,
     ) -> None:
         super().__init__()
         self._filters: Mapping[str, Type[Filter]] = none_fallback(filters, {})

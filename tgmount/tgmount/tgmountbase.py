@@ -2,6 +2,7 @@ import os
 from typing import Mapping, Optional, Type
 
 from tgmount import fs, main, tgclient, tglog, vfs
+from tgmount.fs.update import FileSystemOperationsUpdate
 from tgmount.tgclient.add_hash import add_hash
 from .vfs_tree_types import (
     UpdateRemovedItems,
@@ -27,7 +28,7 @@ class TgmountBase:
         fs.FileSystemOperationsUpdatable
     ] = fs.FileSystemOperationsUpdatable
 
-    logger = tglog.getLogger("TgmountBase")
+    _logger = tglog.getLogger("TgmountBase")
 
     def __init__(
         self,
@@ -44,8 +45,20 @@ class TgmountBase:
 
         self._fs = None
 
-        self._updates_pending = False
-        self._is_building_root = False
+        self._vfs_tree = VfsTree()
+
+        # self._updates_pending = False
+        # self._is_building_root = False
+
+        self._source_provider = SourcesProviderAccumulating(
+            tree=self._vfs_tree, source_map=self._resources.sources.as_mapping()
+        )
+
+        self._source_provider.accumulated_updates.subscribe(self._on_vfs_tree_update)
+
+        self._producer = VfsTreeProducer(
+            resources=self._resources.set_sources(self._source_provider)
+        )
 
     @property
     def client(self):
@@ -62,14 +75,17 @@ class TgmountBase:
         debug_fuse=False,
         min_tasks=10,
     ):
-        await self._create_fs()
 
         mount_dir = none_fallback(mount_dir, self._mount_dir)
 
         if mount_dir is None:
             raise TgmountError(f"missing destination")
 
-        self.logger.info(f"Mounting into {mount_dir}")
+        self._logger.info(f"Building root...")
+
+        await self._create_fs()
+
+        self._logger.info(f"Mounting into {mount_dir}")
 
         await main.util.mount_ops(
             self._fs,
@@ -78,14 +94,7 @@ class TgmountBase:
             debug=debug_fuse,
         )
 
-    async def _create_fs(self):
-        self.logger.info(f"Building root...")
-
-        root = await self._build_root()
-
-        self._fs = self.FileSystemOperations(root)
-
-    async def _join_updates(self, tree: VfsTree, updates: list[UpdateType]):
+    async def _join_updates(self, updates: list[UpdateType]):
 
         update = fs.FileSystemOperationsUpdate()
 
@@ -106,43 +115,39 @@ class TgmountBase:
                     update.removed_dir_contents.append(path)
             elif isinstance(u, UpdateNewDirs):
                 for path in u.new_dirs:
-                    update.new_dirs[path] = await tree.get_dir_content(path)
+                    update.new_dirs[path] = await self._vfs_tree.get_dir_content(path)
 
         return update
 
     # @measure_time(logger_func=logger.info)
-    async def _build_root(self) -> vfs.VfsRoot:
-        tree = VfsTree()
+    async def _update_fs(self, fs_update: FileSystemOperationsUpdate):
 
-        # @measure_time(logger_func=Tgmount.logger.info)
-        async def on_vfs_tree_update(provider, source, updates: list[UpdateType]):
+        if self._fs is None:
+            self._logger.error(f"self._fs is not created yet.")
+            return
 
-            if len(updates) == 0:
-                return
+        async with self._fs._update_lock:
+            await self._fs.update(fs_update)
 
-            update = await self._join_updates(tree, updates)
+    async def _create_fs(self):
 
-            self.logger.info(
-                f"UPDATE: new_files={list(update.new_files.keys())} removed_files={list(update.removed_files)} update_dir_content={list(update.update_dir_content.keys())} new_dir_content={list(update.new_dirs.keys())} removed_dirs={update.removed_dir_contents}"
-            )
+        await self._producer.produce(self._vfs_tree, self._root)
 
-            if self._fs is None:
-                self.logger.error(f"self._fs is not created yet.")
-                return
+        root_contet = await self._vfs_tree.get_dir_content()
 
-            async with self._fs._update_lock:
-                await self._fs.on_update(update)
+        root = vfs.root(root_contet)
 
-        source_provider = SourcesProviderAccumulating(
-            tree=tree, source_map=self._resources.sources.as_mapping()
+        self._fs = self.FileSystemOperations(root)
+
+    async def _on_vfs_tree_update(self, provider, source, updates: list[UpdateType]):
+
+        if len(updates) == 0:
+            return
+
+        fs_update = await self._join_updates(updates)
+
+        self._logger.info(
+            f"UPDATE: new_files={list(fs_update.new_files.keys())} removed_files={list(fs_update.removed_files)} update_dir_content={list(fs_update.update_dir_content.keys())} new_dir_content={list(fs_update.new_dirs.keys())} removed_dirs={fs_update.removed_dir_contents}"
         )
 
-        source_provider.updates.subscribe(on_vfs_tree_update)
-
-        tree_producer = VfsTreeProducer(
-            resources=self._resources.set_sources(source_provider)
-        )
-
-        await tree_producer.produce(tree, self._root)
-
-        return vfs.root(await tree.get_dir_content())
+        await self._update_fs(fs_update)

@@ -16,8 +16,6 @@ class VfsTreeProducer:
     def __init__(self, resources: TgmountResources) -> None:
 
         self._logger = tglog.getLogger(f"VfsTreeProducer()")
-
-        # self._dir_config = dir_config
         self._resources = resources
 
     def __repr__(self) -> str:
@@ -60,30 +58,3 @@ class VfsTreeProducer:
                 sub_dir._subs.append(producer)
 
                 await producer.produce()
-
-            # if (
-            #     vfs_config.producer_config
-            #     and vfs_config.vfs_producer_name
-            #     and vfs_config.vfs_producer_name == "MessageBySender"
-            # ):
-            #     producer_arg = none_fallback(vfs_config.vfs_producer_arg, {})
-            #     producer = VfsTreeDirByUser(
-            #         config=vfs_config.producer_config,
-            #         dir_cfg=producer_arg.get(
-            #             "sender_root",
-            #             VfsTreeDirByUser.DEFAULT_SENDER_ROOT_CONFIG,
-            #         ),
-            #         minimum=producer_arg.get("minimum", 1),
-            #         resources=self._resources,
-            #         tree_dir=sub_dir,
-            #     )
-
-            #     sub_dir._subs.append(producer)
-
-            #     await producer.produce()
-            # elif vfs_config.producer_config:
-            #     producer = VfsTreePlainDir(sub_dir, vfs_config.producer_config)
-
-            #     sub_dir._subs.append(producer)
-
-            #     await producer.produce()

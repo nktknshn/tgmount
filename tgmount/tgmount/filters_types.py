@@ -35,7 +35,7 @@ class FilterAllMessagesProto(Protocol):
         pass
 
     @abstractmethod
-    async def filter(self, messages: Iterable[Message]) -> Set[Message]:
+    async def filter(self, messages: Iterable[Message]) -> list[Message]:
         ...
 
     @staticmethod

@@ -1,5 +1,5 @@
 # optional. may be specified as command line argument
-mount_dir: /home/hrn/mnt/tgmount1
+mount_dir: /home/horn/mnt/tgmount1
 # client settings
 client:
   session: tgfs
@@ -37,6 +37,7 @@ message_sources:
   tmtc:
     entity: tgmounttestingchannel
     # filter: InputMessagesFilterMusic
+    
 # definiton
 ogranized: &ogranized
   filter: { filter: [OnlyUniqueDocs], recursive: True }
@@ -81,26 +82,24 @@ ogranized: &ogranized
     treat_as: MessageWithText
   all:
     filter: All
+  by-forward: 
+    filter: MessageForwarded
+    producer: ByForward  
+  music-by-performer:
+    filter: MessageWithMusic
+    producer: ByPerformer
+  forwareded-video:
+    filter:
+      And: [MessageForwarded, MessageWithVideo]
   wrappers: ExcludeEmptyDirs
-  # music-by-performer:
-  #   filter:
-  #     - MessageWithMusic
-  #   producer:
-  #     MusicByPerformer: { minimum: 2 }
-  # forwareded-video:
-  #   filter:
-  #     And: [MessageForwarded, MessageWithVideo]
-  # forwareded:
-  #   filter: MessageForwarded
-  #   producer: MessageByForward
+
 by-sender: &by-sender
   filter: All
   producer:
-    MessageBySender:
-      # minimum: 1
-      sender_root:
+    BySender:
+      dir_structure:
         <<: *ogranized
-        # wrappers: ExcludeEmptyDirs
+
 root:
   # ru2chmu:
   #   source: { source: ru2chmu, recursive: True }
