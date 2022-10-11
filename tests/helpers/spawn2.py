@@ -42,8 +42,8 @@ MainFunction = Callable[
 
 GetProps = Callable[["MountContext[P]"], P]
 
-logger = multiprocessing.log_to_stderr()
-logger.setLevel(logging.INFO)
+# logger = multiprocessing.log_to_stderr()
+# logger.setLevel(logging.INFO)
 
 
 @dataclass
@@ -117,8 +117,9 @@ def __spawn_fs_ops_inner_main(
     min_tasks: int,
     exit_event: threading.Event,
 ):
-    import asyncio
+    # print("New process")
 
+    import asyncio
     from tgmount.main.util import run_main
 
     async def _async_inner():
@@ -139,18 +140,32 @@ def __spawn_fs_ops_inner_main(
     run_main(_async_inner)
 
 
+from multiprocessing.managers import BaseManager
+
+
+class MySyncManager(SyncManager):
+    pass
+
+
 def __spawn_mount_process(
     main_function: MainFunction,
     props: Props | Callable[[MountContext], Props],
     *,
     mnt_dir: str,
     min_tasks: int,
+    callables: Mapping[str, Callable] = {},
 ):
     print("spawn_process()")
 
-    mp = multiprocessing.get_context("fork")
+    mp = multiprocessing.get_context("forkserver")
 
-    with mp.Manager() as mgr:
+    for k, v in callables.items():
+        MySyncManager.register(k, v)
+
+    mgr = MySyncManager(ctx=mp.get_context())
+    mgr.start()
+
+    with mgr:
         exit_event = mgr.Event()
         ctx = MountContext(mnt_dir, mgr, exit_event=exit_event)
 
@@ -185,11 +200,16 @@ def spawn_fs_ops(
     main_function: MainFunction[Any],
     props: P | Callable[[MountContext], P],
     mnt_dir: str,  # type: ignore
-    min_tasks: int,
+    min_tasks: int = 10,
+    callables: Mapping[str, Callable] = {},
 ) -> Generator[MountContext[P], None, None]:
     """spawns a separate proces mounting vfs root returned by `main_function`"""
     for m in __spawn_mount_process(
-        main_function, props, mnt_dir=mnt_dir, min_tasks=min_tasks
+        main_function,
+        props,
+        mnt_dir=mnt_dir,
+        min_tasks=min_tasks,
+        callables=callables,
     ):
         yield m
         m.exit_event.set()

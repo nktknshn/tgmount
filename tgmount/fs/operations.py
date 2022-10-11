@@ -34,6 +34,9 @@ class FileSystemItem:
     structure_item: vfs.DirContentItem
     attrs: pyfuse3.EntryAttributes
 
+    def __repr__(self) -> str:
+        return f"FileSystemItem({self.structure_item})"
+
     def set_structure_item(self, structure_item: vfs.DirContentItem):
         return replace(self, structure_item=structure_item)
 

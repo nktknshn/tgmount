@@ -65,6 +65,7 @@ class VfsTreeProducerGrouperBase(abc.ABC):
     async def _add_dir(self, dir_name: str, dir_messages: MessagesSet):
         dir_source = self.MessageSource(messages=dir_messages)
         tree_dir = await self._dir.create_dir(dir_name)
+        self._source_by_name[dir_name] = dir_source
 
         await self.VfsTreeProducer(self._resources).produce(
             tree_dir,

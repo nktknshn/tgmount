@@ -6,8 +6,6 @@ from .factory import CacheFactory
 from .reader import CacheBlockReaderWriter
 from .types import CacheBlocksStorageProto
 
-Message = telethon.tl.custom.Message
-
 
 class CacheBlocksStorageMemory(CacheBlocksStorageProto):
     def __init__(self, blocksize: int, total_size: int):

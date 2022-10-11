@@ -6,10 +6,11 @@ import pyfuse3
 
 import tgmount.vfs as vfs
 from tgmount.util import sets_difference
+from tgmount.vfs.types.dir import DirLike
 from .inode2 import InodesRegistry, RegistryItem
-from .logger import logger, logger_update
 from .operations import FileSystemOperations
 from .util import measure_time
+from tgmount import tglog
 
 
 def map_keys(
@@ -27,7 +28,7 @@ def prepend_path_cur(parent_path: str):
 class FileSystemOperationsUpdate:
     update_dir_content: dict[str, vfs.DirContentProto] = field(default_factory=dict)
     new_files: dict[str, vfs.FileLike] = field(default_factory=dict)
-    new_dirs: dict[str, vfs.DirContentProto] = field(default_factory=dict)
+    new_dirs: dict[str, vfs.DirLike | vfs.DirContentProto] = field(default_factory=dict)
     removed_dir_contents: list[str] = field(default_factory=list)
     removed_files: list[str] = field(default_factory=list)
 
@@ -51,17 +52,14 @@ class FileSystemOperationsUpdatable(FileSystemOperations):
 
         self._removed_items = []
 
-        self._logger = logger
+        # self._logger = tglog.getLogger("FileSystemOperationsUpdatable")
 
     async def _invalidate_children_by_path(
         self, path: list[bytes], parent_inode: int = InodesRegistry.ROOT_INODE
     ):
         """Recursively invalidates children"""
 
-        item = self.inodes.get_by_path(
-            path,
-            parent_inode,
-        )
+        item = self.inodes.get_by_path(path, parent_inode)
 
         if item is None:
             return
@@ -76,7 +74,7 @@ class FileSystemOperationsUpdatable(FileSystemOperations):
             pyfuse3.invalidate_entry_async(v.inode, k)
 
     async def update(self, update: FileSystemOperationsUpdate):
-        for path, dir_content in update.update_dir_content.items():
+        for path, dir_like_or_content in update.update_dir_content.items():
             item = self.inodes.get_by_path(path)
 
             if item is None:
@@ -91,7 +89,7 @@ class FileSystemOperationsUpdatable(FileSystemOperations):
                 )
                 continue
 
-            item.data.structure_item.content = dir_content
+            item.data.structure_item.content = dir_like_or_content
 
         for path, filelike in update.new_files.items():
             parent_path = os.path.dirname(path)
@@ -108,7 +106,7 @@ class FileSystemOperationsUpdatable(FileSystemOperations):
 
             self.add_subitem(filelike, parent_item.inode)
 
-        for path, dir_content in update.new_dirs.items():
+        for path, dir_like_or_content in update.new_dirs.items():
             parent_path = os.path.dirname(path)
             name = os.path.basename(path)
             parent_item = self.inodes.get_by_path(parent_path)
@@ -120,7 +118,12 @@ class FileSystemOperationsUpdatable(FileSystemOperations):
             if not self.inodes.was_content_read(parent_item):
                 continue
 
-            self.add_subitem(vfs.DirLike(name, content=dir_content), parent_item.inode)
+            vfs_item = (
+                dir_like_or_content
+                if isinstance(dir_like_or_content, vfs.DirLike)
+                else vfs.DirLike(name, dir_like_or_content)
+            )
+            self.add_subitem(vfs_item, parent_item.inode)
 
         for path in update.removed_files:
             item = self.inodes.get_by_path(path)
@@ -159,7 +162,7 @@ class FileSystemOperationsUpdatable(FileSystemOperations):
         # async with self._update_lock:
         result = self.inodes.remove_item_with_children(inode)
 
-        logger.info(
+        self._logger.info(
             f"_remove_item_by_inode({inode} ({self.inodes.get_item_path(inode)})) -> {result}"
         )
         return result

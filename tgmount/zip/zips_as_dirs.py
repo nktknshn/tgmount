@@ -14,11 +14,25 @@ class ZipsAsDirsHandle:
 
 
 class ZipsAsDirs(vfs.DirContentProto[ZipsAsDirsHandle]):
-    """Wraps `vfs.DirContentProto` handling contained zip files"""
+    """Wraps `vfs.DirContentProto` to turn contained zip files into folders"""
+
+    async def opendir_func(self):
+        return ZipsAsDirsHandle(
+            await self._get_dir_content_items(self._wrapped_dir_content),
+        )
+
+    async def readdir_func(
+        self, handle: ZipsAsDirsHandle, off: int
+    ) -> Iterable[vfs.DirContentItem]:
+        return handle.items[off:]
+
+    async def releasedir_func(self, handle):
+        # underlying dir content has been already released in open function
+        pass
 
     def __init__(
         self,
-        source_dir_content: vfs.DirContentProto,
+        wrapped_dir_content: vfs.DirContentProto,
         *,
         dir_content_zip_factory: Optional[DirContentZipFactory] = None,
         hide_sources=True,
@@ -29,7 +43,8 @@ class ZipsAsDirs(vfs.DirContentProto[ZipsAsDirsHandle]):
     ):
         self._logger = tglog.getLogger(f"ZipsAsDirs()")
 
-        self._source_dir_content = source_dir_content
+        self._wrapped_dir_content = wrapped_dir_content
+
         self._dir_content_zip_factory = (
             dir_content_zip_factory
             if dir_content_zip_factory is not None
@@ -44,7 +59,7 @@ class ZipsAsDirs(vfs.DirContentProto[ZipsAsDirsHandle]):
         self._opt_zip_file_like_to_dir_name = zip_file_like_to_dir_name
         self._opt_recursive = recursive
 
-    async def wrap_dir_content(self, dir_content: vfs.DirContentProto):
+    async def _wrap_dir_content(self, dir_content: vfs.DirContentProto):
         return ZipsAsDirs(
             dir_content,
             dir_content_zip_factory=self._dir_content_zip_factory,
@@ -63,19 +78,20 @@ class ZipsAsDirs(vfs.DirContentProto[ZipsAsDirsHandle]):
         if self._opt_recursive:
             dir_like = vfs.DirLike(
                 dir_like.name,
-                await self.wrap_dir_content(dir_like.content),
+                await self._wrap_dir_content(dir_like.content),
             )
 
         result_items.append(dir_like)
 
-    async def _process_file_like(
+    async def _process_zip(
         self,
         result_items: list[DirContentItem],
-        file_like: vfs.FileLike,
+        zip_file_like: vfs.FileLike,
     ):
-        await self._dir_content_zip_factory.create_dir_content(file_like.content)
 
-        zip_tree = await self._dir_content_zip_factory.get_ziptree(file_like.content)
+        zip_tree = await self._dir_content_zip_factory.get_ziptree(
+            zip_file_like.content
+        )
 
         zip_tree_root_items_names = list(
             set(zip_tree.keys()).difference(
@@ -88,23 +104,24 @@ class ZipsAsDirs(vfs.DirContentProto[ZipsAsDirsHandle]):
         root_item = zip_tree_root_items[0]
 
         if self._opt_skip_folder_if_single_subfolder and isinstance(root_item, dict):
-            if isinstance(file_like.extra, tuple):
-                message_id = file_like.extra[0]
+            # if there is only one item in the root of the zip file
+            if isinstance(zip_file_like.extra, tuple):
+                message_id = zip_file_like.extra[0]
                 zip_dir_name = f"{message_id}_{zip_tree_root_items_names[0]}"
             else:
                 zip_dir_name = zip_tree_root_items_names[0]
 
             zip_dir = (
                 await self._dir_content_zip_factory.create_dir_content_from_ziptree(
-                    file_like.content,
+                    zip_file_like.content,
                     root_item,
                 )
             )
         else:
-            zip_dir_name = file_like.name
+            zip_dir_name = zip_file_like.name
             zip_dir = (
                 await self._dir_content_zip_factory.create_dir_content_from_ziptree(
-                    file_like.content, zip_tree
+                    zip_file_like.content, zip_tree
                 )
             )
 
@@ -116,14 +133,15 @@ class ZipsAsDirs(vfs.DirContentProto[ZipsAsDirsHandle]):
             vfs.DirLike(
                 zip_dir_name,
                 zip_dir,
-                extra=file_like.extra,
+                extra=zip_file_like.extra,
             ),
         )
 
-    async def _create_dir_content(
+    async def _get_dir_content_items(
         self,
         source_dir_content: vfs.DirContentProto,
-    ):
+    ) -> list[vfs.DirContentItem]:
+
         content_items = await vfs.dir_content_read(source_dir_content)
 
         result_items = []
@@ -135,27 +153,13 @@ class ZipsAsDirs(vfs.DirContentProto[ZipsAsDirsHandle]):
             else:
                 if item.name.endswith(".zip"):
                     try:
-                        await self._process_file_like(result_items, item)
+                        await self._process_zip(result_items, item)
                     except:
                         result_items.append(item)
                 else:
                     result_items.append(item)
 
         return result_items
-
-    async def opendir_func(self):
-        return ZipsAsDirsHandle(
-            await self._create_dir_content(self._source_dir_content),
-        )
-
-    async def readdir_func(
-        self, handle: ZipsAsDirsHandle, off: int
-    ) -> Iterable[vfs.DirContentItem]:
-        return handle.items[off:]
-
-    async def releasedir_func(self, handle):
-        # underlying dir content has been already released in open function
-        pass
 
 
 def zips_as_dirs(

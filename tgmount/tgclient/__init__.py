@@ -7,12 +7,10 @@ from .message_source import (
 )
 from .search.search import TelegramSearch
 from .types import (
-    Document,
     InputDocumentFileLocation,
     DocId,
     InputPhotoFileLocation,
-    Photo,
     TypeInputFileLocation,
 )
 
-# from .caps import Cap
+from . import client_types

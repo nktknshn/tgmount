@@ -1,7 +1,7 @@
 from typing import Any, Iterable, Mapping, Sequence, TypeVar
 
 import telethon
-from telethon.tl.custom import Message
+from tgmount.tgclient.message_types import MessageProto
 from tgmount.tgmount.error import TgmountError
 from tgmount.tgmount.vfs_tree_producer_types import (
     VfsStructureConfig,
@@ -11,7 +11,7 @@ from tgmount.util import func
 
 from .grouperbase import GroupedMessages, VfsTreeProducerGrouperBase
 
-TM = TypeVar("TM", bound=Message)
+TM = TypeVar("TM", bound=MessageProto)
 
 Sender = Any
 
@@ -24,7 +24,7 @@ async def get_key(m: TM) -> str | None:
     if sender is None:
         return None
 
-    if sender.username:
+    if sender.username is not None:
         key = sender.username
 
     if key is None:
@@ -66,7 +66,7 @@ class VfsTreeDirBySender(VfsTreeProducerGrouperBase, VfsTreeProducerProto):
             ),
         )
 
-    async def group_messages(self, messages: Iterable[Message]) -> GroupedMessages:
+    async def group_messages(self, messages: Iterable[MessageProto]) -> GroupedMessages:
         by_user, less, nones = await group_by_sender(messages, minimum=1)
         res = {}
 

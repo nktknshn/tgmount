@@ -9,30 +9,30 @@ class VfsTreeProto(Protocol):
 
 
 @dataclass
-class UpdateRemovedItems:
+class EventRemovedItems:
     update_path: str
     removed_items: list[vfs.DirContentItem]
 
 
 @dataclass
-class UpdateNewItems:
+class EventNewItems:
     update_path: str
     new_items: list[vfs.DirContentItem]
 
 
 @dataclass
-class UpdateRemovedDirs:
+class EventRemovedDirs:
     update_path: str
     removed_dirs: list[str]
 
 
 @dataclass
-class UpdateNewDirs:
+class EventNewDirs:
     update_path: str
     new_dirs: list[str]
 
 
-UpdateType = UpdateRemovedItems | UpdateNewItems | UpdateRemovedDirs | UpdateNewDirs
+TreeEventType = EventRemovedItems | EventNewItems | EventRemovedDirs | EventNewDirs
 
 
 class Wrapper:
@@ -40,14 +40,15 @@ class Wrapper:
         pass
 
     async def wrap_dir_content(
-            self, dir_content: vfs.DirContentProto
+        self, dir_content: vfs.DirContentProto
     ) -> vfs.DirContentProto:
         ...
 
-    async def wrap_updates(
-            self, child: Union["VfsTreeDir", "VfsTree"], updates: list[UpdateType]
-    ) -> list[UpdateType]:
+    async def wrap_events(
+        self, child: Union["VfsTreeDir", "VfsTree"], events: list[TreeEventType]
+    ) -> list[TreeEventType]:
         ...
+
 
 #
 # class VfsTreeParentProto(Protocol):

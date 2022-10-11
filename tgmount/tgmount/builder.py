@@ -1,44 +1,37 @@
 from tgmount import cache, tgclient, vfs
 from tgmount.tgclient.guards import MessageWithText
+from tgmount.tgmount.file_factory.classifier import ClassifierDefault
 
 from .builderbase import TgmountBuilderBase
-from .file_factory import ClassifierBase
-from .file_factory.filefactorybase import (
-    FileFactoryBase,
-    FileFactoryDefault,
-    FileFactorySupportedTypes,
-)
-from .file_factory.types import FileContentProviderProto
+from .file_factory import FileFactoryDefault
+from .providers.provider_caches import CachesProviderProto
+from .providers.provider_filters import FilterProviderProto
+from .providers.provider_sources import SourcesProvider
+from .providers.provider_wrappers import DirWrapperProviderProto
 from .tgmount_providers import (
     CachesProvider,
     DirWrappersProvider,
     FilterProvider,
     ProducersProvider,
 )
-from .providers.provider_caches import CachesProviderProto
-from .providers.provider_filters import FilterProviderProto
-from .providers.provider_sources import SourcesProvider
-from .providers.provider_wrappers import DirWrapperProviderProto
 
 
-class MyFileFactoryDefault(
-    FileFactoryDefault,
-    FileFactoryBase[FileFactorySupportedTypes | MessageWithText],
-):
-    def __init__(self, files_source: FileContentProviderProto, extra) -> None:
-        super().__init__(files_source, extra)
+class MyFileFactoryDefault(FileFactoryDefault[MessageWithText]):
+    pass
 
-        # async def text_message_content(m: MessageWithText):
-        #     sender = await m.get_sender()
-        #     name = telethon.utils.get_display_name(sender)
 
-        #     return vfs.text_content(f"{name}: {m.text.encode('utf-8')}")
+MyFileFactoryDefault.register(
+    klass=MessageWithText,
+    filename=MessageWithText.filename,
+    file_content=lambda m: vfs.text_content(m.text),
+)
 
-        self.register(
-            klass=MessageWithText,
-            filename=MessageWithText.filename,
-            file_content=lambda m: vfs.text_content(m.text),
-        )
+
+class MyClassifier(ClassifierDefault[MessageWithText]):
+    pass
+
+
+MyClassifier.classes.append(MessageWithText)
 
 
 class TgmountBuilder(TgmountBuilderBase):
@@ -49,7 +42,7 @@ class TgmountBuilder(TgmountBuilderBase):
     FileFactory = MyFileFactoryDefault
     SourcesProvider = SourcesProvider
 
-    classifier = ClassifierBase()
+    classifier = ClassifierDefault()
     filters: FilterProviderProto = FilterProvider()
     caches: CachesProviderProto = CachesProvider()
     wrappers: DirWrapperProviderProto = DirWrappersProvider()

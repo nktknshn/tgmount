@@ -6,7 +6,7 @@ from typing import Mapping, TypedDict
 
 import pytest
 from tgmount import fs, vfs
-from tgmount.logging import init_logging
+from tgmount.tglog import init_logging
 from tgmount.util import none_fallback
 
 from ..helpers.spawn import GetProps, OnEventCallbackSet, spawn_fs_ops

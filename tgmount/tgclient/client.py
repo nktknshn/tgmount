@@ -1,18 +1,34 @@
 import asyncio
 import logging
 import typing
-from typing import Optional
+from abc import abstractmethod
+from typing import Optional, Protocol
 
 import telethon
 from telethon import TelegramClient
 
 from .auth import TelegramAuthen
+
 from .search.search import TelegramSearch
+from .client_types import (
+    TgmountTelegramClientEventProto,
+    ListenerNewMessages,
+    ListenerRemovedMessages,
+)
+from telethon import events
 
 logger = logging.getLogger("tgclient")
 
 
-class TgmountTelegramClient(TelegramClient, TelegramAuthen, TelegramSearch):
+class TgmountTelegramClient(
+    TelegramClient,
+    TelegramAuthen,
+    TelegramSearch,
+    TgmountTelegramClientEventProto,
+):
+    def __repr__(self):
+        return f"TgmountTelegramClient({self.session.filename})"
+
     def __init__(
         self,
         session_user_id,
@@ -38,7 +54,7 @@ class TgmountTelegramClient(TelegramClient, TelegramAuthen, TelegramSearch):
         system_lang_code: str = "en",
         loop: Optional[asyncio.AbstractEventLoop] = None,
         base_logger: Optional[typing.Union[str, logging.Logger]] = None,
-        receive_updates: bool = True
+        receive_updates: bool = True,
     ):
 
         super().__init__(
@@ -69,3 +85,9 @@ class TgmountTelegramClient(TelegramClient, TelegramAuthen, TelegramSearch):
 
         # self.api_id = api_id
         # self.api_hash = api_hash
+
+    def subscribe_new_messages(self, listener: ListenerNewMessages, chats=None):
+        self.add_event_handler(listener, events.NewMessage(chats=chats))
+
+    def subscribe_removed_messages(self, listener: ListenerRemovedMessages, chats=None):
+        self.add_event_handler(listener, events.MessageDeleted(chats=chats))

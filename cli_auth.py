@@ -15,10 +15,10 @@ async def main():
     args = parser.parse_args()
 
     client = await get_tgclient(
-        read_tgapp_api(),
+        read_tgapp_api(tgapp_file="tgapp2.txt"),
         session_name=args.session_name,
     )
 
 
 if __name__ == "__main__":
-    run_main(main, unmount=False)
+    run_main(main, forever=True)

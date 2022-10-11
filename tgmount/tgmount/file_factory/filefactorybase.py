@@ -7,21 +7,20 @@ from tgmount import vfs
 from tgmount.tgclient.guards import *
 from tgmount.util import is_not_none, none_fallback
 from .error import FileFactoryError
-from .types import (
-    FileContentProviderProto,
-    FileFactoryProto,
-)
+from .types import FileFactoryProto
 
 T = TypeVar("T")
 C = TypeVar("C", bound=WithTryGetMethodProto)
 
 
-TryGetFunc = Callable[[Message], Optional[T]]
+TryGetFunc = Callable[[MessageProto], Optional[T]]
 
 SupportedClass = WithTryGetMethodProto[T]
 FilenameGetter = Callable[[T], str]
 FileContentGetter = Callable[[T], vfs.FileContentProto]
 FileGetter = Callable[[T, Optional[str]], vfs.FileLike]
+
+ClassName = str
 
 
 @dataclass
@@ -32,24 +31,34 @@ class FileFactoryItem:
     file: Optional[FileGetter]
 
 
-ClassName = str
-
-
 class FileFactoryBase(FileFactoryProto[T]):
+    """Takes a message and produces vfs.FileLike or vfs.FileContentProto"""
+
+    _supported: dict[ClassName, FileFactoryItem] = {}
+
     def __init__(self) -> None:
-        self._supported: dict[ClassName, FileFactoryItem] = {}
+        self._cache: dict[MessageProto, Optional[Type[T]]] = {}
 
-        self._cache: dict[Message, Optional[Type[T]]] = {}
+    @property
+    def try_get_dict(self) -> Mapping[str, Type[TryGetFunc]]:
+        return {f.__name__: f.try_get for f in self.supported}
 
+    def message_type(self, item: T):
+        return self.get_cls(item)
+
+    def message_types(self, item: T):
+        return [self.get_cls(item)]
+
+    @classmethod
     def register(
-        self,
+        cls,
         klass: Type[C],
         filename: FilenameGetter[C],
         file_content: Optional[FileContentGetter[C]] = None,
         file_getter: Optional[FileGetter[C]] = None,
     ):
         class_name = klass.__name__
-        self._supported[class_name] = FileFactoryItem(
+        cls._supported[class_name] = FileFactoryItem(
             klass=klass,
             filename=filename,
             content=file_content,
@@ -150,103 +159,3 @@ class FileFactoryBase(FileFactoryProto[T]):
         treat_as: Optional[list[str]] = None,
     ) -> vfs.FileContent:
         ...
-
-
-FileFactorySupportedTypes = (
-    MessageWithMusic
-    | MessageWithVoice
-    | MessageWithSticker
-    | MessageWithAnimated
-    | MessageWithKruzhochek
-    | MessageWithCompressedPhoto
-    | MessageWithDocumentImage
-    | MessageWithVideoFile
-    | MessageWithVideo
-    | MessageWithOtherDocument
-    | MessageWithFilename
-    | MessageDownloadable
-)
-
-
-class FileFactoryDefault(
-    FileFactoryBase[FileFactorySupportedTypes],
-):
-    def __init__(
-        self,
-        files_source: FileContentProviderProto,
-        extra_files_source: Mapping[str, FileContentProviderProto] | None = None,
-    ) -> None:
-        super().__init__()
-        self._files_source = files_source
-        self.register_classes()
-
-    @property
-    def try_get_dict(self) -> Mapping[str, Type[TryGetFunc]]:
-        return {f.__name__: f.try_get for f in self.supported}
-
-    def message_type(self, item: FileFactorySupportedTypes):
-        return self.get_cls(item)
-
-    def message_types(self, item: FileFactorySupportedTypes):
-        return [self.get_cls(item)]
-
-    def register_classes(self):
-
-        self.register(
-            klass=MessageWithCompressedPhoto,
-            filename=MessageWithCompressedPhoto.filename,
-        )
-        self.register(klass=MessageWithMusic, filename=MessageWithMusic.filename)
-        self.register(klass=MessageWithVoice, filename=MessageWithVoice.filename)
-        self.register(klass=MessageWithSticker, filename=MessageWithSticker.filename)
-        self.register(klass=MessageWithAnimated, filename=MessageWithAnimated.filename)
-        self.register(
-            klass=MessageWithKruzhochek, filename=MessageWithKruzhochek.filename
-        )
-        self.register(
-            klass=MessageWithDocumentImage, filename=MessageWithDocumentImage.filename
-        )
-        self.register(
-            klass=MessageWithVideoFile, filename=MessageWithVideoFile.filename
-        )
-        self.register(klass=MessageWithVideo, filename=MessageWithVideo.filename)
-        self.register(
-            klass=MessageWithOtherDocument, filename=MessageWithOtherDocument.filename
-        )
-        self.register(klass=MessageWithFilename, filename=MessageWithFilename.filename)
-        self.register(klass=MessageDownloadable, filename=MessageDownloadable.filename)
-
-    def file_content(
-        self, supported_item: FileFactorySupportedTypes, treat_as=None
-    ) -> vfs.FileContentProto:
-
-        if (
-            cf := self.get_cls_item(supported_item, treat_as=treat_as).content
-        ) is not None:
-            return cf(supported_item)
-
-        return self._files_source.file_content(supported_item)
-
-    def file(
-        self, supported_item: FileFactorySupportedTypes, name=None, treat_as=None
-    ) -> vfs.FileLike:
-
-        creation_time = getattr(supported_item, "date", datetime.now())
-
-        doc_id = (
-            MessageDownloadable.document_or_photo_id(supported_item)
-            if MessageDownloadable.guard(supported_item)
-            else None
-        )
-        message_id = (
-            supported_item.id if TelegramMessage.guard(supported_item) else None
-        )
-
-        extra = (message_id, doc_id)
-
-        return vfs.FileLike(
-            name=none_fallback(name, self.filename(supported_item, treat_as=treat_as)),
-            content=self.file_content(supported_item, treat_as=treat_as),
-            extra=extra,
-            creation_time=creation_time,
-        )

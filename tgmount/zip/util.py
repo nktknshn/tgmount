@@ -90,6 +90,7 @@ def group_dirs_into_tree(dirs: list[list]):
 
 
 def ls_zip_tree(zt: ZipTree, path: list[str] = []) -> Optional[ZipTree]:
+    """Takes `ZipTree` and `path` (list of dir names) and returns `ZipTree` at the `path`"""
     if path == ["/"] or path == []:
         return zt
 

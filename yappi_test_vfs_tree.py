@@ -18,7 +18,6 @@ from tgmount.tgclient.message_source import (
 from tgmount.tgmount.builder import TgmountBuilder
 from tgmount.tgmount.builderbase import TgmountBuilderBase
 from tgmount.tgmount.error import TgmountError
-from tgmount.tgmount.provider_sources import SourcesProvider
 from tgmount.tgmount.tgmount_types import TgmountResources
 from tgmount.tgmount.types import Set
 from tgmount.tgmount.vfs_tree import VfsTree, VfsTreeDir

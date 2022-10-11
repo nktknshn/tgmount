@@ -1,3 +1,6 @@
-from .classifier import ClassifierBase
-from .filefactorybase import FileFactoryDefault, FileFactoryBase
+from .classifierbase import ClassifierBase
+from .classifier import ClassifierDefault
+
+from .filefactorybase import FileFactoryBase
+from .filefactory import FileFactoryDefault, FileFactorySupportedTypes
 from .types import FileFactoryProto

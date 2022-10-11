@@ -18,6 +18,8 @@ from .util import ZipTree, get_zip_tree, get_zipinfo_list, ls_zip_tree
 from .zip_file import FileContentZip
 from .zip_file_id3v1_fix import FileContentZipFixingId3v1
 
+from tgmount.util import none_fallback
+
 logger = logging.getLogger("tgmount-zip")
 
 FileContentFactory = Callable[
@@ -117,28 +119,23 @@ class DirContentZipFactory:
         path=[],
     ):
         zf = await self._zipfile_factory(file_content)
-
         zt = get_zip_tree(get_zipinfo_list(zf))
-
-        zt = ls_zip_tree(
-            zt,
-            path if path is not None else [],
-        )
+        zt = ls_zip_tree(zt, none_fallback(path, []))
 
         if zt is None:
             raise ValueError(f"invalid path: {path}")
 
         return zt
 
-    async def create_dir_content(
-        self,
-        file_content: vfs.FileContentProto,
-        path: List[str] = [],
-    ) -> vfs.DirContentProto:
+    # async def create_dir_content(
+    #     self,
+    #     file_content: vfs.FileContentProto,
+    #     path: List[str] = [],
+    # ) -> vfs.DirContentProto:
 
-        zt = await self.get_ziptree(file_content, path)
+    #     zt = await self.get_ziptree(file_content, path)
 
-        return await self.create_dir_content_from_ziptree(file_content, zt)
+    #     return await self.create_dir_content_from_ziptree(file_content, zt)
 
     async def _create_filelike(
         self, file_content: vfs.FileContentProto, zinfo: zipfile.ZipInfo

@@ -101,6 +101,12 @@ class Config:
     wrappers: Optional[Wrappers] = None
     mount_dir: Optional[str] = None
 
+    Client = Client
+    MessageSources = MessageSources
+    Root = Root
+    Caches = Caches
+    Wrappers = Wrappers
+
     @staticmethod
     def from_dict(d: dict):
         client_dict = d.get("client")

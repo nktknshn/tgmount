@@ -1,15 +1,25 @@
-from typing import Optional, TypeGuard, TypeVar
+from typing import Callable, Optional, TypeGuard, TypeVar
 
 import pathvalidate
+import random
 
 from .col import find, sets_difference
 from .guards import compose_guards
 
 T = TypeVar("T")
+O = TypeVar("O")
 
 
 def none_fallback(value: Optional[T], default: T) -> T:
     return value if value is not None else default
+
+
+def map_none(value: Optional[T], func: Callable[[T], O]) -> O | None:
+    return func(value) if value is not None else None
+
+
+def none_fallback_lazy(value: Optional[T], default: Callable[[], T]) -> T:
+    return value if value is not None else default()
 
 
 def is_not_none(value: Optional[T]) -> TypeGuard[T]:
@@ -30,3 +40,6 @@ def sanitize_string_for_path(name: str) -> str:
         name = "~" + name[1:]
 
     return name
+
+
+random_int = lambda max: lambda: int(max * random.random())

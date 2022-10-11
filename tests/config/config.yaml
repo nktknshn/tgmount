@@ -14,29 +14,7 @@ caches:
     block_size: 128KB
 # every source is a separate get_messages request
 count: &count 300
-message_sources:
-  # ru2chmu:
-  #   entity: ru2chmu
-  #   limit: *count
-  #   reverse: False
-  #   updates: True
-  ru_python:
-    entity: ru_python
-    limit: *count
-  NappingCat:
-    entity: NappingCat
-    limit: *count
-  ts_cool:
-    entity: ts_cool
-    limit: *count
-  ru_python_beginners:
-    entity: ru_python_beginners
-    limit: *count
-  my-mount:
-    entity: -1001678896566
-  tmtc:
-    entity: tgmounttestingchannel
-    # filter: InputMessagesFilterMusic
+
     
 # definiton
 ogranized: &ogranized
@@ -55,15 +33,8 @@ ogranized: &ogranized
       filter: MessageWithVoice
   music:
     filter: MessageWithMusic
-  unpacked:
-    filter: MessageWithZip
-    # it's recommended to use cache with ZipsAsDirs. otherwise it is slow
-    cache: memory1
-    wrappers: ZipsAsDirs
-    #   - ZipsAsDirs:
-    #       recursive: True
-    #       skip_folder_if_single_subfolder: True
-    #       hide_sources: True
+  reactions:
+    filter: MessageWithReactions
   zips:
     filter: MessageWithZip
   personal:
@@ -91,6 +62,16 @@ ogranized: &ogranized
   forwareded-video:
     filter:
       And: [MessageForwarded, MessageWithVideo]
+      
+  unpacked:
+    filter: MessageWithZip
+    # it's recommended to use cache with ZipsAsDirs. otherwise it is slow
+    cache: memory1
+    wrappers: ZipsAsDirs
+    #   - ZipsAsDirs:
+    #       recursive: True
+    #       skip_folder_if_single_subfolder: True
+    #       hide_sources: True
   wrappers: ExcludeEmptyDirs
 
 by-sender: &by-sender
@@ -99,28 +80,50 @@ by-sender: &by-sender
     BySender:
       dir_structure:
         <<: *ogranized
-
+message_sources:
+  # ru2chmu:
+  #   entity: ru2chmu
+  #   limit: *count
+  #   reverse: False
+  #   updates: True
+  # ru_python:
+  #   entity: ru_python
+  #   limit: *count
+  # NappingCat:
+  #   entity: NappingCat
+  #   limit: *count
+  # ts_cool:
+  #   entity: ts_cool
+  #   limit: *count
+  # ru_python_beginners:
+  #   entity: ru_python_beginners
+  #   limit: *count
+  my-mount:
+    entity: -1001678896566
+  tmtc:
+    entity: tgmounttestingchannel
+    # filter: InputMessagesFilterMusic
 root:
   # ru2chmu:
   #   source: { source: ru2chmu, recursive: True }
   #   <<: *ogranized
   #   by-sender: *by-sender
-  ru_python_beginners:
-    source: { source: ru_python_beginners, recursive: True }
-    <<: *ogranized
-    by-sender: *by-sender
-  ru_python:
-    source: { source: ru_python, recursive: True }
-    <<: *ogranized
-    by-sender: *by-sender
-  ts_cool:
-    source: { source: ts_cool, recursive: True }
-    <<: *ogranized
-    by-sender: *by-sender
-  NappingCat_Chat:
-    source: { source: NappingCat, recursive: True }
-    <<: *ogranized
-    by-sender: *by-sender
+  # ru_python_beginners:
+  #   source: { source: ru_python_beginners, recursive: True }
+  #   <<: *ogranized
+  #   by-sender: *by-sender
+  # ru_python:
+  #   source: { source: ru_python, recursive: True }
+  #   <<: *ogranized
+  #   by-sender: *by-sender
+  # ts_cool:
+  #   source: { source: ts_cool, recursive: True }
+  #   <<: *ogranized
+  #   by-sender: *by-sender
+  # NappingCat_Chat:
+  #   source: { source: NappingCat, recursive: True }
+  #   <<: *ogranized
+  #   by-sender: *by-sender
   tmtc:
     source: { source: tmtc, recursive: True }
     <<: *ogranized

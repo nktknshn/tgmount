@@ -1,6 +1,6 @@
 from tgmount import vfs, tglog
 from ..vfs_tree import VfsTreeDir
-from ..vfs_tree_types import UpdateRemovedDirs, UpdateNewDirs, UpdateType, Wrapper
+from ..vfs_tree_types import EventRemovedDirs, EventNewDirs, TreeEventType, Wrapper
 
 logger = tglog.getLogger("VfsStructureProducer")
 logger.setLevel(tglog.TRACE)
@@ -26,7 +26,7 @@ class WrapperEmpty(Wrapper):
     def __init__(self, wrapped_dir: "VfsTreeDir") -> None:
         self._wrapped_dir = wrapped_dir
         self._wrapped_dir_subdirs: set["VfsTreeDir"] = set()
-        # self._wrapped_dir_subdirs: set[str] | None = None
+        self._logger = tglog.getLogger(f"WrapperEmpty({self._wrapped_dir})")
 
     async def wrap_dir_content(
         self, dir_content: vfs.DirContentProto
@@ -42,18 +42,24 @@ class WrapperEmpty(Wrapper):
 
         return (len(sds) + len(cs)) == 0
 
-    async def wrap_updates(
+    async def wrap_events(
         self,
         child: "VfsTreeDir",
         # child: Union["VfsTreeDir", "VfsTree"],
-        updates: list[UpdateType],
-    ) -> list[UpdateType]:
+        events: list[TreeEventType],
+    ) -> list[TreeEventType]:
         # print(updates)
+
         parent = await child.get_parent()
 
         # we ignore nested folders
         if parent != self._wrapped_dir:
-            return updates
+            return events
+
+        self._logger.debug(f"from {child} events: {events}")
+
+        # if not await self._wrapped_dir.tree.exists(child):
+        #     return events
 
         is_empty = await self._is_empty(child)
         # print(
@@ -62,13 +68,13 @@ class WrapperEmpty(Wrapper):
 
         if child in self._wrapped_dir_subdirs:
             if is_empty:
-                updates = [UpdateRemovedDirs(self._wrapped_dir.path, [child.path])]
+                events = [EventRemovedDirs(self._wrapped_dir.path, [child.path])]
         else:
             if not is_empty:
-                updates = [
-                    UpdateNewDirs(self._wrapped_dir.path, [child.path]),
-                    *updates,
+                events = [
+                    EventNewDirs(self._wrapped_dir.path, [child.path]),
+                    *events,
                 ]
                 self._wrapped_dir_subdirs.add(child)
 
-        return updates
+        return events

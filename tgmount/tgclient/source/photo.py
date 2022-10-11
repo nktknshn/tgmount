@@ -2,16 +2,13 @@ from typing import Optional
 
 from telethon.tl.custom.file import File
 
-from ..types import (
-    InputPhotoFileLocation,
-    Photo,
-    TypeInputFileLocation,
-)
-from .item import SourceItemId, SourceItem
+from tgmount.tgclient.message_types import PhotoProto
+from ..types import InputPhotoFileLocation, TypeInputFileLocation
+from .item import SourceItem, SourceItemId
 
 
 def get_photo_input_location(
-    photo: Photo,
+    photo: PhotoProto,
     type: str,
     file_reference: Optional[bytes] = None,
 ):
@@ -31,7 +28,7 @@ class SourceItemPhoto(SourceItem):
     access_hash: int
     size: int
 
-    def __init__(self, photo: Photo) -> None:
+    def __init__(self, photo: PhotoProto) -> None:
         self.id = photo.id
         self.file_reference = photo.file_reference
         self.access_hash = photo.access_hash

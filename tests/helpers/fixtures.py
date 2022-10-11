@@ -44,8 +44,14 @@ def tgapp_api():
 
 
 @pytest_asyncio.fixture
-async def tgclient_second(tgapp_api: tuple[int, str]):
-    client = tg.TgmountTelegramClient("second_session", tgapp_api[0], tgapp_api[1])
+async def tgclient_second():
+    tgapp_api = read_tgapp_api(tgapp_file="tgapp2.txt")
+    client = tg.TgmountTelegramClient(
+        "tgfs2",
+        tgapp_api[0],
+        tgapp_api[1],
+        receive_updates=False,
+    )
     await client.auth()
     yield client
     await client.disconnect()

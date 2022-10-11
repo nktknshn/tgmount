@@ -6,23 +6,26 @@ import greenback
 
 from tgmount.vfs.types.file import FileContentProto
 
-logger = logging.getLogger("tgmount-vfs")
-
 
 class FileContentIO(IO[bytes]):
+    _logger = logging.getLogger("FileContentIO")
+
     def __init__(self, fc: FileContentProto, handle: Optional[Any] = None):
         super(FileContentIO, self).__init__()
+
+        self._logger.setLevel(logging.INFO)
+
         self.fc = fc
         self.pos = 0
         self.file_handle = handle
 
     async def read(self, n=-1):
         if n > -1:
-            logger.debug(
+            self._logger.debug(
                 f"FileContentIO.read n={n}. pos={self.pos}. file_size={self.fc.size}"
             )
         else:
-            logger.debug(
+            self._logger.debug(
                 f"FileContentIO.read n={n}. pos={self.pos}. file_size={self.fc.size}. will read {self.fc.size - self.tell()} bytes"
             )
 
@@ -39,7 +42,7 @@ class FileContentIO(IO[bytes]):
         return ret
 
     async def seek(self, offset, whence=0):
-        logger.debug(
+        self._logger.debug(
             f"FileContentIO.seek offset={offset} whence={whence}. pos={self.pos}. size={self.fc.size}"
         )
 
@@ -59,12 +62,12 @@ class FileContentIO(IO[bytes]):
             return await self.fc.seek_func(self.file_handle, offset, whence)
 
     async def close(self):
-        logger.debug(f"FileContentIO.close()")
+        self._logger.debug(f"FileContentIO.close()")
         if self.fc.close_func:
             return await self.fc.close_func(self.file_handle)
 
     async def tell(self):
-        logger.debug(f"FileContentIO.tell()")
+        self._logger.debug(f"FileContentIO.tell()")
         if self.fc.tell_func:
             return await self.fc.tell_func(self.file_handle)
 

@@ -9,6 +9,8 @@ import pyfuse3_asyncio
 from tgmount import main
 from tgmount.tgclient import TgmountTelegramClient
 
+from tgmount.util.asyn import print_tasks_sync
+
 logger = logging.getLogger("tgvfs")
 
 
@@ -40,7 +42,7 @@ async def mount_ops(
     fs_ops: pyfuse3.Operations,
     *,
     mount_dir: str,
-    min_tasks=10,
+    min_tasks: int,
     debug=False,
 ):
     logger.debug("mount_ops()")
@@ -60,11 +62,13 @@ async def mount_ops(
     await pyfuse3.main(min_tasks=min_tasks)
 
 
-def run_main(main_func, forever=None):
-    loop = asyncio.new_event_loop()
-    # loop.set_debug(True)
+def run_main(main_func, forever=None, loop=None):
+
+    loop = loop if loop is not None else asyncio.new_event_loop()
+
+    loop.set_debug(True)
     # warnings.simplefilter('always', ResourceWarning)
-    warnings.filterwarnings("error")
+    # warnings.filterwarnings("error")
 
     # loop.slow_callback_duration = 0.001
 

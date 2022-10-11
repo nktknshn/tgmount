@@ -51,7 +51,7 @@ def next_message_id():
     return messages_count
 
 
-class DummyMessage(Message):
+class MockedMessage(Message):
     class Sender:
         username: str | None
         id: int
@@ -65,7 +65,7 @@ class DummyMessage(Message):
 
         self.text = text
 
-        self._sender = DummyMessage.Sender()
+        self._sender = MockedMessage.Sender()
         self._sender.username = username
         self._sender.id = hash(username)
         self._file = file

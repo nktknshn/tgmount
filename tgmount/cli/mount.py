@@ -75,7 +75,11 @@ async def mount(
             return_when=asyncio.FIRST_COMPLETED,
         )
     else:
-        await tgm.mount(mount_dir=mount_dir, debug_fuse=debug_fuse, min_tasks=min_tasks)
+        await tgm.mount(
+            mount_dir=mount_dir,
+            debug_fuse=debug_fuse,
+            min_tasks=min_tasks,
+        )
 
 
 def add_mount_arguments(command_mount: ArgumentParser):

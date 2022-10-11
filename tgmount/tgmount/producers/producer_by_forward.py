@@ -3,10 +3,8 @@ from typing import Iterable, Mapping, Set
 
 import pathvalidate
 import telethon
-from telethon.tl.custom import Message
 from tgmount import tglog
 from tgmount.tgclient.guards import MessageForwarded
-from tgmount.tgclient.message_source import MessageSourceSimple, MessagesSet
 from tgmount.tgmount.error import TgmountError
 from tgmount.tgmount.vfs_tree_producer_types import (
     ProducerConfig,

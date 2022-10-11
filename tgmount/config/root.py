@@ -1,6 +1,7 @@
 from .helpers import *
 from dataclasses import dataclass
 
+
 @dataclass
 class ContentDir:
     filter: Union[str, list[str]]
@@ -70,7 +71,7 @@ RootTree = Content | Mapping[str, "RootTree"]
 
 @dataclass
 class Root:
-    content: dict
+    content: Mapping
 
     @staticmethod
     def from_dict(d: dict) -> "Root":

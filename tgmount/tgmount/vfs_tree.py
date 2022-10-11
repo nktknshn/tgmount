@@ -6,11 +6,11 @@ from tgmount.tgclient.message_source import Subscribable
 from tgmount.tgmount.error import TgmountError
 from tgmount.tgmount.vfs_tree_types import (
     VfsTreeProto,
-    UpdateRemovedItems,
-    UpdateNewItems,
-    UpdateRemovedDirs,
-    UpdateNewDirs,
-    UpdateType,
+    EventRemovedItems,
+    EventNewItems,
+    EventRemovedDirs,
+    EventNewDirs,
+    TreeEventType,
     Wrapper,
 )
 from tgmount.util import none_fallback
@@ -76,7 +76,7 @@ class VfsTreeDir(VfsTreeDirMixin):
     """
     Represents a single dir.
 
-    Holds wrappers and dir content items.
+    Holds wrappers and dir content items list.
     """
 
     def __init__(
@@ -93,8 +93,8 @@ class VfsTreeDir(VfsTreeDirMixin):
         self._dir_content_items: list[vfs.DirContentItem] = []
         self._subs = none_fallback(subs, [])
 
-    async def child_updated(self, child: "VfsTreeDir", updates: list[UpdateType]):
-        """Method used by directory subdirs to notify it about its modifications. If this dir contains any wrappers updates are wrapped with `wrap_updates` method."""
+    async def child_updated(self, child: "VfsTreeDir", events: list[TreeEventType]):
+        """Method used by subdirs to notify the dir about its modifications. If this dir contains any wrappers updates are wrapped with `wrap_updates` method."""
         parent = await self.get_parent()
 
         # print(f"{self.path} child_updated({child.path}, {updates})")
@@ -102,9 +102,9 @@ class VfsTreeDir(VfsTreeDirMixin):
         # print(await self._parent_tree.get_parents(child))
 
         for w in self._wrappers:
-            updates = await w.wrap_updates(child, updates)
+            events = await w.wrap_events(child, events)
 
-        await parent.child_updated(child, updates)
+        await parent.child_updated(child, events)
 
     async def get_parent(self):
 
@@ -148,7 +148,9 @@ class VfsTreeDir(VfsTreeDirMixin):
     async def get_subdirs(self, subpath: str = "/") -> list["VfsTreeDir"]:
         return await self._parent_tree.get_subdirs(self._globalpath(subpath))
 
-    async def get_dir_content_items(self, subpath: str = "/"):
+    async def get_dir_content_items(
+        self, subpath: str = "/"
+    ) -> list[vfs.DirContentItem]:
         return await self._parent_tree.get_dir_content_items(self._globalpath(subpath))
 
     async def create_dir(self, subpath: str) -> "VfsTreeDir":
@@ -211,8 +213,17 @@ class SubdirsRegistry:
 
         self._subdirs_by_path[parent].append(path)
 
-    def remote_path(self, path: str):
-        pass
+    def remove_path(self, path: str):
+        parent_path = vfs.parent_path(path)
+
+        self._subdirs_by_path[parent_path].remove(path)
+
+        subdirs = self.get_subdirs(path, recursive=True)
+
+        for sd in subdirs:
+            del self._subdirs_by_path[sd]
+
+        del self._subdirs_by_path[path]
 
     def get_subdirs(self, path: str, recursive=False) -> list[str]:
         subs = self._subdirs_by_path.get(path)
@@ -262,7 +273,7 @@ class VfsTree(Subscribable, VfsTreeProto):
     def tree(self) -> VfsTreeProto:
         return self
 
-    async def child_updated(self, child, updates: list[UpdateType]):
+    async def child_updated(self, child, updates: list[TreeEventType]):
         """Notifies tree subscribers with subchild `updates`"""
         await self.notify(updates)
 
@@ -277,7 +288,7 @@ class VfsTree(Subscribable, VfsTreeProto):
         await sd._remove_from_content(item)
 
         await sd.child_updated(
-            sd, [UpdateRemovedItems(update_path=path, removed_items=[item])]
+            sd, [EventRemovedItems(update_path=path, removed_items=[item])]
         )
 
     async def put_content(
@@ -293,7 +304,7 @@ class VfsTree(Subscribable, VfsTreeProto):
         await sd._put_content(content, overwright=overwright)
 
         await sd.child_updated(
-            sd, [UpdateNewItems(update_path=path, new_items=list(content))]
+            sd, [EventNewItems(update_path=path, new_items=list(content))]
         )
 
     async def remove_dir(self, path: str):
@@ -301,6 +312,8 @@ class VfsTree(Subscribable, VfsTreeProto):
 
         if path == "/":
             raise TgmountError(f"Cannot remove root folder.")
+
+        self._logger.debug(f"Removing {path}")
 
         thedir = await self.get_dir(path)
         subdirs = await self.get_subdirs(path, recursive=True)
@@ -315,11 +328,11 @@ class VfsTree(Subscribable, VfsTreeProto):
         del self._dirs[path]
         del self._path_dy_dir[thedir]
 
-        self._subdirs.remote_path(path)
+        self._subdirs.remove_path(path)
 
         await parent.child_updated(
             parent,
-            [UpdateRemovedDirs(update_path=parent.path, removed_dirs=[path])],
+            [EventRemovedDirs(update_path=parent.path, removed_dirs=[path])],
         )
 
     async def create_dir(self, path: str) -> VfsTreeDir:
@@ -346,7 +359,7 @@ class VfsTree(Subscribable, VfsTreeProto):
 
         await parent.child_updated(
             parent,
-            [UpdateNewDirs(update_path=parent.path, new_dirs=[path])],
+            [EventNewDirs(update_path=parent.path, new_dirs=[path])],
         )
 
         return self._dirs[path]
@@ -375,6 +388,11 @@ class VfsTree(Subscribable, VfsTreeProto):
 
         return result
 
+    async def exists(self, dir_or_path: VfsTreeDir | str):
+        return (
+            dir_or_path.path if isinstance(dir_or_path, VfsTreeDir) else dir_or_path
+        ) in self._dirs
+
     async def get_parent(self, path: str) -> Union[VfsTreeDir, "VfsTree"]:
         """Returns parent `VfsTreeDir` for dir at `path`. Returns `VfsTree` for `path == '/'`"""
 
@@ -382,6 +400,7 @@ class VfsTree(Subscribable, VfsTreeProto):
             return self
 
         parent_dir, dir_name = vfs.split_path(path, addslash=True)
+
         return await self.get_dir(parent_dir)
 
     async def get_dir_content_items(self, subpath: str) -> list[vfs.DirContentItem]:
@@ -404,17 +423,6 @@ class VfsTree(Subscribable, VfsTreeProto):
 
         for s in subdirs:
             res.append(self._dirs[s])
-        # for p, d in self._dirs.items():
-        #     if p == "/":
-        #         continue
-
-        #     if recursive:
-        #         if p.startswith(path + "/"):
-        #             res.append(d)
-        #     else:
-        #         (parent, name) = vfs.split_path(p)
-        #         if parent == path:
-        #             res.append(d)
 
         return res
 

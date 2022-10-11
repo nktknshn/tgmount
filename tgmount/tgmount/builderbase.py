@@ -1,10 +1,10 @@
 import abc
-from typing import Type
+from typing import Protocol, Type
 
 from tgmount import cache, config, tgclient, tglog
 from tgmount.tgclient import TgmountTelegramClient
-from .file_factory import classifier, FileFactoryDefault
 
+from .file_factory import classifier, FileFactoryDefault
 from .providers.provider_caches import CachesProviderProto
 from .providers.provider_filters import FilterProviderProto
 from .providers.provider_sources import SourcesProvider
@@ -18,7 +18,7 @@ from .tgmountbase import TgmountBase
 class TgmountBuilderBase(abc.ABC):
     logger = tglog.getLogger(f"TgmountBuilderBase()")
 
-    TelegramClient: Type[tgclient.TgmountTelegramClient]
+    TelegramClient: Type[tgclient.client_types.TgmountTelegramClientReaderProto]
     MessageSource: Type[tgclient.TelegramMessageSource]
     FilesSource: Type[tgclient.TelegramFilesSource]
     FileFactory: Type[FileFactoryDefault]
@@ -31,14 +31,21 @@ class TgmountBuilderBase(abc.ABC):
     wrappers: DirWrapperProviderProto
     producers: ProducersProviderBase
 
-    async def create_client(self, cfg: config.Config):
+    TgmountBase = TgmountBase
+
+    async def create_client(self, cfg: config.Config, **kwargs):
         return self.TelegramClient(
             cfg.client.session,
             cfg.client.api_id,
             cfg.client.api_hash,
+            **kwargs,
         )
 
-    async def create_resources(self, client: TgmountTelegramClient, cfg: config.Config):
+    async def create_resources(
+        self,
+        client: tgclient.client_types.TgmountTelegramClientReaderProto,
+        cfg: config.Config,
+    ):
         self.logger.trace(f"Creating resources...")
 
         caches: dict[str, cache.CacheFactory] = {}
@@ -80,20 +87,23 @@ class TgmountBuilderBase(abc.ABC):
         )
 
     async def create_tgmount(self, cfg: config.Config) -> TgmountBase:
-        client = await self.create_client(cfg)
-        resources = await self.create_resources(client, cfg)
 
-        tgm = TgmountBase(
-            client=client,
+        self.client = await self.create_client(cfg)
+        self.resources = await self.create_resources(self.client, cfg)
+
+        tgm = self.TgmountBase(
+            client=self.client,
             root=cfg.root.content,
-            resources=resources,
+            resources=self.resources,
             mount_dir=cfg.mount_dir,
         )
 
         return tgm
 
     async def create_cache(
-        self, client: TgmountTelegramClient, cache_config: config.Cache
+        self,
+        client: tgclient.client_types.TgmountTelegramClientReaderProto,
+        cache_config: config.Cache,
     ):
         cache_factory_cls = await self.caches.get_cache_factory(cache_config.type)
         return cache_factory_cls(**cache_config.kwargs)

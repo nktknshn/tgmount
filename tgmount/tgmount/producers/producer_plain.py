@@ -34,6 +34,9 @@ class VfsTreePlainDir(VfsTreeProducerProto):
         self._logger.debug(f"Producing...")
 
         self._messages = await self._config.get_messages()
+
+        self._logger.debug(f"Producing from {len(self._messages)} messages...")
+
         self._message_to_file = {
             m: self._config.factory.file(m) for m in self._messages
         }
@@ -74,7 +77,11 @@ class VfsTreePlainDir(VfsTreeProducerProto):
         self._logger.info(
             f"update_removed_messages({list(map(lambda m: m.id, removed_messages))})"
         )
-        removed_files = [self._message_to_file[m] for m in removed_messages]
+        removed_files = [
+            self._message_to_file[m]
+            for m in removed_messages
+            if m in self._message_to_file
+        ]
 
         for f in removed_files:
             await self._dir.remove_content(f)

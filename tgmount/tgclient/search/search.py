@@ -12,10 +12,11 @@ from tgmount.tgclient.types import TypeMessagesFilter
 
 Message = telethon.tl.custom.Message
 
-from .types import GetMessages, TotalListTyped
+from ..types import TotalListTyped
+from ..client_types import TgmountTelegramClientGetMessagesProto
 
 
-class TelegramSearch(GetMessages):
+class TelegramSearch(TgmountTelegramClientGetMessagesProto):
     """
     typed methods for querying telegram
     """
@@ -28,8 +29,8 @@ class TelegramSearch(GetMessages):
     # ) -> TotalListTyped[telethon.tl.custom.Message]:
     #     return await self.get_messages(entity, **query)
 
-    async def get_messages_typed(
-        self: GetMessages,
+    async def get_messages(
+        self,
         entity: hints.EntityLike,
         limit: Optional[int] = None,
         *,
@@ -47,20 +48,4 @@ class TelegramSearch(GetMessages):
         reply_to: Optional[int] = None,
         scheduled: bool = False,
     ) -> TotalListTyped[Message]:
-        return await self.get_messages(
-            entity,
-            limit,
-            offset_date=offset_date,
-            offset_id=offset_id,
-            max_id=max_id,
-            min_id=min_id,
-            add_offset=add_offset,
-            search=search,
-            filter=filter,
-            from_user=from_user,
-            wait_time=wait_time,
-            ids=ids,
-            reverse=reverse,
-            reply_to=reply_to,
-            scheduled=scheduled,
-        )
+        ...

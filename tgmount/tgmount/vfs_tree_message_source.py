@@ -6,7 +6,7 @@ from tgmount import tgclient, tglog
 from tgmount.tgclient.message_source import Subscribable
 from tgmount.tgmount.providers.provider_sources import SourcesProvider
 from tgmount.tgmount.vfs_tree import VfsTree
-from tgmount.tgmount.vfs_tree_types import UpdateType
+from tgmount.tgmount.vfs_tree_types import TreeEventType
 
 
 class SourcesProviderMessageSource(
@@ -38,31 +38,38 @@ class SourcesProviderMessageSource(
         """ Events for dependednt message sources """
         self.event_removed_messages: Subscribable = Subscribable()
 
-        self._logger = tglog.getLogger(f"SourcesProviderMessageSource()")
+        self._logger = tglog.getLogger(f"AccumulatingMessageSource()")
 
     async def get_messages(self) -> list[Message]:
         return await self._wrapped_source.get_messages()
 
     async def update_new_message(self, source, messages: list[Message]):
 
-        _updates = []
+        _events = []
 
-        async def append_update(source, updates: list[UpdateType]):
-            _updates.extend(updates)
+        async def append_events(source, events: list[TreeEventType]):
+            if events is None:
+                pass
+            _events.extend(events)
 
         # start accumulating updates
-        self._tree.subscribe(append_update)
-        await self.event_new_messages.notify(messages)
-        self._tree.unsubscribe(append_update)
+        self._tree.subscribe(append_events)
 
-        await self.accumulated_updates.notify(_updates)
+        self._logger.info(f"Dispatching {len(messages)} messages to {self._tree}")
+        await self.event_new_messages.notify(messages)
+        self._logger.info(f"Done dispatching messages")
+        self._tree.unsubscribe(append_events)
+
+        self._logger.info(f"Dispatching {len(_events)} events to subscribers")
+        await self.accumulated_updates.notify(_events)
+        self._logger.info(f"Done dispatching events")
 
     async def removed_messages(self, source, messages: list[Message]):
         self._logger.debug("removed_messages")
 
         _updates = []
 
-        async def append_update(source, updates: list[UpdateType]):
+        async def append_update(source, updates: list[TreeEventType]):
             _updates.extend(updates)
 
         self._tree.subscribe(append_update)

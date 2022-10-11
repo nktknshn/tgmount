@@ -1,40 +1,53 @@
 import abc
 from typing import Any, Optional, Protocol, TypeGuard, TypeVar
 
-from .message_types import (
-    DocumentProto,
-    MessageProto,
-    FileProto,
-    PhotoProto,
-    ForwardProto,
-    ReactionsProto,
-)
+import telethon
+from telethon import types
+from telethon.tl.custom import Message
+from telethon.tl.custom.file import File
+
+from .types import Document
 
 
 T = TypeVar("T")
 T_co = TypeVar("T_co", covariant=True)
 
 
+def add_hash(msg: Message):
+    if type(msg).__hash__ is None:
+        type(msg).__hash__ = lambda self: (
+            self.id,
+            MessageDownloadable.try_document_or_photo_id(self),
+        ).__hash__()
+    return msg
+
+
 class ClassWithGuard(Protocol[T_co]):
     @staticmethod
     @abc.abstractmethod
-    def guard(msg: MessageProto) -> TypeGuard[T_co]:
+    def guard(msg: Message) -> TypeGuard[T_co]:
         ...
 
 
 class WithTryGetMethodProto(Protocol[T_co]):
     @classmethod
     @abc.abstractmethod
-    def try_get(cls, message: MessageProto) -> Optional[T_co]:
+    def try_get(cls, message: Message) -> Optional[T_co]:
         ...
 
 
-class TryGetFromGuard(WithTryGetMethodProto[T], Protocol):
+class TryGetFromGuard(WithTryGetMethodProto[T]):
     @classmethod
     @abc.abstractmethod
-    def try_get(cls: ClassWithGuard[T], message: MessageProto) -> Optional[T]:
+    def try_get(cls: ClassWithGuard[T], message: Message) -> Optional[T]:
         if cls.guard(message):
             return message
+
+
+def get_attribute(doc: Document, attr_cls) -> Optional[Any]:
+    for attr in doc.attributes:
+        if isinstance(attr, attr_cls):
+            return attr
 
 
 """
@@ -49,14 +62,14 @@ Returns a `File <telethon.tl.custom.file.File>` wrapping the
 """
 
 
-class TelegramMessage(MessageProto, Protocol):
+class TelegramMessage(Message):
     @staticmethod
     def guard(msg: Any) -> TypeGuard["TelegramMessage"]:
-        return MessageProto.guard(msg)
+        return isinstance(msg, Message)
 
 
-class MessageForwarded(TelegramMessage, Protocol):
-    forward: ForwardProto
+class MessageForwarded(TelegramMessage):
+    forward: telethon.tl.custom.forward.Forward
 
     @staticmethod
     def guard(msg: Any) -> TypeGuard["MessageForwarded"]:
@@ -64,7 +77,8 @@ class MessageForwarded(TelegramMessage, Protocol):
 
 
 class MessageDownloadable(
-    TelegramMessage, TryGetFromGuard["MessageDownloadable"], Protocol
+    TelegramMessage,
+    TryGetFromGuard["MessageDownloadable"],
 ):
     @staticmethod
     def guard(msg: Any) -> TypeGuard["MessageDownloadable"]:
@@ -97,44 +111,37 @@ class MessageDownloadable(
         return f"{message.id}_document"
 
 
-class MessageWithReactions(
-    MessageProto,
-    TryGetFromGuard["MessageWithReactions"],
-    Protocol,
-):
-    reactions: ReactionsProto
+# class MessageWithReactions(Message):
+#     reactions: telethon.tl.custom.forward.Forward
 
-    @staticmethod
-    def guard(msg: Any) -> TypeGuard["MessageWithReactions"]:
-        return msg.reactions is not None
+#     @staticmethod
+#     def guard(msg: Message) -> TypeGuard["MessageForwarded"]:
+#         return msg.forward is not None
 
 
 class MessageWithDocument(
     MessageDownloadable,
     TryGetFromGuard["MessageWithDocument"],
-    Protocol,
 ):
-    document: DocumentProto
-    file: FileProto
+    document: Document
 
     @staticmethod
     def guard(msg: Any) -> TypeGuard["MessageWithDocument"]:
         return TelegramMessage.guard(msg) and msg.document is not None
 
 
-class FileWithName(FileProto, Protocol):
+class FileWithName(File):
     name: str
 
 
 class MessageWithFilename(
     MessageDownloadable,
     TryGetFromGuard["MessageWithFilename"],
-    Protocol,
 ):
     """message with document with file name"""
 
     file: FileWithName
-    document: DocumentProto
+    document: Document
 
     @staticmethod
     def guard(msg: Any) -> TypeGuard["MessageWithFilename"]:
@@ -152,18 +159,17 @@ class MessageWithFilename(
 class MessageWithCompressedPhoto(
     MessageDownloadable,
     TryGetFromGuard["MessageWithCompressedPhoto"],
-    Protocol,
 ):
     """message with compressed image"""
 
-    file: FileProto
-    photo: PhotoProto
+    file: File
+    photo: telethon.types.Photo
 
     @staticmethod
     def guard(msg: Any) -> TypeGuard["MessageWithCompressedPhoto"]:
         return (
             TelegramMessage.guard(msg)
-            and PhotoProto.guard(msg.photo)
+            and isinstance(msg.photo, telethon.types.Photo)
             and not MessageWithSticker.guard(msg)
         )
 
@@ -178,19 +184,19 @@ class MessageWithCompressedPhoto(
 class MessageWithDocumentImage(
     MessageDownloadable,
     TryGetFromGuard["MessageWithDocumentImage"],
-    Protocol,
 ):
     """message with uncompressed image"""
 
-    file: FileProto
-    document: DocumentProto
+    file: File
+    document: Document
 
     @staticmethod
     def guard(msg: Any) -> TypeGuard["MessageWithDocumentImage"]:
         return (
             TelegramMessage.guard(msg)
             and msg.document is not None
-            and DocumentProto.guard_document_image(msg.document)
+            and get_attribute(msg.document, types.DocumentAttributeImageSize)
+            is not None
             and not msg.sticker
         )
 
@@ -202,12 +208,11 @@ class MessageWithDocumentImage(
 class MessageWithZip(
     MessageWithFilename,
     TryGetFromGuard["MessageWithZip"],
-    Protocol,
 ):
     """message with a zip file"""
 
-    file: FileProto
-    document: DocumentProto
+    file: File
+    document: Document
 
     @staticmethod
     def guard(msg: Any) -> TypeGuard["MessageWithZip"]:
@@ -227,12 +232,11 @@ class MessageWithZip(
 class MessageWithSticker(
     MessageDownloadable,
     TryGetFromGuard["MessageWithSticker"],
-    Protocol,
 ):
     """stickers"""
 
-    file: FileProto
-    document: DocumentProto
+    file: File
+    document: Document
 
     @staticmethod
     def guard(msg: Any) -> TypeGuard["MessageWithSticker"]:
@@ -246,13 +250,12 @@ class MessageWithSticker(
 class MessageWithKruzhochek(
     MessageDownloadable,
     TryGetFromGuard["MessageWithKruzhochek"],
-    Protocol,
 ):
     # class MessageWithCircle(Message):
     """circles"""
 
-    file: FileProto
-    document: DocumentProto
+    file: File
+    document: Document
 
     @staticmethod
     def guard(msg: Any) -> TypeGuard["MessageWithKruzhochek"]:
@@ -266,12 +269,11 @@ class MessageWithKruzhochek(
 class MessageWithVideo(
     MessageDownloadable,
     TryGetFromGuard["MessageWithVideo"],
-    Protocol,
 ):
     """circles, video documents, stickers, gifs"""
 
-    file: FileProto
-    document: DocumentProto
+    file: File
+    document: Document
 
     @staticmethod
     def guard(msg: Any) -> TypeGuard["MessageWithVideo"]:
@@ -288,12 +290,11 @@ class MessageWithVideo(
 class MessageWithVideoFile(
     MessageDownloadable,
     TryGetFromGuard["MessageWithVideoFile"],
-    Protocol,
 ):
     """video files"""
 
-    file: FileProto
-    document: DocumentProto
+    file: File
+    document: Document
 
     @staticmethod
     def guard(msg: Any) -> TypeGuard["MessageWithVideoFile"]:
@@ -316,12 +317,11 @@ class MessageWithVideoFile(
 class MessageWithVideoDocument(
     MessageDownloadable,
     TryGetFromGuard["MessageWithVideoDocument"],
-    Protocol,
 ):
     """uncompressed video documents"""
 
-    file: FileProto
-    document: DocumentProto
+    file: File
+    document: Document
 
     @staticmethod
     def guard(msg: Any) -> TypeGuard["MessageWithVideoDocument"]:
@@ -338,12 +338,11 @@ class MessageWithVideoDocument(
 class MessageWithAnimated(
     MessageDownloadable,
     TryGetFromGuard["MessageWithAnimated"],
-    Protocol,
 ):
     """stickers, gifs"""
 
-    file: FileProto
-    document: DocumentProto
+    file: File
+    document: Document
 
     @staticmethod
     def guard(msg: Any) -> TypeGuard["MessageWithAnimated"]:
@@ -361,11 +360,10 @@ class MessageWithAnimated(
 class MessageWithAudio(
     MessageDownloadable,
     TryGetFromGuard["MessageWithAudio"],
-    Protocol,
 ):
     """voices and music"""
 
-    document: DocumentProto
+    document: Document
 
     @staticmethod
     def guard(msg: Any) -> TypeGuard["MessageWithAudio"]:
@@ -375,10 +373,9 @@ class MessageWithAudio(
 class MessageWithVoice(
     MessageDownloadable,
     TryGetFromGuard["MessageWithVoice"],
-    Protocol,
 ):
-    file: FileProto
-    document: DocumentProto
+    file: File
+    document: Document
 
     @staticmethod
     def guard(msg: Any) -> TypeGuard["MessageWithVoice"]:
@@ -392,12 +389,11 @@ class MessageWithVoice(
 class MessageWithMusic(
     MessageDownloadable,
     TryGetFromGuard["MessageWithMusic"],
-    Protocol,
 ):
     """message with document audio tacks (without voices)"""
 
-    file: FileProto
-    document: DocumentProto
+    file: File
+    document: Document
 
     @staticmethod
     def guard(msg: Any) -> TypeGuard["MessageWithMusic"]:
@@ -414,7 +410,6 @@ class MessageWithMusic(
 class MessageWithText(
     TelegramMessage,
     TryGetFromGuard["MessageWithText"],
-    Protocol,
 ):
     text: str
 
@@ -434,11 +429,10 @@ class MessageWithText(
 class MessageWithOtherDocument(
     MessageDownloadable,
     TryGetFromGuard["MessageWithOtherDocument"],
-    Protocol,
 ):
     """other documents with file name"""
 
-    document: DocumentProto
+    document: Document
 
     @staticmethod
     def guard(msg: Any) -> TypeGuard["MessageWithOtherDocument"]:
@@ -458,5 +452,5 @@ class MessageWithOtherDocument(
         )
 
     @staticmethod
-    def filename(message: "MessageWithOtherDocument"):
+    def filename(message: "MessageWithVoice"):
         return MessageWithFilename.filename(message)

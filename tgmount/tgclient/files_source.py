@@ -1,21 +1,14 @@
 import logging
 from typing import Any, TypeVar
 
-import telethon
+# import telethon
 from telethon.errors import FileReferenceExpiredError
-from telethon.tl.custom import Message
+from tgmount import tgclient, vfs
+from tgmount.tgclient.message_types import MessageProto, PhotoProto
 
-from tgmount import vfs
-from . import guards
-from .client import TgmountTelegramClient
-from .guards import MessageDownloadable
-from .source.document import (
-    SourceItemDocument,
-)
-from .source.item import (
-    SourceItem,
-
-)
+from .guards import MessageDownloadable, MessageWithCompressedPhoto
+from .source.document import SourceItemDocument
+from .source.item import SourceItem
 from .source.photo import SourceItemPhoto
 from .source.types import InputSourceItem
 from .source.util import BLOCK_SIZE, split_range
@@ -36,7 +29,7 @@ T = TypeVar("T")
 
 
 def item_to_inner_object(input_item: InputSourceItem) -> SourceItem:
-    if isinstance(input_item, telethon.types.Photo):
+    if PhotoProto.guard(input_item):
         item = SourceItemPhoto(input_item)
     else:
         item = SourceItemDocument(input_item)
@@ -45,7 +38,7 @@ def item_to_inner_object(input_item: InputSourceItem) -> SourceItem:
 
 
 def get_downloadable_item(message: MessageDownloadable) -> SourceItem:
-    if guards.MessageWithCompressedPhoto.guard(message):
+    if MessageWithCompressedPhoto.guard(message):
         return item_to_inner_object(message.photo)
 
     if message.document is not None:
@@ -59,7 +52,7 @@ class TelegramFilesSource(
 ):
     def __init__(
         self,
-        client: TgmountTelegramClient,
+        client: tgclient.client_types.TgmountTelegramClientReaderProto,
         request_size: int = BLOCK_SIZE,
     ) -> None:
         self.client = client
@@ -116,7 +109,7 @@ class TelegramFilesSource(
             message.chat_id, ids=[message.id]
         )
 
-        if not isinstance(refetched_msg, telethon.tl.custom.Message):
+        if MessageProto.guard(message):
             logger.error(f"refetched_msg isnt a Message")
             logger.error(f"refetched_msg={refetched_msg}")
             raise ValueError(f"refetched_msg isnt a Message")
@@ -179,7 +172,7 @@ class TelegramFilesSource(
         item = get_downloadable_item(message)
 
         logger.debug(
-            f"TelegramFilesSource._item_read_function(Message(id={message.id},chat_id={message.chat_id}), item({message.file.name}, {item.id}, offset={offset}, limit={limit})"  # type: ignore
+            f"TelegramFilesSource._item_read_function(Message(id={message.id},chat_id={message.chat_id}), item(name={message.file.name}, id={item.id}, offset={offset}, limit={limit})"  # type: ignore
         )
 
         input_location = await self._get_item_input_location(item)

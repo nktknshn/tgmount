@@ -11,10 +11,9 @@ import telethon
 import tgmount.fs as fs
 import tgmount.tgclient as tg
 import tgmount.vfs as vfs
-import tgmount.tg_vfs as tg_vfs
 from telethon import events, types
 from tests.helpers.tgclient import get_client_with_source
-from tgmount.logging import init_logging
+from tgmount.tglog import init_logging
 from tgmount.tgclient import guards
 
 from ..helpers.asyncio import task_from_blocking, wait_ev, wait_ev_async

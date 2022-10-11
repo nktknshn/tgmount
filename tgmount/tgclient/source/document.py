@@ -1,11 +1,13 @@
 from typing import Optional
 
-from ..types import Document, InputDocumentFileLocation, TypeInputFileLocation
+from tgmount.tgclient.message_types import DocumentProto
+
+from ..types import InputDocumentFileLocation, TypeInputFileLocation
 from .item import SourceItemId, SourceItem
 
 
 def get_document_input_location(
-    document: Document, file_reference: Optional[bytes] = None
+    document: DocumentProto, file_reference: Optional[bytes] = None
 ):
     return InputDocumentFileLocation(
         id=document.id,
@@ -23,7 +25,7 @@ class SourceItemDocument(SourceItem):
     access_hash: int
     size: int
 
-    def __init__(self, document: Document) -> None:
+    def __init__(self, document: DocumentProto) -> None:
         self.id = document.id
         self.file_reference = document.file_reference
         self.access_hash = document.access_hash

@@ -4,6 +4,7 @@ import telethon
 
 from tgmount.tgclient import TelegramFilesSource, TgmountTelegramClient
 from tgmount.tgclient import guards
+from tgmount.tgclient.client_types import TgmountTelegramClientReaderProto
 from tgmount.tgclient.source.util import BLOCK_SIZE
 from .types import CacheFactory
 
@@ -14,7 +15,7 @@ Message = telethon.tl.custom.Message
 class FilesSourceCaching(TelegramFilesSource):
     def __init__(
         self,
-        client: TgmountTelegramClient,
+        client: TgmountTelegramClientReaderProto,
         cache_factory: CacheFactory,
         request_size: int = BLOCK_SIZE,
     ) -> None:

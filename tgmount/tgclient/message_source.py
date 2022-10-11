@@ -13,7 +13,11 @@ from telethon import events
 from telethon.tl.custom import Message
 
 from tgmount import tglog
-from tgmount.util import sets_difference
+from tgmount.tgclient.client_types import (
+    TgmountTelegramClientEventProto,
+    TgmountTelegramClientReaderProto,
+)
+from tgmount.util import none_fallback, sets_difference
 from .client import TgmountTelegramClient
 from .logger import logger
 
@@ -101,7 +105,7 @@ class MessageSourceSubscribable(MessageSourceSubscribableProto):
 class TelegramMessageSource(MessageSourceSubscribable):
     def __init__(
         self,
-        client: TgmountTelegramClient,
+        client: TgmountTelegramClientReaderProto,
         chat_id: str | int,
         limit: Optional[int],
     ) -> None:
@@ -109,10 +113,9 @@ class TelegramMessageSource(MessageSourceSubscribable):
         self._chat_id = chat_id
         self._limit = limit
 
-        self._messages: Optional[list[Message]] = None
+        self._logger = tglog.getLogger(f"TelegramMessageSource({self._chat_id})")
 
-        self._client.on(events.NewMessage(chats=chat_id))(self._on_new_message)
-        self._client.on(events.MessageDeleted(chats=chat_id))(self._on_delete_message)
+        self._messages: Optional[list[Message]] = None
 
         self._listeners: list[Listener] = []
 
@@ -120,7 +123,20 @@ class TelegramMessageSource(MessageSourceSubscribable):
         self.event_removed_messages: Subscribable = Subscribable()
 
         self._filters = []
-        self._logger = tglog.getLogger(f"TelegramMessageSource({self._chat_id})")
+
+        self.subscribe_to_client()
+
+    def subscribe_to_client(self):
+        self._logger.info(f"Subscribing to {self._client} updates.")
+
+        # self._client.on(events.NewMessage(chats=self._chat_id))(self._on_new_message)
+        # self._client.on(events.MessageDeleted(chats=self._chat_id))(
+        #     self._on_delete_message
+        # )
+        self._client.subscribe_new_messages(self._on_new_message, chats=self._chat_id)
+        self._client.subscribe_removed_messages(
+            self._on_delete_message, chats=self._chat_id
+        )
 
     @property
     def filters(self):
@@ -174,11 +190,13 @@ class TelegramMessageSource(MessageSourceSubscribable):
         if self._messages is not None:
             return self._messages[:]
 
-        logger.info(f"Fetching {self._limit} messages from {self._chat_id}")
-
-        messages = await self._client.get_messages_typed(
-            self._chat_id, limit=self._limit
+        self._logger.info(
+            f"Fetching {none_fallback(self._limit, 'all')} messages from {self._chat_id}"
         )
+
+        messages = await self._client.get_messages(self._chat_id, limit=self._limit)
+
+        self._logger.info(f"Received {len(messages)}")
 
         self._messages = []
 

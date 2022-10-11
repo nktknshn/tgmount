@@ -1,3 +1,4 @@
+import asyncio
 import os, pytest, time
 import subprocess
 from multiprocessing import context  # type: ignore
@@ -19,7 +20,7 @@ def exitcode(process: context.ForkProcess):
 def wait_for_mount(mount_process: context.ForkProcess, mnt_dir: str):
     print(f"wait_for_mount({mnt_dir})")
     elapsed = 0
-    while elapsed < 30:
+    while elapsed < 300:
         if os.path.ismount(mnt_dir):
             return True
         if exitcode(mount_process) is not None:
@@ -78,3 +79,58 @@ def umount(mount_process: context.ForkProcess, mnt_dir: str):
             pytest.fail("file system process terminated with code %s" % (code,))
 
     pytest.fail("mount process did not terminate")
+
+
+ismount_async = lambda mnt_dir: asyncio.to_thread(os.path.ismount, mnt_dir)
+
+
+async def wait_for_mount_async(mnt_dir: str):
+    print(f"wait_for_mount({mnt_dir})")
+    elapsed = 0
+
+    while elapsed < 300:
+        if await ismount_async(mnt_dir):
+            return True
+        await asyncio.sleep(0.1)
+        elapsed += 0.1
+
+    pytest.fail("mountpoint failed to come up")
+
+
+async def cleanup_async(mnt_dir: str):
+    print(f"cleanup({mnt_dir})")
+
+    subprocess.call(
+        ["fusermount", "-z", "-u", mnt_dir],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.STDOUT,
+    )
+
+
+async def umount_async(mnt_dir: str):
+    subprocess.check_call(["fusermount", "-z", "-u", mnt_dir])
+    assert not os.path.ismount(mnt_dir)
+
+    # pytest.fail("mount process did not terminate")
+
+
+async def mount_context(mnt_dir: str):
+    try:
+        await wait_for_mount_async(mnt_dir)
+        yield
+    except:
+        await cleanup_async(mnt_dir)
+        raise
+    else:
+        await umount_async(mnt_dir)
+
+
+def handle_mount(mnt_dir):
+    def _wrapper(f):
+        async def _inner():
+            async for _ in mount_context(mnt_dir):
+                await f()
+
+        return _inner
+
+    return _wrapper

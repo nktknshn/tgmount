@@ -9,3 +9,4 @@ from .zips_as_dirs import (
     # zip_as_dir_s,
     # zip_as_dir_in_content,
 )
+from .zip_dir_factory import DirContentZipFactory
