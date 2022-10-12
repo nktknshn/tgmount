@@ -68,6 +68,13 @@ def async_listdir(path: str):
     return asyncio.to_thread(os.listdir, path)
 
 
+def async_walkdir(path: str):
+    def _walk():
+        return list(os.walk(path))
+
+    return asyncio.to_thread(_walk)
+
+
 class MyTgmountBuilder(TgmountBuilder):
     def __init__(self, client_kwargs={}) -> None:
         super().__init__()

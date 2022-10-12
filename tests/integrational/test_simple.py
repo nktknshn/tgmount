@@ -1,41 +1,10 @@
-import copy
-import logging
-import os
-from typing import Mapping
+import aiofiles
 
 import pytest
 import tgmount
 from tests.helpers.mocked.mocked_storage import StorageEntity
-from tests.integrational.helpers import TESTING_CHANNEL, create_config, mdict
-from ..helpers.mocked.mocked_message import MockedMessage, MockedSender
-from .integrational_helpers import BY_SENDER, DEFAULT_ROOT, UNPACKED
-from .integrational_test import (
-    TgmountIntegrationContext as Context,
-    mnt_dir,
-    read_bytes,
-)
-
-
-@pytest.fixture
-def ctx(mnt_dir):
-    return Context(mnt_dir)
-
-
-@pytest.fixture
-def source1(ctx):
-    return ctx.storage.get_entity("source1")
-
-
-@pytest.fixture
-def source2(ctx):
-    return ctx.storage.get_entity("source2")
-
-
-# build_root(DEFAULT_ROOT).enter("source1").update({"all": {"filter": "All"}})
-
-# DEFAULT_ROOT: Mapping = {
-#     "source1": {"source": {"source": "source1"}},
-# }
+from tests.integrational.helpers import create_config, mdict
+from .fixtures import *
 
 
 @pytest.mark.asyncio
@@ -124,6 +93,7 @@ async def test_filtered(caplog, ctx, source1: StorageEntity):
     await source1.message(text="hello1")
     await source1.message(text="hello2")
     await source1.message(text="hello3")
+
     await source1.document_file_message(
         text="hello4", file="tests/fixtures/2010_debrecen.zip"
     )
@@ -165,10 +135,9 @@ async def test_filtered(caplog, ctx, source1: StorageEntity):
         }
 
         assert set(
-            [
-                await ctx.read_text(f)
-                for f in await ctx.listdir_set("/source1/text-messages", full_path=True)
-            ]
+            await ctx.read_texts(
+                await ctx.listdir_set("/source1/text-messages", full_path=True)
+            )
         ) == {"hello1", "hello2", "hello3", "hello4"}
 
         assert await ctx.read_bytes("/source1/4_2010_debrecen.zip") == await read_bytes(
@@ -180,33 +149,38 @@ async def test_filtered(caplog, ctx, source1: StorageEntity):
 
 
 @pytest.mark.asyncio
-async def test_two_sources(
+async def test_two_sources_1(
     caplog, ctx: Context, source1: StorageEntity, source2: StorageEntity
 ):
-    config = create_config(message_sources={"source1": "source1", "source2": "source2"})
-
-    config1 = config.set_root(
-        {
+    """Different sources can be used"""
+    config = create_config(
+        message_sources={"source1": "source1", "source2": "source2"},
+        root={
             "source1": {"source": "source1", "filter": "All"},
             "source2": {"source": "source2", "filter": "All"},
-        }
+        },
     )
 
-    await source1.message(text="hello1")
-    await source1.message(text="hello2")
-
-    await source2.message(text="hello source2 1")
-    await source2.message(text="hello source2 2")
-    await source2.message(text="hello source2 3")
+    await source1.text_messages(texts=["hello1", "hello2"])
+    await source2.text_messages(
+        texts=["hello source2 1", "hello source2 2", "hello source2 3"]
+    )
 
     async def test1():
         assert await ctx.listdir_len("/source1") == 2
         assert await ctx.listdir_len("/source2") == 3
 
-    await ctx.run_test(test1, config1)
+    await ctx.run_test(test1, config)
 
-    config2 = config.set_root(
-        {
+
+@pytest.mark.asyncio
+async def test_two_sources_2(
+    caplog, ctx: Context, source1: StorageEntity, source2: StorageEntity
+):
+    """Different sources can be used inside a structure"""
+    config = create_config(
+        message_sources={"source1": "source1", "source2": "source2"},
+        root={
             "mixed_sources": {
                 "source": "source1",
                 "filter": "All",
@@ -215,10 +189,15 @@ async def test_two_sources(
                     "filter": "All",
                 },
             },
-        }
+        },
     )
 
-    async def test2():
+    await source1.text_messages(texts=["hello1", "hello2"])
+    await source2.text_messages(
+        texts=["hello source2 1", "hello source2 2", "hello source2 3"]
+    )
+
+    async def test():
         assert await ctx.listdir_set("/mixed_sources") == {
             "1_message.txt",
             "2_message.txt",
@@ -230,4 +209,69 @@ async def test_two_sources(
             "3_message.txt",
         }
 
-    await ctx.run_test(test2, config2)
+        assert await ctx.read_texts(
+            await ctx.listdir_set("/mixed_sources/source2", full_path=True)
+        ) == {"hello source2 1", "hello source2 2", "hello source2 3"}
+
+    await ctx.run_test(test, config)
+
+
+@pytest.mark.asyncio
+async def test_two_sources_3(
+    caplog, ctx: Context, source1: StorageEntity, source2: StorageEntity
+):
+    """Recursive filter could be overwritten"""
+    config = create_config(
+        message_sources={"source1": "source1", "source2": "source2"},
+        root={
+            "source": {"source": "source1", "recursive": True},
+            "dir1": {
+                "dir2": {
+                    "source1": {
+                        "filter": "All",
+                    },
+                    "source2": {
+                        "source": "source2",
+                        "filter": "All",
+                        "source1": {
+                            "filter": "All",
+                        },
+                    },
+                }
+            },
+        },
+    )
+
+    await source1.text_messages(texts=["hello1", "hello2"])
+    await source2.text_messages(
+        texts=["hello source2 1", "hello source2 2", "hello source2 3"]
+    )
+
+    async def test():
+        assert await ctx.listdir_set("/") == {"dir1"}
+        assert await ctx.listdir_set("/dir1") == {"dir2"}
+        assert await ctx.listdir_set("/dir1/dir2") == {"source1", "source2"}
+        assert await ctx.listdir_set("/dir1/dir2/source1") == {
+            "1_message.txt",
+            "2_message.txt",
+        }
+
+        assert await ctx.listdir_set("/dir1/dir2/source2") == {
+            "1_message.txt",
+            "2_message.txt",
+            "3_message.txt",
+            "source1",
+        }
+
+        assert await ctx.listdir_set("/dir1/dir2/source2/source1") == {
+            "1_message.txt",
+            "2_message.txt",
+        }
+
+        # assert await ctx.listdir_recursive("/") == {"/", "/dir1"}
+
+        # assert await ctx.read_texts(
+        #     await ctx.listdir_set("/mixed_sources/source2", full_path=True)
+        # ) == {"hello source2 1", "hello source2 2", "hello source2 3"}
+
+    await ctx.run_test(test, config)

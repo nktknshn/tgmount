@@ -149,6 +149,15 @@ class TgmountIntegrationContext:
     async def listdir_set(self, path: str, full_path=False) -> set[str]:
         return set(await self.listdir(path, full_path))
 
+    async def listdir_recursive(self, path: str) -> set[str]:
+        res = []
+
+        for dirpath, dirnames, filenames in await async_walkdir(path):
+            res.append(dirpath)
+            res.extend([vfs.path_join(str(dirpath), str(fn)) for fn in filenames])
+
+        return set(res)
+
     async def read_text(self, path: str) -> str:
         async with aiofiles.open(self._path(path), "r") as f:
             return await f.read()
@@ -157,10 +166,12 @@ class TgmountIntegrationContext:
         async with aiofiles.open(self._path(path), "rb") as f:
             return await f.read()
 
-    async def read_texts(self, paths: list[str]) -> list[str]:
+    async def read_texts(self, paths: Iterable[str]) -> list[str] | set[str]:
         res = []
         for p in paths:
             res.append(await self.read_text(p))
+        if isinstance(paths, set):
+            return set(res)
         return res
 
     def get_root(self, root_cfg: Mapping) -> Mapping:

@@ -6,7 +6,7 @@ from tgmount.tgclient.client_types import (
     ListenerNewMessages,
     ListenerRemovedMessages,
 )
-from tgmount.tgclient.message_types import AudioProto, VoiceProto
+from tgmount.tgclient.message_types import AudioProto, DocumentProto, VoiceProto
 from tgmount.tgclient.types import (
     InputDocumentFileLocation,
     InputPhotoFileLocation,
@@ -124,8 +124,11 @@ class StorageEntityMixin:
     _storage: "MockedTelegramStorage"
     _entity_id: EntityId
 
-    async def text_messages(self, texts: list[str]):
-        pass
+    async def text_messages(self, texts: list[str]) -> list[MockedMessage]:
+        res = []
+        for text in texts:
+            res.append(await self.message(text=text))
+        return res
 
     async def message(
         self,
@@ -153,17 +156,26 @@ class StorageEntityMixin:
 
     async def document_file_message(
         self,
-        file: str,
+        file: str | DocumentProto,
         file_name: str | bool = True,
         text: str | None = None,
         audio=False,
         put=True,
     ) -> MockedMessageWithDocument:
         msg = await self.message(put=False)
-        storage_file = await self._storage.create_storage_file(file, file_name)
+
+        if isinstance(file, str):
+            storage_file = await self._storage.create_storage_file(file, file_name)
+            msg.document = storage_file.get_document()
+        else:
+            storage_file = self._storage.files.get_file(file.id)
+
+            if storage_file is None:
+                raise Exception(f"Missing file with id {file.id}")
+
+            msg.document = file
 
         msg.text = text
-        msg.document = storage_file.get_document()
         msg.file = MockedFile.from_filename(storage_file.name)
 
         if audio:
@@ -260,6 +272,10 @@ class MockedTelegramStorage:
         self._subscriber_per_entity_removed: dict[
             EntityId, list[ListenerRemovedMessages]
         ] = {}
+
+    @property
+    def files(self):
+        return self._files
 
     def _create_entity(self, entity: EntityId) -> StorageEntity:
         return StorageEntity(self, entity)
