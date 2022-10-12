@@ -7,11 +7,20 @@ from tgmount.tgclient import guards
 from tgmount.tgclient.guards import MessageDownloadable
 from tgmount.util import col, func
 from tgmount.util.guards import compose_try_gets
-from .filters_types import FilterConfigValue, FilterFromConfigContext, InstanceFromConfigProto, \
-    FilterFromConfigProto, FilterAllMessagesProto, FilterSingleMessage, Filter, ParseFilter
+from .filters_types import (
+    FilterConfigValue,
+    FilterFromConfigContext,
+    InstanceFromConfigProto,
+    FilterFromConfigProto,
+    FilterAllMessagesProto,
+    FilterSingleMessage,
+    Filter,
+    ParseFilter,
+)
 from .types import Set
 
 T = TypeVar("T")
+
 
 def from_function(
     func: Callable[
@@ -54,10 +63,14 @@ class ByTypes(FilterAllMessagesProto):
         )
 
 
+from tgmount import tglog
+
+
 class OnlyUniqueDocs(FilterAllMessagesProto):
+    logger = tglog.getLogger("OnlyUniqueDocs()")
     PICKERS = {
-        "last": lambda ms: ms[0],
-        "first": lambda ms: ms[-1],
+        "last": lambda ms: ms[-1],
+        "first": lambda ms: ms[0],
     }
 
     @staticmethod
@@ -77,12 +90,16 @@ class OnlyUniqueDocs(FilterAllMessagesProto):
 
         non_downloadable = filter(lambda m: not MessageDownloadable.guard(m), messages)
 
+        self.logger.debug(f"filtering... {messages}")
+
         for k, v in func.group_by0(
             MessageDownloadable.document_or_photo_id,
             filter(MessageDownloadable.guard, messages),
         ).items():
             if len(v) > 1:
-                result.append(self._picker(v))
+                picked = self._picker(list(sorted(v, key=lambda v: v.id)))
+                self.logger.debug(f"duplicate: {v}, picked: {picked}")
+                result.append(picked)
             else:
                 result.append(v[0])
 
@@ -90,6 +107,8 @@ class OnlyUniqueDocs(FilterAllMessagesProto):
 
 
 class ByExtension(FilterAllMessagesProto):
+    logger = tglog.getLogger("ByExtension()")
+
     def __init__(self, ext: str) -> None:
         self.ext = ext
 
@@ -98,11 +117,14 @@ class ByExtension(FilterAllMessagesProto):
         return ByExtension(ext)
 
     async def filter(self, messages: Iterable[Message]) -> list[Message]:
-        return [
+        self.logger.debug(f"filtering {messages} by extension {self.ext}")
+        res = [
             m
             for m in filter(guards.MessageWithFilename.guard, messages)
             if m.file.ext == self.ext
         ]
+        self.logger.debug(f"result={res}")
+        return res
 
 
 class Not(FilterAllMessagesProto):

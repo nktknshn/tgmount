@@ -56,6 +56,9 @@ class MockedSender(SenderProto):
 
 
 class MockedFile(FileProto):
+    def __repr__(self) -> str:
+        return f"MockedFile(name={self.name}, mime_type={self.mime_type})"
+
     def __init__(
         self,
         name: str | None,
@@ -79,13 +82,13 @@ class MockedFile(FileProto):
             mime_type=map_none(
                 file_name, lambda n: telethon.utils.mimetypes.guess_type(n)[0]
             ),
-            ext=map_none(file_name, lambda n: os.path.splitext(n)[0]),
+            ext=map_none(file_name, lambda n: os.path.splitext(n)[1]),
         )
 
 
 class MockedMessage(MessageProto):
     def __repr__(self) -> str:
-        return f"MockedMessage({self.id})"
+        return f"MockedMessage({self.id}, file={map_none(self.file, lambda f: f.ext)})"
 
     def __init__(
         self,

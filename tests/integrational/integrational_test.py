@@ -108,6 +108,15 @@ class TgmountIntegrationContext:
         self._default_config = none_fallback(default_config, create_config())
         self._storage = self.create_storage()
         self._client = self.create_client()
+        self._debug = False
+
+    @property
+    def debug(self):
+        return self._debug
+
+    @debug.setter
+    def debug(self, value):
+        self._debug = value
 
     @property
     def storage(self):
@@ -194,7 +203,7 @@ class TgmountIntegrationContext:
         self,
         test_func: Callable[[], Awaitable[Any]],
         cfg_or_root: config.Config | Mapping,
-        debug=False,
+        debug=None,
     ):
         await _run_test(
             handle_mount(self.mnt_dir)(test_func),
@@ -203,7 +212,7 @@ class TgmountIntegrationContext:
             if isinstance(cfg_or_root, config.Config)
             else self.create_config(cfg_or_root),
             storage=self.storage,
-            debug=debug,
+            debug=none_fallback(debug, self._debug),
         )
 
 

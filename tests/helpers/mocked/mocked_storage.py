@@ -192,10 +192,13 @@ class StorageEntityMixin:
         performer: str | None,
         title: str | None,
         duration: int,
+        text: str | None = None,
         file_name: str | bool = True,
         put=True,
     ):
-        msg = await self.document_file_message(file, file_name, audio=True, put=False)
+        msg = await self.document_file_message(
+            file, file_name, text=text, audio=True, put=False
+        )
         msg.file.performer = performer
         msg.file.title = title
         msg.file.duration = duration
