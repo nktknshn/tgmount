@@ -12,9 +12,9 @@ from tgmount.tgmount.filters import ByExtension, OnlyUniqueDocs
 
 @pytest.mark.asyncio
 async def test_recursive_filter_1(
-    caplog, ctx: Context, source1: StorageEntity, source2: StorageEntity
+    ctx: Context, source1: StorageEntity, source2: StorageEntity
 ):
-    """recursive filter doesn't produce files in the folder it was declared i"""
+    """recursive filter doesn't produce files in the folder it was declared in"""
     config = create_config(
         message_sources={"source1": "source1", "source2": "source2"},
         root={
@@ -41,7 +41,7 @@ async def test_recursive_filter_1(
 
 @pytest.mark.asyncio
 async def test_recursive_filter_2(
-    caplog, ctx: Context, source1: StorageEntity, source2: StorageEntity
+    ctx: Context, source1: StorageEntity, source2: StorageEntity
 ):
     """recursive filter produce files in the folder it was declared in if producer specified"""
     config = create_config(
@@ -60,8 +60,6 @@ async def test_recursive_filter_2(
     )
     await source1.text_messages(texts=["hello1", "hello2"])
 
-    # msg1 = await source1.document_file_message(text="document1", file=msg0.document)
-
     async def test():
         assert await ctx.listdir_set("/source1") == {"1_Hummingbird.jpg"}
 
@@ -70,7 +68,7 @@ async def test_recursive_filter_2(
 
 @pytest.mark.asyncio
 async def test_recursive_filter_3(
-    caplog, ctx: Context, source1: StorageEntity, source2: StorageEntity
+    ctx: Context, source1: StorageEntity, source2: StorageEntity
 ):
     """filter 'All' doesn't cancel recursive filter"""
     config = create_config(
@@ -110,14 +108,8 @@ async def test_recursive_filter_3(
     await ctx.run_test(test, config)
 
 
-# OnlyUniqueDocs.logger.setLevel(logging.DEBUG)
-
-# tgmount.tglog.getLogger("OnlyUniqueDocs()").setLevel(logging.DEBUG)
-
-
 @pytest.mark.asyncio
 async def test_recursive_filter_4(
-    caplog,
     ctx: Context,
     source1: StorageEntity,
     source2: StorageEntity,
@@ -182,15 +174,16 @@ async def test_recursive_filter_4(
 
 @pytest.mark.asyncio
 async def test_recursive_filter_5(
-    caplog,
     ctx: Context,
     source1: StorageEntity,
     source2: StorageEntity,
     files: FixtureFiles,
 ):
-    """recrusive filters and filters sum up"""
+    """recursive filters and filters sum up"""
     # ctx.debug = True
     ByExtension.logger.setLevel(logging.DEBUG)
+    OnlyUniqueDocs.logger.setLevel(logging.DEBUG)
+
     config = create_config(
         message_sources={"source1": "source1", "source2": "source2"},
         root={
@@ -213,6 +206,13 @@ async def test_recursive_filter_5(
                             "filter": {"ByExtension": ".jpg"},
                         },
                     },
+                    "overwritten": {"filter": {"filter": [], "overwright": True}},
+                    "overwritten2": {
+                        "filter": {
+                            "filter": ["MessageWithoutDocument"],
+                            "overwright": True,
+                        },
+                    },
                 },
             },
         },
@@ -224,11 +224,8 @@ async def test_recursive_filter_5(
 
     await source1.document_file_message(text="same document", file=msg0.document)
     await source1.text_messages(texts=["hello1", "hello2"])
-
     await source1.document_file_message(
-        text="Tvrdý _ Havelka - Žiletky",
-        file=files.music0,
-        file_name="Artist1_song1.mp3",
+        text="Artist1_song1", file=files.music0, file_name="Artist1_song1.mp3"
     )
 
     async def test():
@@ -244,6 +241,23 @@ async def test_recursive_filter_5(
             "1_Hummingbird.jpg",
             "5_Artist1_song1.mp3",
             "subdir",
+            "overwritten",
+            "overwritten2",
+        }
+
+        # reset the filter to empty
+        assert await ctx.listdir_set("/source1/another_filter/overwritten") == {
+            "1_Hummingbird.jpg",
+            "2_Hummingbird.jpg",
+            "3_message.txt",
+            "4_message.txt",
+            "5_Artist1_song1.mp3",
+        }
+
+        # reset the filter to MessageWithoutDocument
+        assert await ctx.listdir_set("/source1/another_filter/overwritten2") == {
+            "3_message.txt",
+            "4_message.txt",
         }
 
         # MessageWithDocument and OnlyUniqueDocs applied recursively
@@ -279,3 +293,34 @@ async def test_recursive_filter_5(
         duration=666,
     )
  """
+
+
+@pytest.mark.asyncio
+async def test_filters_1(
+    ctx: Context,
+    source1: StorageEntity,
+    source2: StorageEntity,
+    files: FixtureFiles,
+):
+    """"""
+    config = create_config(
+        message_sources={"source1": "source1", "source2": "source2"},
+        root={
+            "source1": {
+                "source": {"source": "source1", "recursive": True},
+                "filter": {"filter": ["MessageWithDocument"], "recursive": True},
+            },
+        },
+    )
+
+    await source1.document_file_message(file=files.Hummingbird)
+    await source1.document_file_message(file=files.picture0)
+    await source1.document_file_message(file=files.picture1)
+    await source1.document_file_message(file=files.music0)
+    await source1.document_file_message(file=files.music1)
+    await source1.document_file_message(file=files.music2)
+
+    async def test():
+        assert await ctx.listdir_set("/source1") == set()
+
+    await ctx.run_test(test, config)

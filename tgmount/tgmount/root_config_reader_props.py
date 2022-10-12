@@ -36,9 +36,11 @@ class RootProducerPropsReader:
             return
 
         filter_recursive = False
+        filter_overwright = False
 
         if isinstance(filter_prop_cfg, dict) and "filter" in filter_prop_cfg:
             filter_recursive = filter_prop_cfg.get("recursive", False)
+            filter_overwright = filter_prop_cfg.get("overwright", False)
             filter_prop_cfg = filter_prop_cfg["filter"]
 
         if not isinstance(filter_prop_cfg, list):
@@ -57,7 +59,9 @@ class RootProducerPropsReader:
 
             filters.append((f_name, filter_arg))
 
-        return dict(filters=filters, recursive=filter_recursive)
+        return dict(
+            filters=filters, recursive=filter_recursive, overwright=filter_overwright
+        )
 
     def read_prop_cache(self, d: TgmountRootSource):
         _cache = d.get("cache")

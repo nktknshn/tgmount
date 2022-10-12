@@ -64,10 +64,10 @@ class DocumentProto(Protocol):
     size: int
     access_hash: int
     file_reference: bytes
-    attributes: dict
+    attributes: list
 
     @staticmethod
-    def guard_document_image(document: Any):
+    def guard_document_image(document: "DocumentProto"):
         return (
             DocumentProto.get_attribute(
                 document, telethon.types.DocumentAttributeImageSize

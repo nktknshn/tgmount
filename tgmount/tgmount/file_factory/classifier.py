@@ -22,6 +22,7 @@ TelegramMessageClasses = (
     | guards.MessageWithSticker
     # | guards.MessageWithText
     | guards.MessageWithReactions
+    | guards.MessageWithoutDocument
 )
 
 T = TypeVar("T", bound=guards.ClassWithGuard)
@@ -48,4 +49,5 @@ class ClassifierDefault(ClassifierBase[TelegramMessageClasses | T], Generic[T]):
         guards.MessageWithSticker,
         # guards.MessageWithText,
         guards.MessageWithReactions,
+        guards.MessageWithoutDocument,
     ]

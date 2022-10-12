@@ -102,8 +102,9 @@ class TgmountIntegrationContext:
     MockedTelegramStorage = MockedTelegramStorage
     MockedClientWriter = MockedClientWriter
 
-    def __init__(self, mnt_dir: str, default_config=None) -> None:
+    def __init__(self, mnt_dir: str, *, caplog=None, default_config=None) -> None:
         self._mnt_dir = mnt_dir
+        self._caplog = caplog
 
         self._default_config = none_fallback(default_config, create_config())
         self._storage = self.create_storage()
@@ -117,6 +118,9 @@ class TgmountIntegrationContext:
     @debug.setter
     def debug(self, value):
         self._debug = value
+
+        if self._caplog is not None:
+            self._caplog.setLevel(logging.DEBUG if value else logging.CRITICAL)
 
     @property
     def storage(self):
@@ -205,6 +209,9 @@ class TgmountIntegrationContext:
         cfg_or_root: config.Config | Mapping,
         debug=None,
     ):
+        _debug = self.debug
+        self.debug = none_fallback(debug, self.debug)
+
         await _run_test(
             handle_mount(self.mnt_dir)(test_func),
             mnt_dir=self.mnt_dir,
@@ -212,8 +219,9 @@ class TgmountIntegrationContext:
             if isinstance(cfg_or_root, config.Config)
             else self.create_config(cfg_or_root),
             storage=self.storage,
-            debug=none_fallback(debug, self._debug),
+            debug=self.debug,
         )
+        self.debug = _debug
 
 
 async def read_bytes(path: str):

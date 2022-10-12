@@ -227,15 +227,11 @@ async def test_two_sources_3(
             "source": {"source": "source1", "recursive": True},
             "dir1": {
                 "dir2": {
-                    "source1": {
-                        "filter": "All",
-                    },
+                    "source1": {"filter": "All"},
                     "source2": {
                         "source": "source2",
                         "filter": "All",
-                        "source1": {
-                            "filter": "All",
-                        },
+                        "source1": {"filter": "All"},
                     },
                 }
             },
@@ -267,11 +263,5 @@ async def test_two_sources_3(
             "1_message.txt",
             "2_message.txt",
         }
-
-        # assert await ctx.listdir_recursive("/") == {"/", "/dir1"}
-
-        # assert await ctx.read_texts(
-        #     await ctx.listdir_set("/mixed_sources/source2", full_path=True)
-        # ) == {"hello source2 1", "hello source2 2", "hello source2 3"}
 
     await ctx.run_test(test, config)

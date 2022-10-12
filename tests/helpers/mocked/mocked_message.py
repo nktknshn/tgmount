@@ -29,7 +29,7 @@ class MockedDocument(DocumentProto):
     access_hash: int = field(default_factory=random_int(100000))
     # They must be cached by the client, along with the origin context where the document/photo object was found, in order to be refetched when the file reference expires.
     file_reference: bytes = field(default_factory=bytes)
-    attributes: dict = field(default_factory=dict)
+    attributes: list = field(default_factory=list)
 
 
 # class MockedFile:

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import _TypedDict, Optional, TypedDict
 import tgmount.tgclient as tg
 from tgmount.tgclient.client_types import (
     IterDownloadProto,
@@ -40,7 +40,7 @@ class StorageFile:
         access_hash: int,
         file_reference: bytes,
         file_name: str | None = None,
-        attributes: dict[str, types.TypeDocumentAttribute] | None = None,
+        attributes: list[types.TypeDocumentAttribute] | None = None,
     ) -> None:
         self.id = id
         self._bytes: bytes = file_bytes
@@ -64,10 +64,10 @@ class StorageFile:
 
     def get_document(self) -> MockedDocument:
 
-        attributes = none_fallback(self._attributes, {})
+        attributes = none_fallback(self._attributes, [])
 
         if self._file_name is not None:
-            attributes["file_name"] = types.DocumentAttributeFilename(self._file_name)
+            attributes.append(types.DocumentAttributeFilename(self._file_name))
 
         return MockedDocument(
             id=self.id,
@@ -97,7 +97,7 @@ class Files:
         self,
         file_bytes: bytes,
         file_name: str | None = None,
-        attributes: dict[str, types.TypeDocumentAttribute] | None = None,
+        attributes: list[types.TypeDocumentAttribute] | None = None,
     ):
         file = StorageFile(
             id=self._next_id(),
@@ -120,6 +120,12 @@ import telethon
 from tgmount import tglog
 
 
+class FileWithText(TypedDict, total=False):
+    file: str
+    text: str | None
+    image: bool | None
+
+
 class StorageEntityMixin:
     _storage: "MockedTelegramStorage"
     _entity_id: EntityId
@@ -128,6 +134,23 @@ class StorageEntityMixin:
         res = []
         for text in texts:
             res.append(await self.message(text=text))
+        return res
+
+    async def files(
+        self, files: list[str | FileWithText]
+    ) -> list[MockedMessageWithDocument]:
+        res = []
+        for f in files:
+            if isinstance(f, str):
+                res.append(await self.document_file_message(filepath_or_document=f))
+            else:
+                res.append(
+                    await self.document_file_message(
+                        filepath_or_document=f["file"],
+                        text=f.get('text'),
+                        image=bool(f.get('image')),
+                    )
+                )
         return res
 
     async def message(
@@ -156,24 +179,32 @@ class StorageEntityMixin:
 
     async def document_file_message(
         self,
-        file: str | DocumentProto,
+        filepath_or_document: str | DocumentProto,
         file_name: str | bool = True,
         text: str | None = None,
         audio=False,
+        image=False,
         put=True,
     ) -> MockedMessageWithDocument:
         msg = await self.message(put=False)
 
-        if isinstance(file, str):
-            storage_file = await self._storage.create_storage_file(file, file_name)
+        if isinstance(filepath_or_document, str):
+            storage_file = await self._storage.create_storage_file(
+                filepath_or_document, file_name
+            )
             msg.document = storage_file.get_document()
+
+            if image:
+                msg.document.attributes.append(
+                    telethon.types.DocumentAttributeImageSize(100, 100)
+                )
         else:
-            storage_file = self._storage.files.get_file(file.id)
+            storage_file = self._storage.files.get_file(filepath_or_document.id)
 
             if storage_file is None:
-                raise Exception(f"Missing file with id {file.id}")
+                raise Exception(f"Missing file with id {filepath_or_document.id}")
 
-            msg.document = file
+            msg.document = filepath_or_document
 
         msg.text = text
         msg.file = MockedFile.from_filename(storage_file.name)

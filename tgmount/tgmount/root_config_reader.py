@@ -12,15 +12,14 @@ from .vfs_tree_producer_types import ProducerConfig, VfsStructureConfig
 
 T = TypeVar("T")
 
-# logger.setLevel(logging.CRITICAL)
-
 
 class TgmountConfigReader(RootProducerPropsReader):
+    logger = tglog.getLogger("TgmountConfigReader()")
 
     DEFAULT_PRODUCER_NAME = "PlainDir"
 
     def __init__(self) -> None:
-        self._logger = tglog.getLogger("TgmountConfigReader()")
+        pass
 
     def walk_config_with_ctx(
         self,
@@ -34,7 +33,7 @@ class TgmountConfigReader(RootProducerPropsReader):
             f"/{os.path.join(*ctx.current_path)}" if len(ctx.current_path) > 0 else "/"
         )
 
-        self._logger.info(f"walk_config_with_ctx({current_path_str})")
+        self.logger.info(f"walk_config_with_ctx({current_path_str})")
 
         other_keys = set(d.keys()).difference(self.PROPS_KEYS)
 
@@ -46,13 +45,13 @@ class TgmountConfigReader(RootProducerPropsReader):
         treat_as_prop = self.read_prop_treat_as(d)
 
         # if source_prop:
-        self._logger.info(f"source_prop={source_prop}")
+        self.logger.info(f"source_prop={source_prop}")
         # if filters_prop:
-        self._logger.info(f"filters_prop={filters_prop}")
+        self.logger.info(f"filters_prop={filters_prop}")
         # if producer_prop:
-        self._logger.info(f"producer_prop={producer_prop}")
+        self.logger.info(f"producer_prop={producer_prop}")
         # if wrappers_prop:
-        self._logger.info(f"wrappers_prop={wrappers_prop}")
+        self.logger.info(f"wrappers_prop={wrappers_prop}")
 
         message_source = None
         producer_name = None
@@ -68,7 +67,7 @@ class TgmountConfigReader(RootProducerPropsReader):
             )
 
         if cache_prop is not None:
-            self._logger.info(f"Cache {cache_prop} will be used for files contents")
+            self.logger.info(f"Cache {cache_prop} will be used for files contents")
 
         current_file_factory = (
             ctx.file_factory if cache_prop is None else resources.caches.get(cache_prop)
@@ -87,7 +86,10 @@ class TgmountConfigReader(RootProducerPropsReader):
 
         filters_from_ctx = none_fallback(ctx.recursive_filters, [])
 
-        filters = [*filters_from_ctx, *none_fallback(filters_from_prop, [])]
+        if filters_prop is not None and filters_prop["overwright"] is True:
+            filters = none_fallback(filters_from_prop, [])
+        else:
+            filters = [*filters_from_ctx, *none_fallback(filters_from_prop, [])]
 
         """
         the dir will produce content from messages source and apllying filter in cases when:
@@ -96,7 +98,7 @@ class TgmountConfigReader(RootProducerPropsReader):
         3. source_prop or recursive_source is specified and producer_prop is specified
         """
         if source_prop is not None and not source_prop["recursive"]:
-            self._logger.info(f"1. source_prop is specified and it's not recursive")
+            self.logger.info(f"1. source_prop is specified and it's not recursive")
 
             message_source = resources.sources.get(source_prop["source_name"])
 
@@ -111,14 +113,14 @@ class TgmountConfigReader(RootProducerPropsReader):
             and not filters_prop["recursive"]
             and producer_prop is None
         ):
-            self._logger.info(
+            self.logger.info(
                 f"2. recursive_source is in the context and a filters_prop specified: {filters_prop}"
             )
             message_source = ctx.recursive_source
         elif (
             source_prop is not None or ctx.recursive_source is not None
         ) and producer_prop is not None:
-            self._logger.info(
+            self.logger.info(
                 f"3. source_prop or recursive_source is specified and producer_prop is specified: {producer_prop}"
             )
 
@@ -136,7 +138,7 @@ class TgmountConfigReader(RootProducerPropsReader):
 
         elif source_prop is not None and source_prop["recursive"]:
             # if source_prop is recursive update context
-            self._logger.info(
+            self.logger.info(
                 f"Setting recoursive message source: {source_prop['source_name']}"
             )
             recursive_message_source = resources.sources.get(source_prop["source_name"])
@@ -152,18 +154,18 @@ class TgmountConfigReader(RootProducerPropsReader):
             )
 
         if filters_prop is not None and filters_prop["recursive"] and filters_from_prop:
-            self._logger.info(
+            self.logger.info(
                 f"Setting recoursive message filters: {filters_prop['filters']}"
             )
             ctx = ctx.extend_recursive_filters(filters_from_prop)
 
         if message_source is not None:
-            self._logger.info(f"The folder will be containing files")
+            self.logger.info(f"The folder will be containing files")
 
             # if producer_name is not None:
             producer_name = none_fallback(producer_name, self.DEFAULT_PRODUCER_NAME)
 
-            self._logger.info(f"Content will be produced by {producer_name}")
+            self.logger.info(f"Content will be produced by {producer_name}")
 
             producer_cls = resources.producers.get_by_name(producer_name)
 
