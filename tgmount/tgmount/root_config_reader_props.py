@@ -66,7 +66,9 @@ class RootProducerPropsReader:
 
         return _cache
 
-    def read_prop_wrappers(self, d: TgmountRootSource) -> Optional[list[tuple[str, Any | None]]]:
+    def read_prop_wrappers(
+        self, d: TgmountRootSource
+    ) -> Optional[list[tuple[str, Any | None]]]:
         _wrappers = d.get("wrappers")
 
         if _wrappers is None:
@@ -107,7 +109,7 @@ class RootProducerPropsReader:
         return producer_name, producer_arg
 
     def get_filters_from_prop(
-            self, filter_prop: list, resources: TgmountResources, ctx: RootConfigContext
+        self, filter_prop: list, resources: TgmountResources, ctx: RootConfigContext
     ) -> list[Filter]:
         def _parse_filter(filt: FilterConfigValue) -> list[Filter]:
             filter_prop = self.read_prop_filter({"filter": filt})
@@ -132,7 +134,7 @@ class RootProducerPropsReader:
 
 
 def to_list_of_single_key_dicts(
-        items: list[str | dict[str, dict]]
+    items: list[str | dict[str, dict]]
 ) -> list[str | dict[str, dict]]:
     res = []
 

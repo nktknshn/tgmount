@@ -18,7 +18,7 @@ def exitcode(process: context.ForkProcess):
 
 
 def wait_for_mount(mount_process: context.ForkProcess, mnt_dir: str):
-    print(f"wait_for_mount({mnt_dir})")
+    # print(f"wait_for_mount({mnt_dir})")
     elapsed = 0
     while elapsed < 300:
         if os.path.ismount(mnt_dir):
@@ -31,7 +31,7 @@ def wait_for_mount(mount_process: context.ForkProcess, mnt_dir: str):
 
 
 def cleanup(mount_process: context.ForkProcess, mnt_dir: str):
-    print(f"cleanup({mnt_dir})")
+    # print(f"cleanup({mnt_dir})")
 
     subprocess.call(
         ["fusermount", "-z", "-u", mnt_dir],
@@ -85,7 +85,7 @@ ismount_async = lambda mnt_dir: asyncio.to_thread(os.path.ismount, mnt_dir)
 
 
 async def wait_for_mount_async(mnt_dir: str):
-    print(f"wait_for_mount({mnt_dir})")
+    # print(f"wait_for_mount({mnt_dir})")
     elapsed = 0
 
     while elapsed < 300:
@@ -98,7 +98,7 @@ async def wait_for_mount_async(mnt_dir: str):
 
 
 async def cleanup_async(mnt_dir: str):
-    print(f"cleanup({mnt_dir})")
+    # print(f"cleanup({mnt_dir})")
 
     subprocess.call(
         ["fusermount", "-z", "-u", mnt_dir],

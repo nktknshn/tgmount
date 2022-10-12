@@ -4,6 +4,7 @@ import threading
 from typing import Mapping, TypedDict
 
 import telethon
+from tests.integrational.integrational_helpers import DEFAULT_ROOT
 import tgmount.config as config
 import tgmount.tgclient as tg
 from tgmount.main.util import read_tgapp_api
@@ -30,17 +31,10 @@ Props = TypedDict(
     cfg=config.Config,
 )
 
-DEFAULT_ROOT: Mapping = {
-    "tmtc": {
-        "source": {"source": "tmtc", "recursive": True},
-        "all": {"filter": "All"},
-        "wrappers": "ExcludeEmptyDirs",
-        # "texts": {"filter": "MessageWithText"},
-    },
-}
 
-
-def create_config(root: Mapping = DEFAULT_ROOT) -> config.Config:
+def create_config(
+    root: Mapping = DEFAULT_ROOT,
+) -> config.Config:
     api_id, api_hash = read_tgapp_api()
 
     return config.Config(

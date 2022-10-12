@@ -12,8 +12,7 @@ from .vfs_tree_producer_types import ProducerConfig, VfsStructureConfig
 
 T = TypeVar("T")
 
-logger = tglog.getLogger("TgmountConfigReader")
-logger.setLevel(logging.CRITICAL)
+# logger.setLevel(logging.CRITICAL)
 
 
 class TgmountConfigReader(RootProducerPropsReader):
@@ -21,7 +20,7 @@ class TgmountConfigReader(RootProducerPropsReader):
     DEFAULT_PRODUCER_NAME = "PlainDir"
 
     def __init__(self) -> None:
-        self._logger = logger
+        self._logger = tglog.getLogger("TgmountConfigReader()")
 
     def walk_config_with_ctx(
         self,
@@ -35,7 +34,7 @@ class TgmountConfigReader(RootProducerPropsReader):
             f"/{os.path.join(*ctx.current_path)}" if len(ctx.current_path) > 0 else "/"
         )
 
-        logger.info(f"walk_config_with_ctx({current_path_str})")
+        self._logger.info(f"walk_config_with_ctx({current_path_str})")
 
         other_keys = set(d.keys()).difference(self.PROPS_KEYS)
 
@@ -46,12 +45,14 @@ class TgmountConfigReader(RootProducerPropsReader):
         producer_prop = self.read_prop_producer(d)
         treat_as_prop = d.get("treat_as", [])
 
-        if producer_prop:
-            self._logger.info(f"producer_prop={producer_prop}")
-        if filters_prop:
-            self._logger.info(f"filters_prop={filters_prop}")
-        if wrappers_prop:
-            self._logger.info(f"wrappers_prop={wrappers_prop}")
+        # if source_prop:
+        self._logger.info(f"source_prop={source_prop}")
+        # if filters_prop:
+        self._logger.info(f"filters_prop={filters_prop}")
+        # if producer_prop:
+        self._logger.info(f"producer_prop={producer_prop}")
+        # if wrappers_prop:
+        self._logger.info(f"wrappers_prop={wrappers_prop}")
 
         message_source = None
         producer_name = None
@@ -60,6 +61,9 @@ class TgmountConfigReader(RootProducerPropsReader):
         producer_cls = None
         # producer_cls = resources.producers.default
         producer_config = None
+
+        if source_prop is not None and source_prop["recursive"] is True:
+            ctx = ctx.set_recursive_source(resources.sources[source_prop["source_name"]])
 
         if cache_prop is not None:
             self._logger.info(f"Cache {cache_prop} will be used for files contents")
