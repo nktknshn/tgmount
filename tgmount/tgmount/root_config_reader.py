@@ -43,7 +43,7 @@ class TgmountConfigReader(RootProducerPropsReader):
         cache_prop = self.read_prop_cache(d)
         wrappers_prop = self.read_prop_wrappers(d)
         producer_prop = self.read_prop_producer(d)
-        treat_as_prop = d.get("treat_as", [])
+        treat_as_prop = self.read_prop_treat_as(d)
 
         # if source_prop:
         self._logger.info(f"source_prop={source_prop}")
@@ -63,7 +63,9 @@ class TgmountConfigReader(RootProducerPropsReader):
         producer_config = None
 
         if source_prop is not None and source_prop["recursive"] is True:
-            ctx = ctx.set_recursive_source(resources.sources[source_prop["source_name"]])
+            ctx = ctx.set_recursive_source(
+                resources.sources[source_prop["source_name"]]
+            )
 
         if cache_prop is not None:
             self._logger.info(f"Cache {cache_prop} will be used for files contents")
@@ -192,6 +194,7 @@ class TgmountConfigReader(RootProducerPropsReader):
                 message_source=message_source,
                 factory=current_file_factory,
                 filters=filters,
+                treat_as_prop=treat_as_prop,
             )
 
         vfs_config = VfsStructureConfig(

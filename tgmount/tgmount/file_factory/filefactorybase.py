@@ -76,12 +76,12 @@ class FileFactoryBase(FileFactoryProto[T]):
         return list(filter(is_not_none, map(self.try_get, input_items)))
 
     def try_get(
-        self, input_item: Any, treat_as: Optional[list[str]] = None
+        self, input_item: Any, *, treat_as: Optional[list[str]] = None
     ) -> Optional[T]:
         # if input_item in self._cache:
         # return self._cache[input_item]
 
-        if (klass := self.try_get_cls(input_item, treat_as)) is not None:
+        if (klass := self.try_get_cls(input_item, treat_as=treat_as)) is not None:
             msg = klass.try_get(input_item)
             # self._cache[input_item] = msg
 
@@ -91,7 +91,7 @@ class FileFactoryBase(FileFactoryProto[T]):
         return None
 
     def try_get_cls(
-        self, input_item: Any, treat_as: Optional[list[str]] = None
+        self, input_item: Any, *, treat_as: Optional[list[str]] = None
     ) -> Optional[Type[T]]:
         treat_as = none_fallback(treat_as, [])
 
@@ -107,10 +107,10 @@ class FileFactoryBase(FileFactoryProto[T]):
         return None
 
     def get_cls(
-        self, supported_item: T, treat_as: Optional[list[str]] = None
+        self, supported_item: T, *, treat_as: Optional[list[str]] = None
     ) -> Type[T]:
 
-        klass = self.try_get_cls(supported_item, treat_as)
+        klass = self.try_get_cls(supported_item, treat_as=treat_as)
 
         if klass is None:
             raise FileFactoryError(f"{supported_item} is not supported.")
@@ -120,7 +120,7 @@ class FileFactoryBase(FileFactoryProto[T]):
     def get_cls_item(
         self, supported_item: T, *, treat_as: Optional[list[str]] = None
     ) -> FileFactoryItem:
-        class_name = self.get_cls(supported_item, treat_as).__name__
+        class_name = self.get_cls(supported_item, treat_as=treat_as).__name__
         return self._supported[class_name]
 
     def size(

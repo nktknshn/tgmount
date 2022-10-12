@@ -46,20 +46,24 @@ class FileFactoryProto(Protocol[T]):
         ...
 
     @abstractmethod
-    def filename(self, message: T) -> str:
+    def filename(self, message: T, *, treat_as: list[str] | None = None) -> str:
         ...
 
     @abstractmethod
-    def file_content(self, message: T) -> vfs.FileContent:
+    def file_content(
+        self, message: T, *, treat_as: list[str] | None = None
+    ) -> vfs.FileContent:
         ...
 
     @abstractmethod
-    def file(self, message: T, name=None) -> vfs.FileLike:
+    def file(
+        self, message: T, name=None, *, treat_as: list[str] | None = None
+    ) -> vfs.FileLike:
         ...
 
     @abstractmethod
     def try_get(
-        self, message: Message, treat_as: Optional[list[str]] = None
+        self, message: Message, *, treat_as: Optional[list[str]] = None
     ) -> Optional[T]:
         ...
 
@@ -69,8 +73,8 @@ class FileFactoryProto(Protocol[T]):
 
     @measure_time_sync(logger_func=print)
     def filter_supported(
-        self, messages: Iterable[T], treat_as: Optional[list[str]] = None
+        self, messages: Iterable[T], *, treat_as: Optional[list[str]] = None
     ):
-        msgs = [self.try_get(m, treat_as) for m in messages]
+        msgs = [self.try_get(m, treat_as=treat_as) for m in messages]
 
         return frozenset(filter(is_not_none, msgs))

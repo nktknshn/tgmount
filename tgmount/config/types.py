@@ -1,3 +1,4 @@
+from dataclasses import replace
 import yaml
 
 from .root import *
@@ -106,6 +107,9 @@ class Config:
     Root = Root
     Caches = Caches
     Wrappers = Wrappers
+
+    def set_root(self, root_cfg: Mapping) -> "Config":
+        return replace(self, root=replace(self.root, content=root_cfg))
 
     @staticmethod
     def from_dict(d: dict):

@@ -124,9 +124,12 @@ class StorageEntityMixin:
     _storage: "MockedTelegramStorage"
     _entity_id: EntityId
 
+    async def text_messages(self, texts: list[str]):
+        pass
+
     async def message(
         self,
-        message_text: str | None = None,
+        text: str | None = None,
         put=True,
         sender: str | MockedSender | None = None,
     ) -> MockedMessage:
@@ -134,12 +137,14 @@ class StorageEntityMixin:
 
         if sender is not None:
             msg.sender = (
-                MockedSender(username=sender) if isinstance(sender, str) else sender
+                MockedSender(username=sender, id=None)
+                if isinstance(sender, str)
+                else sender
             )
 
-        if message_text is not None:
-            msg.text = message_text
-            msg.message = message_text
+        if text is not None:
+            msg.text = text
+            msg.message = text
 
         if put:
             await self._storage.put_message(msg)
@@ -150,12 +155,14 @@ class StorageEntityMixin:
         self,
         file: str,
         file_name: str | bool = True,
+        text: str | None = None,
         audio=False,
         put=True,
     ) -> MockedMessageWithDocument:
         msg = await self.message(put=False)
         storage_file = await self._storage.create_storage_file(file, file_name)
 
+        msg.text = text
         msg.document = storage_file.get_document()
         msg.file = MockedFile.from_filename(storage_file.name)
 

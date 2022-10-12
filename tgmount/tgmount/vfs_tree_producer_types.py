@@ -1,11 +1,12 @@
 from dataclasses import dataclass
 from typing import Optional, Iterable, Type, Protocol
 
-from telethon.tl.custom import Message
+# from telethon.tl.custom import Message
 from typing import Mapping
 from abc import abstractmethod
 from tgmount.tgclient import MessageSourceSubscribableProto
 from tgmount.tgclient.message_source import Set
+from tgmount.tgclient.message_types import MessageProto
 from tgmount.tgmount.file_factory import FileFactoryProto
 from tgmount.tgmount.filters_types import Filter
 from tgmount.tgmount.types import MessagesSet
@@ -59,7 +60,10 @@ class ProducerConfig:
     # async def on_update(self, source, messages):
     #     self._messages = await self._apply_all_filters(messages)
 
-    async def apply_filters(self, messages: Iterable[Message]) -> MessagesSet:
+    async def produce_file(self, m: MessageProto):
+        return self.factory.file(m, treat_as=self.treat_as_prop)
+
+    async def apply_filters(self, messages: Iterable[MessageProto]) -> MessagesSet:
         for f in self.filters:
             messages = await f.filter(messages)
 
@@ -70,7 +74,9 @@ class ProducerConfig:
         filtered = await self.apply_filters(input_messages)
         return filtered
 
-    async def filter_supported(self, input_messages: Iterable[Message]) -> MessagesSet:
+    async def filter_supported(
+        self, input_messages: Iterable[MessageProto]
+    ) -> MessagesSet:
         print(f"filter_supported")
         return self.factory.filter_supported(input_messages)
 

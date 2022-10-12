@@ -38,7 +38,7 @@ class VfsTreePlainDir(VfsTreeProducerProto):
         self._logger.debug(f"Producing from {len(self._messages)} messages...")
 
         self._message_to_file = {
-            m: self._config.factory.file(m) for m in self._messages
+            m: await self._config.produce_file(m) for m in self._messages
         }
 
         if len(self._message_to_file) > 0:
@@ -61,7 +61,7 @@ class VfsTreePlainDir(VfsTreeProducerProto):
         new_messages_set = await self._config.apply_filters(Set(new_messages))
 
         new_files: list[vfs.FileLike] = [
-            self._config.factory.file(m) for m in new_messages_set
+            await self._config.produce_file(m) for m in new_messages_set
         ]
 
         self._message_to_file.update(

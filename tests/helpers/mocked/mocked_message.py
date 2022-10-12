@@ -113,13 +113,13 @@ class MockedMessage(MessageProto):
         # super().__init__(message_id)
         self.post = True
 
-        self.message = message
-        self.text = message
+        # self.message = message
+        self._text = message
 
         self.id = message_id
         self.chat_id = chat_id
         # self._sender.id =
-        self.sender = None
+        self.sender: MockedSender | None = None
         self.file = file
 
         # self._document = MockedDocument() if file else None
@@ -137,6 +137,22 @@ class MockedMessage(MessageProto):
         self.reactions = reactions
 
         self.storage_document = None
+
+    @property
+    def text(self):
+        return self._text
+
+    @text.setter
+    def text(self, text):
+        self._text = text
+
+    @property
+    def message(self):
+        return self._text
+
+    @message.setter
+    def message(self, text):
+        self._text = text
 
     # @property
     # def id(self):

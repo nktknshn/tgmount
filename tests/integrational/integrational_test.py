@@ -6,6 +6,7 @@ import logging
 import os
 from typing import Any, Iterable, Mapping, TypedDict
 
+import aiofiles
 import pyfuse3
 import pytest
 import pytest_asyncio
@@ -22,6 +23,7 @@ from ..helpers.fixtures import mnt_dir
 from ..helpers.mocked.mocked_client import MockedClientReader, MockedClientWriter
 from ..helpers.mocked.mocked_message import MockedFile, MockedMessage, MockedSender
 from .helpers import *
+from tgmount.util import none_fallback
 
 
 class MockedTgmountBuilderBase(TgmountBuilder):
@@ -100,9 +102,10 @@ class TgmountIntegrationContext:
     MockedTelegramStorage = MockedTelegramStorage
     MockedClientWriter = MockedClientWriter
 
-    def __init__(self, mnt_dir: str) -> None:
+    def __init__(self, mnt_dir: str, default_config=None) -> None:
         self._mnt_dir = mnt_dir
 
+        self._default_config = none_fallback(default_config, create_config())
         self._storage = self.create_storage()
         self._client = self.create_client()
 
@@ -118,8 +121,11 @@ class TgmountIntegrationContext:
     def client(self):
         return self._client
 
+    def set_config(self, config: Config):
+        self._default_config = config
+
     def create_config(self, root: Mapping):
-        return create_config(root=root)
+        return self._default_config.set_root(root)
 
     def create_storage(self):
         return self.MockedTelegramStorage()
@@ -127,14 +133,35 @@ class TgmountIntegrationContext:
     def create_client(self):
         return self.MockedClientWriter(storage=self._storage)
 
-    async def listdir(self, path: str) -> list[str]:
-        return await async_listdir(vfs.path_join(self._mnt_dir, path))
+    def _path(self, path: str) -> str:
+        return vfs.path_join(self._mnt_dir, path)
+
+    async def listdir(self, path: str, full_path=False) -> list[str]:
+
+        return [
+            vfs.path_join(path, f) if full_path else f
+            for f in await async_listdir(self._path(path))
+        ]
 
     async def listdir_len(self, path: str) -> int:
         return len(await self.listdir(path))
 
-    async def listdir_set(self, path: str) -> set[str]:
-        return set(await self.listdir(path))
+    async def listdir_set(self, path: str, full_path=False) -> set[str]:
+        return set(await self.listdir(path, full_path))
+
+    async def read_text(self, path: str) -> str:
+        async with aiofiles.open(self._path(path), "r") as f:
+            return await f.read()
+
+    async def read_bytes(self, path: str) -> bytes:
+        async with aiofiles.open(self._path(path), "rb") as f:
+            return await f.read()
+
+    async def read_texts(self, paths: list[str]) -> list[str]:
+        res = []
+        for p in paths:
+            res.append(await self.read_text(p))
+        return res
 
     def get_root(self, root_cfg: Mapping) -> Mapping:
         return root_cfg
@@ -169,45 +196,50 @@ class TgmountIntegrationContext:
         )
 
 
-class TgmountIntegrationTest(TgmountIntegrationContext, abc.ABC):
-    MockedTelegramStorage = MockedTelegramStorage
-    MockedClientWriter = MockedClientWriter
+async def read_bytes(path: str):
+    async with aiofiles.open(path, "rb") as f:
+        return await f.read()
 
-    @classmethod
-    async def run_test(cls, mnt_dir: str, caplog):
-        await cls(mnt_dir, caplog).run()
 
-    def __init__(self, mnt_dir: str, caplog) -> None:
-        self._caplog = caplog
+# class TgmountIntegrationTest(TgmountIntegrationContext, abc.ABC):
+#     MockedTelegramStorage = MockedTelegramStorage
+#     MockedClientWriter = MockedClientWriter
 
-        self._root = self.get_root()
-        self._storage = self.create_storage()
-        self._client = self.create_client()
-        self._cfg = self.create_config()
+#     @classmethod
+#     async def run_test(cls, mnt_dir: str, caplog):
+#         await cls(mnt_dir, caplog).run()
 
-    @abstractmethod
-    def get_root(self) -> Mapping:
-        ...
+#     def __init__(self, mnt_dir: str, caplog) -> None:
+#         self._caplog = caplog
 
-    @abstractmethod
-    async def prepare_storage(self, storage: MockedTelegramStorage):
-        pass
+#         self._root = self.get_root()
+#         self._storage = self.create_storage()
+#         self._client = self.create_client()
+#         self._cfg = self.create_config()
 
-    @abstractmethod
-    async def test(self, storage: MockedTelegramStorage, client: MockedClientWriter):
-        pass
+#     @abstractmethod
+#     def get_root(self) -> Mapping:
+#         ...
 
-    async def _test(self):
-        await self.test(self._storage, self._client)
+#     @abstractmethod
+#     async def prepare_storage(self, storage: MockedTelegramStorage):
+#         pass
 
-    async def run(self, debug=True):
+#     @abstractmethod
+#     async def test(self, storage: MockedTelegramStorage, client: MockedClientWriter):
+#         pass
 
-        await self.prepare_storage(self._storage)
+#     async def _test(self):
+#         await self.test(self._storage, self._client)
 
-        await _run_test(
-            handle_mount(self._mnt_dir)(self._test),
-            mnt_dir=self._mnt_dir,
-            cfg=self._cfg,
-            storage=self._storage,
-            debug=debug,
-        )
+#     async def run(self, debug=True):
+
+#         await self.prepare_storage(self._storage)
+
+#         await _run_test(
+#             handle_mount(self._mnt_dir)(self._test),
+#             mnt_dir=self._mnt_dir,
+#             cfg=self._cfg,
+#             storage=self._storage,
+#             debug=debug,
+#         )

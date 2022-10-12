@@ -1,6 +1,7 @@
 from typing import TypeVar, Mapping, Optional, Any
 
 from tgmount import config
+from tgmount.config.helpers import type_check
 from tgmount.util import col
 from .filters_types import FilterConfigValue, Filter
 from .root_config_types import RootConfigContext
@@ -89,6 +90,19 @@ class RootProducerPropsReader:
             wrappers.append((wrapper_name, wrapper_arg))
 
         return wrappers
+
+    def read_prop_treat_as(self, d: TgmountRootSource) -> list[str] | None:
+        value = d.get("treat_as")
+
+        if value is None:
+            return
+
+        if isinstance(value, str):
+            return [value]
+        elif isinstance(value, list):
+            return value
+
+        raise config.ConfigError(f"Invalid treat_as value: {value}")
 
     def read_prop_producer(self, d: TgmountRootSource) -> tuple[str, Any] | None:
         _producer_dict = d.get("producer")
