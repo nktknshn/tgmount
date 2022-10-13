@@ -82,9 +82,16 @@ class MockedForward(ForwardProto):
 
 
 class MockedSender(SenderProto):
+    def __repr__(self) -> str:
+        return f"MockedSender({self.username})"
+
     def __init__(self, username: str | None, id: int | None) -> None:
         self.username = username
         self.id = hash(username) if id is None else id
+
+    @staticmethod
+    def create(id: int | None, username: str | None) -> "MockedSender":
+        return MockedSender(username, id)
 
 
 class MockedFile(FileProto):
@@ -120,7 +127,7 @@ class MockedFile(FileProto):
 
 class MockedMessage(MessageProto):
     def __repr__(self) -> str:
-        return f"MockedMessage({self.id}, file={map_none(self.file, lambda f: f.name)})"
+        return f"MockedMessage({self.id}, file={map_none(self.file, lambda f: f.name)}, sender={self.sender})"
 
     def __init__(
         self,

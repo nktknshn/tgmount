@@ -249,7 +249,7 @@ class MessageSourceSimple(MessageSourceSubscribable):
 
         return res
 
-    async def add_messages(self, messages: list[Message]):
+    async def add_messages(self, messages: Iterable[Message]):
         if self._messages is None:
             self._messages = Set()
 
@@ -281,4 +281,9 @@ class MessageSourceSimple(MessageSourceSubscribable):
         if len(removed) > 0 or len(new) > 0:
             self._messages = messages
 
-            await self.notify(self._messages)
+            if len(new) > 0:
+                await self.event_new_messages.notify(new)
+
+            if len(removed) > 0:
+                await self.event_removed_messages.notify(removed)
+            # await self.notify(self._messages)

@@ -9,6 +9,7 @@ from tgmount.tgmount.producers.producer_plain import VfsTreePlainDir
 from tgmount.tgmount.root_config_types import RootConfigContext
 from tgmount.tgmount.tgmount_types import TgmountResources
 from tgmount.tgmount.types import Set
+from tgmount.tgmount.error import TgmountError
 from tgmount.tgmount.vfs_tree_producer_types import ProducerConfig
 from tgmount.util import sanitize_string_for_path
 from tgmount.util.col import sets_difference
@@ -67,8 +68,10 @@ class VfsTreeProducerGrouperBase(abc.ABC):
         return frozenset(self._source_by_name.keys())
 
     async def _add_dir(self, dir_name: str, dir_messages: MessagesSet):
+
         dir_source = self.MessageSource(messages=dir_messages)
         tree_dir = await self._dir.create_dir(dir_name)
+
         self._source_by_name[dir_name] = dir_source
 
         await self.VfsTreeProducer(self._resources).produce(
@@ -83,11 +86,16 @@ class VfsTreeProducerGrouperBase(abc.ABC):
         self._logger.info(f"update_new_messages({list(map(lambda m: m.id, messages))})")
 
         messages = await self._config.apply_filters(frozenset(messages))
+
+        self._logger.debug(f"after filtering left {len(messages)} messages")
+
         grouped, root = await self._group_messages(messages)
 
         removed_dirs, new_dirs, common_dirs = sets_difference(
             self._current_dirs, frozenset(grouped.keys())
         )
+
+        self._logger.debug(f"new_dirs={new_dirs} common_dirs={common_dirs}")
 
         await self._source_root.set_messages(Set(root))
 
@@ -95,8 +103,13 @@ class VfsTreeProducerGrouperBase(abc.ABC):
             await self._add_dir(d, Set(grouped[d]))
 
         for d in common_dirs:
-            _source = self._source_by_name[d]
-            await _source.set_messages(Set(grouped[d]))
+            self._logger.debug(f"updating {d}")
+            _source = self._source_by_name.get(d)
+
+            if _source is None:
+                raise TgmountError(f"Missing source for dir {d}")
+
+            await _source.add_messages(Set(grouped[d]))
 
     async def _update_removed_messages(self, source, removed_messages: list[Message]):
         self._logger.info(

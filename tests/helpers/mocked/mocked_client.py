@@ -1,6 +1,12 @@
+import mimetypes
+import os
+import random
 from dataclasses import dataclass, field
+
+import aiofiles
 import telethon
 import tgmount.tgclient as tg
+from telethon import events, hints
 from tgmount.tgclient.client_types import (
     IterDownloadProto,
     ListenerNewMessages,
@@ -8,18 +14,15 @@ from tgmount.tgclient.client_types import (
     TgmountTelegramClientReaderProto,
     TgmountTelegramClientWriterProto,
 )
+from tgmount.tgclient.guards import MessageWithDocument
 from tgmount.tgclient.types import (
     InputDocumentFileLocation,
     InputPhotoFileLocation,
     TotalListTyped,
 )
-from telethon import events, hints
-import random
-import aiofiles
-import os
 
-from .mocked_message import MockedMessage
-from .mocked_storage import MockedTelegramStorage
+from .mocked_message import MockedMessage, MockedMessageWithDocument, MockedSender
+from .mocked_storage import EntityId, MockedTelegramStorage
 
 Message = telethon.tl.custom.Message
 Document = telethon.types.Document
@@ -61,16 +64,53 @@ class MockedClientReader(TgmountTelegramClientReaderProto):
 
 
 class MockedClientWriter(TgmountTelegramClientWriterProto):
-    def __init__(self, storage: MockedTelegramStorage) -> None:
+    def __init__(self, storage: MockedTelegramStorage, sender=None) -> None:
         self._storage = storage
+        self._sender: MockedSender | None = sender
+
+    def sender(self, sender: str | MockedSender):
+        return MockedClientWriter(
+            self._storage,
+            sender if isinstance(sender, MockedSender) else MockedSender(sender, None),
+        )
 
     async def send_message(
-        self, entity: str, message=None, file=None, force_document=False
+        self,
+        entity: EntityId,
+        message=None,
+        file: str | None = None,
     ) -> Message:
-        return await self._storage.add_message(
-            entity,
-            message_text=message,
+        return await self._storage.get_entity(entity).message(
+            text=message,
+            # file=file,
+            # force_document=force_document,
+        )
+
+    async def send_file(
+        self,
+        entity: EntityId,
+        file: str,
+        *,
+        caption: str | None = None,
+        voice_note: bool = False,
+        video_note: bool = False,
+        force_document=False,
+    ) -> MockedMessageWithDocument:
+
+        video = False
+
+        mtype = mimetypes.guess_type(file)[0]
+
+        if mtype is not None and mtype.startswith("video") and not force_document:
+            video = True
+
+        return await self._storage.get_entity(entity).document(
+            text=caption,
             file=file,
+            voice_note=voice_note,
+            video_note=video_note,
+            video=video,
+            sender=self._sender
             # force_document=force_document,
         )
 

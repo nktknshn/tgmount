@@ -35,6 +35,12 @@ class FixtureFiles:
     music2: str
     music_long: str
 
+    zip_debrecen: str
+    zip_bandcamp: str
+
+    video0: str
+    video1: str
+
 
 @pytest.fixture
 def files():
@@ -48,4 +54,8 @@ def files():
         music1="tests/fixtures/files/music/suffering_hour.mp3",
         music2="tests/fixtures/files/music/dermovyj-raj.mp3",
         music_long="tests/fixtures/files/music/Forlate.mp3",
+        zip_debrecen="tests/fixtures/files/zips/2010_debrecen.zip",
+        zip_bandcamp="tests/fixtures/files/zips/bandcamp1.zip",
+        video0="tests/fixtures/files/videos/000bbadb-b42d-48ac-816f-11c8756487b5.mp4",
+        video1="tests/fixtures/files/videos/video_2022-10-13_15-36-27.mp4",
     )

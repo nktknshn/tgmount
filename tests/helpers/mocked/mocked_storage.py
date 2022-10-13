@@ -193,7 +193,11 @@ class StorageEntityMixin:
         text: str | None = None,
         audio=False,
         image=False,
+        video=False,
         put=True,
+        voice_note=False,
+        video_note=False,
+        gif=False,
     ) -> MockedMessageWithDocument:
         msg = await self.message(put=False, sender=sender, forward=forward)
 
@@ -218,6 +222,18 @@ class StorageEntityMixin:
 
         if audio:
             msg.audio = msg.document
+
+        if gif:
+            msg.gif = msg.document
+
+        if video:
+            msg.video = msg.document
+
+        if voice_note:
+            msg.voice = msg.document
+
+        if video_note:
+            msg.video_note = msg.document
 
         if put:
             await self._storage.put_message(msg)
@@ -307,6 +323,7 @@ class MockedTelegramStorage:
         self._entities: dict[EntityId, StorageEntity] = {}
         self._entity_by_id: dict[int, StorageEntity] = {}
 
+        self._files_cache: dict[str, bytes] = {}
         self._files = Files()
 
         self._subscriber_per_entity_new: dict[EntityId, list[ListenerNewMessages]] = {}
@@ -352,8 +369,13 @@ class MockedTelegramStorage:
     #     pass
 
     async def _read_file(self, file_path: str) -> bytes:
+
+        if file_path in self._files_cache:
+            return self._files_cache[file_path]
+
         async with aiofiles.open(file=file_path, mode="rb") as f:
-            return await f.read()
+            self._files_cache[file_path] = await f.read()
+            return self._files_cache[file_path]
 
     async def _add_file(self, file_bytes: bytes, file_name: str):
         return self._files.add_file(file_bytes=file_bytes, file_name=file_name)

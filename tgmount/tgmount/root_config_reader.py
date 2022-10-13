@@ -15,6 +15,7 @@ T = TypeVar("T")
 
 class TgmountConfigReader(RootProducerPropsReader):
     logger = tglog.getLogger("TgmountConfigReader()")
+    logger.setLevel(logging.ERROR)
 
     DEFAULT_PRODUCER_NAME = "PlainDir"
 
