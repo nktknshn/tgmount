@@ -1,26 +1,8 @@
-from abc import abstractmethod
-from typing import (
-    Any,
-    Awaitable,
-    Callable,
-    Generic,
-    Iterable,
-    Optional,
-    Protocol,
-    TypeVar,
-)
-
-from telethon import events
-from telethon.tl.custom import Message
+from typing import Callable, Generic, Iterable, Optional, TypeVar
 
 from tgmount import tglog
-from tgmount.tgclient.client_types import (
-    TgmountTelegramClientEventProto,
-    TgmountTelegramClientReaderProto,
-)
-from tgmount.util import none_fallback, sets_difference
-from tgmount.tgmount.types import Set, MessagesSet
-from .client import TgmountTelegramClient
+from tgmount.tgmount.types import Set
+from tgmount.util import sets_difference
 
 from .message_source_types import MessageSourceSubscribableProto, Subscribable
 
@@ -48,11 +30,13 @@ class MessageSourceSimple(MessageSourceSubscribableProto, Generic[M]):
 
     async def _filter_messages(self, messages: Iterable[M]) -> list[M]:
         res = []
+
         for m in messages:
             for f in self._filters:
                 if not f(m):
                     break
-            res.append(m)
+            else:
+                res.append(m)
 
         return res
 
@@ -100,7 +84,7 @@ class MessageSourceSimple(MessageSourceSubscribableProto, Generic[M]):
             await self.event_new_messages.notify(_set)
             return
 
-        removed, new, common = sets_difference(self._messages, messages)  # type: ignore
+        removed, new, common = sets_difference(self._messages, _set)  # type: ignore
 
         if len(removed) > 0 or len(new) > 0:
             self._messages = messages

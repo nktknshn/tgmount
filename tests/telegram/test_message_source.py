@@ -53,7 +53,6 @@ async def test_simple_source():
         listener.reset()
 
         await source.set_messages(Set({3, 4, 5}))
-
         assert listener.new_messages == [{4, 5}]
         assert listener.removed_messages == [{1, 2}]
         listener.reset()
@@ -76,3 +75,25 @@ async def test_simple_source_2():
         await source.set_messages(Set({1, 2, 3, 4}))
 
         assert listener.new_messages == [{1, 2, 3, 4}]
+
+
+@pytest.mark.asyncio
+async def test_simple_source_3():
+    source = MessageSourceSimple[int]()
+
+    source.add_filter(lambda n: n % 2 == 0)
+
+    async with EventsListener(source) as listener:
+        await source.set_messages(Set({1, 2, 3, 4}))
+        assert listener.new_messages == [{2, 4}]
+
+
+@pytest.mark.asyncio
+async def test_simple_source_4():
+    source = MessageSourceSimple[int]()
+
+    source.add_filter(lambda n: n % 2 == 0)
+
+    async with EventsListener(source) as listener:
+        await source.add_messages(Set({1, 2, 3, 4}))
+        assert listener.new_messages == [{2, 4}]

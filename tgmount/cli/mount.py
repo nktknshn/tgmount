@@ -8,8 +8,8 @@ import yaml
 
 from tgmount.config import Config, ConfigValidator
 from tgmount.controlserver import ControlServer
-from tgmount.tgmount import TgmountBuilder
-from tgmount.tgmount import TgmountError
+from tgmount.tgmount.builder import TgmountBuilder
+from tgmount.tgmount.error import TgmountError
 from .logger import logger
 
 

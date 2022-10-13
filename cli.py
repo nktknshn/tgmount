@@ -4,7 +4,7 @@ import sys
 import argparse
 from typing import Optional, TypedDict
 from tgmount.tgclient import TgmountTelegramClient
-from tgmount.tgmount import TgmountError
+from tgmount.tgmount.error import TgmountError
 from tgmount.cli.util import read_os_env, parse_tgapp_str
 from tgmount import cli
 from tgmount.cli.util import get_tgapp_and_session, ClientEnv

@@ -81,49 +81,49 @@ by-sender: &by-sender
       dir_structure:
         <<: *ogranized
 message_sources:
-  # ru2chmu:
-  #   entity: ru2chmu
-  #   limit: *count
-  #   reverse: False
-  #   updates: True
-  # ru_python:
-  #   entity: ru_python
-  #   limit: *count
-  # NappingCat:
-  #   entity: NappingCat
-  #   limit: *count
-  # ts_cool:
-  #   entity: ts_cool
-  #   limit: *count
-  # ru_python_beginners:
-  #   entity: ru_python_beginners
-  #   limit: *count
+  ru2chmu:
+    entity: ru2chmu
+    limit: *count
+    reverse: False
+    updates: True
+  ru_python:
+    entity: ru_python
+    limit: *count
+  NappingCat:
+    entity: NappingCat
+    limit: *count
+  ts_cool:
+    entity: ts_cool
+    limit: *count
+  ru_python_beginners:
+    entity: ru_python_beginners
+    limit: *count
   my-mount:
     entity: -1001678896566
   tmtc:
     entity: tgmounttestingchannel
     # filter: InputMessagesFilterMusic
 root:
-  # ru2chmu:
-  #   source: { source: ru2chmu, recursive: True }
-  #   <<: *ogranized
-  #   by-sender: *by-sender
-  # ru_python_beginners:
-  #   source: { source: ru_python_beginners, recursive: True }
-  #   <<: *ogranized
-  #   by-sender: *by-sender
-  # ru_python:
-  #   source: { source: ru_python, recursive: True }
-  #   <<: *ogranized
-  #   by-sender: *by-sender
-  # ts_cool:
-  #   source: { source: ts_cool, recursive: True }
-  #   <<: *ogranized
-  #   by-sender: *by-sender
-  # NappingCat_Chat:
-  #   source: { source: NappingCat, recursive: True }
-  #   <<: *ogranized
-  #   by-sender: *by-sender
+  ru2chmu:
+    source: { source: ru2chmu, recursive: True }
+    <<: *ogranized
+    by-sender: *by-sender
+  ru_python_beginners:
+    source: { source: ru_python_beginners, recursive: True }
+    <<: *ogranized
+    by-sender: *by-sender
+  ru_python:
+    source: { source: ru_python, recursive: True }
+    <<: *ogranized
+    by-sender: *by-sender
+  ts_cool:
+    source: { source: ts_cool, recursive: True }
+    <<: *ogranized
+    by-sender: *by-sender
+  NappingCat_Chat:
+    source: { source: NappingCat, recursive: True }
+    <<: *ogranized
+    by-sender: *by-sender
   tmtc:
     source: { source: tmtc, recursive: True }
     <<: *ogranized

@@ -1,7 +1,4 @@
-from collections import defaultdict
-from dataclasses import dataclass
-from typing import _TypedDict, DefaultDict, Optional, TypedDict
-import tgmount.tgclient as tg
+from typing import TypedDict
 from tgmount.tgclient.client_types import (
     IterDownloadProto,
     ListenerNewMessages,

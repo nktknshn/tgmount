@@ -6,9 +6,9 @@ import tgmount
 from tests.helpers.mocked.mocked_storage import StorageEntity
 from tests.integrational.helpers import create_config, mdict
 from tgmount.tgmount.producers.producer_by_sender import VfsTreeDirBySender
-from .fixtures import *
+from .fixtures import mnt_dir, files, FixtureFiles, Context
 from ..helpers.mocked.mocked_message import MockedSender
-
+import pytest_asyncio
 from tgmount.tgclient.guards import MessageWithDocument, MessageWithVideo
 
 BY_SENDER_STRUCTURE = {
@@ -19,11 +19,25 @@ BY_SENDER_STRUCTURE = {
 }
 
 
-@pytest.mark.asyncio
-async def test_producer_by_sender_1(
-    ctx: Context,
+class _TestContext(Context):
+    expected_dirs: dict
+    senders: dict[str, list]
+
+
+@pytest.fixture
+def ctx(mnt_dir: str):
+    return _TestContext(mnt_dir)
+
+
+@pytest.fixture
+def source1(ctx):
+    return ctx.storage.get_entity("source1")
+
+
+@pytest_asyncio.fixture
+async def prepared_ctx(
+    ctx: _TestContext,
     source1: StorageEntity,
-    source2: StorageEntity,
     files: FixtureFiles,
 ):
     SENDERS = 5
@@ -76,24 +90,80 @@ async def test_producer_by_sender_1(
             )
             messages.append(msg)
 
+    ctx.set_config(config)
+    ctx.expected_dirs = expected_dirs
+    ctx.senders = senders
+
+    return ctx
+
+
+@pytest.mark.asyncio
+async def test_producer_by_sender_1(
+    prepared_ctx: _TestContext,
+    source1: StorageEntity,
+    files: FixtureFiles,
+):
+    expected_dirs = prepared_ctx.expected_dirs
+    senders = prepared_ctx.senders
+
     async def test():
-        assert await ctx.listdir_set("/") == set(expected_dirs.values())
+        assert await prepared_ctx.listdir_set("/") == set(expected_dirs.values())
 
         for dir_name in expected_dirs.values():
-            assert await ctx.listdir_set(dir_name) == {"all", "texts", "docs", "video"}
-            assert await ctx.listdir_len(dir_name, "all") == 199
-            assert await ctx.listdir_len(dir_name, "texts") == 166
-            assert await ctx.listdir_len(dir_name, "docs") == 99
-            assert await ctx.listdir_len(dir_name, "video") == 0
+            assert await prepared_ctx.listdir_set(dir_name) == {
+                "all",
+                "texts",
+                "docs",
+                "video",
+            }
+            assert await prepared_ctx.listdir_len(dir_name, "all") == 199
+            assert await prepared_ctx.listdir_len(dir_name, "texts") == 166
+            assert await prepared_ctx.listdir_len(dir_name, "docs") == 99
+            assert await prepared_ctx.listdir_len(dir_name, "video") == 0
+
+    # prepared_ctx.debug = True
+    await prepared_ctx.run_test(test)
+
+
+@pytest.mark.asyncio
+async def test_producer_by_sender_update(
+    prepared_ctx: _TestContext,
+    source1: StorageEntity,
+    files: FixtureFiles,
+):
+    expected_dirs = prepared_ctx.expected_dirs
+    senders = prepared_ctx.senders
 
     async def test_update():
-        sender = next(iter(senders.keys()))
-        msg = await ctx.client.sender(sender).send_file(
+        _iter = iter(senders.keys())
+        sender = next(_iter)
+        sender2 = next(_iter)
+
+        msg = await prepared_ctx.client.sender(sender).send_file(
             source1.entity_id, file=files.video0
         )
         assert MessageWithVideo.guard(msg)
-        assert await ctx.listdir_len(expected_dirs[sender], "video") == 1
+        assert await prepared_ctx.listdir_len(expected_dirs[sender], "video") == 1
 
-    # ctx.debug = True
-    await ctx.run_test(test, config)
-    await ctx.run_test(test_update, config)
+        await prepared_ctx.client.delete_messages(source1.entity_id, msg_ids=[msg.id])
+
+        assert await prepared_ctx.listdir_len(expected_dirs[sender], "video") == 0
+
+        for m in senders[sender]:
+            await prepared_ctx.client.delete_messages(source1.entity_id, msg_ids=[m.id])
+
+        assert await prepared_ctx.listdir_set("/") == set(expected_dirs.values()) - {
+            expected_dirs[sender]
+        }
+
+        # for m in senders[sender]:
+        await prepared_ctx.client.delete_messages(
+            source1.entity_id, msg_ids=[m.id for m in senders[sender2]]
+        )
+
+        assert await prepared_ctx.listdir_set("/") == set(expected_dirs.values()) - {
+            expected_dirs[sender]
+        } - {expected_dirs[sender2]}
+
+    # prepared_ctx.debug = True
+    await prepared_ctx.run_test(test_update)

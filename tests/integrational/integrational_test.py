@@ -206,11 +206,12 @@ class TgmountIntegrationContext:
     async def run_test(
         self,
         test_func: Callable[[], Awaitable[Any]],
-        cfg_or_root: config.Config | Mapping,
+        cfg_or_root: config.Config | Mapping | None = None,
         debug=None,
     ):
         _debug = self.debug
         self.debug = none_fallback(debug, self.debug)
+        cfg_or_root = none_fallback(cfg_or_root, self._default_config)
 
         await _run_test(
             handle_mount(self.mnt_dir)(test_func),

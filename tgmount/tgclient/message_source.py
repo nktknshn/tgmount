@@ -35,7 +35,7 @@ from .message_source_simple import MessageSourceSimple
 
 class TelegramMessageSource(MessageSourceSimple[Message]):
     logger = tglog.getLogger("TelegramMessageSource")
-    logger.setLevel(logging.ERROR)
+    # logger.setLevel(logging.ERROR)
 
     def __init__(
         self,
@@ -46,10 +46,10 @@ class TelegramMessageSource(MessageSourceSimple[Message]):
         self._client = client
         self._chat_id = chat_id
         self._limit = limit
+        super().__init__()
 
         self._logger = TelegramMessageSource.logger.getChild(f"({self._chat_id})")
 
-        super().__init__()
         self.subscribe_to_client()
 
     def subscribe_to_client(self):

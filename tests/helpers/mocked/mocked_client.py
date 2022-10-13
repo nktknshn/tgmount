@@ -117,5 +117,5 @@ class MockedClientWriter(TgmountTelegramClientWriterProto):
             # force_document=force_document,
         )
 
-    async def delete_messages(self, entity: str, *, msg_ids: list[int]):
+    async def delete_messages(self, entity: EntityId, *, msg_ids: list[int]):
         return await self._storage.delete_messages(entity, msg_ids=msg_ids)

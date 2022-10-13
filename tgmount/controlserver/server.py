@@ -3,7 +3,7 @@ import json
 import os
 import tempfile
 
-from tgmount.tgmount import TgmountBase
+from tgmount.tgmount.tgmountbase import TgmountBase
 
 SOCKET_DIR = tempfile.gettempdir()
 SOCKET_FILE_NAME = "tgmount.socket"
