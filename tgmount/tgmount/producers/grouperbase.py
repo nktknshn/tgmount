@@ -50,13 +50,17 @@ class VfsTreeProducerGrouperBase(abc.ABC):
 
         self._logger = tglog.getLogger(f"VfsTreeProducerGrouperBase({self._dir.path})")
 
+    @classmethod
+    def sanitize(cls, dirname: str):
+        return sanitize_string_for_path(dirname)
+
     @abc.abstractmethod
     async def group_messages(self, messages: Iterable[Message]) -> GroupedMessages:
         ...
 
     async def _group_messages(self, messages: Iterable[Message]) -> GroupedMessages:
         group, root = await self.group_messages(messages)
-        return {sanitize_string_for_path(k): v for k, v in group.items()}, root
+        return {self.sanitize(k): v for k, v in group.items()}, root
 
     @property
     def _current_dirs(self) -> Set[str]:

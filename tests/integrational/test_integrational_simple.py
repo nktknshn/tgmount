@@ -94,10 +94,8 @@ async def test_filtered(caplog, ctx, source1: StorageEntity):
     await source1.message(text="hello2")
     await source1.message(text="hello3")
 
-    await source1.document_file_message(
-        text="hello4", file="tests/fixtures/2010_debrecen.zip"
-    )
-    await source1.document_file_message(file="tests/fixtures/2010_debrecen.zip")
+    await source1.document(text="hello4", file="tests/fixtures/2010_debrecen.zip")
+    await source1.document(file="tests/fixtures/2010_debrecen.zip")
 
     async def test_without_treat_as():
         assert await ctx.listdir_set("/") == set({"source1"})

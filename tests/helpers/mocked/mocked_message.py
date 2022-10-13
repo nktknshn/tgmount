@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from typing import overload
 import telethon
 import tgmount.tgclient as tg
 
@@ -49,6 +50,37 @@ class MockedDocument(DocumentProto):
 #         return os.path.splitext(self._name)[1]
 
 
+@dataclass
+class MockedForward(ForwardProto):
+    from_id: int
+    is_channel: bool
+    is_group: bool
+    from_name: str | None = None
+
+    async def get_chat(self):
+        pass
+
+    @overload
+    @staticmethod
+    def create(
+        from_id: int, from_name: str | None, is_channel=False, is_group=False
+    ) -> "MockedForward":
+        ...
+
+    @overload
+    @staticmethod
+    def create(
+        from_id: None, from_name: str, is_channel=False, is_group=False
+    ) -> "MockedForward":
+        ...
+
+    @staticmethod
+    def create(from_id, from_name, is_channel=False, is_group=False) -> "MockedForward":
+        if from_id is None:
+            from_id = hash(from_name)
+        return MockedForward(from_id, is_channel, is_group, from_name)
+
+
 class MockedSender(SenderProto):
     def __init__(self, username: str | None, id: int | None) -> None:
         self.username = username
@@ -88,7 +120,7 @@ class MockedFile(FileProto):
 
 class MockedMessage(MessageProto):
     def __repr__(self) -> str:
-        return f"MockedMessage({self.id}, file={map_none(self.file, lambda f: f.ext)})"
+        return f"MockedMessage({self.id}, file={map_none(self.file, lambda f: f.name)})"
 
     def __init__(
         self,

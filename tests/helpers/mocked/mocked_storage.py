@@ -23,6 +23,7 @@ from tgmount.util import map_none, none_fallback, random_int, none_fallback_lazy
 from .mocked_message import (
     MockedDocument,
     MockedFile,
+    MockedForward,
     MockedMessage,
     MockedMessageWithDocument,
     MockedSender,
@@ -142,13 +143,13 @@ class StorageEntityMixin:
         res = []
         for f in files:
             if isinstance(f, str):
-                res.append(await self.document_file_message(filepath_or_document=f))
+                res.append(await self.document(file=f))
             else:
                 res.append(
-                    await self.document_file_message(
-                        filepath_or_document=f["file"],
-                        text=f.get('text'),
-                        image=bool(f.get('image')),
+                    await self.document(
+                        file=f["file"],
+                        text=f.get("text"),
+                        image=bool(f.get("image")),
                     )
                 )
         return res
@@ -158,6 +159,7 @@ class StorageEntityMixin:
         text: str | None = None,
         put=True,
         sender: str | MockedSender | None = None,
+        forward: str | MockedForward | None = None,
     ) -> MockedMessage:
         msg = self._storage.init_message(self._entity_id)
 
@@ -167,31 +169,36 @@ class StorageEntityMixin:
                 if isinstance(sender, str)
                 else sender
             )
+        if forward is not None:
+            if isinstance(forward, MockedForward):
+                msg.forward = forward
+            else:
+                msg.forward = MockedForward.create(None, forward)
 
         if text is not None:
             msg.text = text
-            msg.message = text
 
         if put:
             await self._storage.put_message(msg)
 
         return msg
 
-    async def document_file_message(
+    async def document(
         self,
-        filepath_or_document: str | DocumentProto,
+        file: str | DocumentProto,
+        *,
+        sender: str | MockedSender | None = None,
+        forward: str | MockedForward | None = None,
         file_name: str | bool = True,
         text: str | None = None,
         audio=False,
         image=False,
         put=True,
     ) -> MockedMessageWithDocument:
-        msg = await self.message(put=False)
+        msg = await self.message(put=False, sender=sender, forward=forward)
 
-        if isinstance(filepath_or_document, str):
-            storage_file = await self._storage.create_storage_file(
-                filepath_or_document, file_name
-            )
+        if isinstance(file, str):
+            storage_file = await self._storage.create_storage_file(file, file_name)
             msg.document = storage_file.get_document()
 
             if image:
@@ -199,12 +206,12 @@ class StorageEntityMixin:
                     telethon.types.DocumentAttributeImageSize(100, 100)
                 )
         else:
-            storage_file = self._storage.files.get_file(filepath_or_document.id)
+            storage_file = self._storage.files.get_file(file.id)
 
             if storage_file is None:
-                raise Exception(f"Missing file with id {filepath_or_document.id}")
+                raise Exception(f"Missing file with id {file.id}")
 
-            msg.document = filepath_or_document
+            msg.document = file
 
         msg.text = text
         msg.file = MockedFile.from_filename(storage_file.name)
@@ -225,10 +232,11 @@ class StorageEntityMixin:
         duration: int,
         text: str | None = None,
         file_name: str | bool = True,
+        sender: str | MockedSender | None = None,
         put=True,
     ):
-        msg = await self.document_file_message(
-            file, file_name, text=text, audio=True, put=False
+        msg = await self.document(
+            file, file_name=file_name, text=text, audio=True, sender=sender, put=False
         )
         msg.file.performer = performer
         msg.file.title = title

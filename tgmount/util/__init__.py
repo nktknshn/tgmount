@@ -37,7 +37,7 @@ def sanitize_string_for_path(name: str) -> str:
     name = name.replace("/", "")
 
     if len(name) > 0 and name[0] == "-":
-        name = "~" + name[1:]
+        name = "_" + name[1:]
 
     return name
 

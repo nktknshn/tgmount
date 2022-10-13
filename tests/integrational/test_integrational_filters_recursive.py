@@ -27,7 +27,7 @@ async def test_recursive_filter_1(
 
     # await source1.text_messages(texts=["hello1", "hello2"])
 
-    msg0 = await source1.document_file_message(
+    msg0 = await source1.document(
         text="document1", file="tests/fixtures/Hummingbird.jpg"
     )
 
@@ -55,7 +55,7 @@ async def test_recursive_filter_2(
         },
     )
 
-    msg0 = await source1.document_file_message(
+    msg0 = await source1.document(
         text="document1", file="tests/fixtures/Hummingbird.jpg"
     )
     await source1.text_messages(texts=["hello1", "hello2"])
@@ -86,11 +86,11 @@ async def test_recursive_filter_3(
         },
     )
 
-    msg0 = await source1.document_file_message(
+    msg0 = await source1.document(
         text="Hummingbird", file="tests/fixtures/Hummingbird.jpg"
     )
 
-    await source1.document_file_message(text="same document", file=msg0.document)
+    await source1.document(text="same document", file=msg0.document)
 
     await source1.text_messages(texts=["hello1", "hello2"])
 
@@ -133,11 +133,9 @@ async def test_recursive_filter_4(
         },
     )
 
-    msg0 = await source1.document_file_message(
-        text="Hummingbird", file=files.Hummingbird
-    )
+    msg0 = await source1.document(text="Hummingbird", file=files.Hummingbird)
 
-    await source1.document_file_message(text="same document", file=msg0.document)
+    await source1.document(text="same document", file=msg0.document)
 
     await source1.text_messages(texts=["hello1", "hello2"])
 
@@ -218,13 +216,11 @@ async def test_recursive_filter_5(
         },
     )
 
-    msg0 = await source1.document_file_message(
-        text="Hummingbird", file=files.Hummingbird
-    )
+    msg0 = await source1.document(text="Hummingbird", file=files.Hummingbird)
 
-    await source1.document_file_message(text="same document", file=msg0.document)
+    await source1.document(text="same document", file=msg0.document)
     await source1.text_messages(texts=["hello1", "hello2"])
-    await source1.document_file_message(
+    await source1.document(
         text="Artist1_song1", file=files.music0, file_name="Artist1_song1.mp3"
     )
 
@@ -313,12 +309,12 @@ async def test_filters_1(
         },
     )
 
-    await source1.document_file_message(file=files.Hummingbird)
-    await source1.document_file_message(file=files.picture0)
-    await source1.document_file_message(file=files.picture1)
-    await source1.document_file_message(file=files.music0)
-    await source1.document_file_message(file=files.music1)
-    await source1.document_file_message(file=files.music2)
+    await source1.document(file=files.Hummingbird)
+    await source1.document(file=files.picture0)
+    await source1.document(file=files.picture1)
+    await source1.document(file=files.music0)
+    await source1.document(file=files.music1)
+    await source1.document(file=files.music2)
 
     async def test():
         assert await ctx.listdir_set("/source1") == set()

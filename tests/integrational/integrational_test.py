@@ -146,21 +146,21 @@ class TgmountIntegrationContext:
     def create_client(self):
         return self.MockedClientWriter(storage=self._storage)
 
-    def _path(self, path: str) -> str:
-        return vfs.path_join(self._mnt_dir, path)
+    def _path(self, *path: str) -> str:
+        return vfs.path_join(self._mnt_dir, *path)
 
-    async def listdir(self, path: str, full_path=False) -> list[str]:
+    async def listdir(self, *path: str, full_path=False) -> list[str]:
 
         return [
-            vfs.path_join(path, f) if full_path else f
-            for f in await async_listdir(self._path(path))
+            vfs.path_join(*path, f) if full_path else f
+            for f in await async_listdir(self._path(*path))
         ]
 
-    async def listdir_len(self, path: str) -> int:
-        return len(await self.listdir(path))
+    async def listdir_len(self, *path: str) -> int:
+        return len(await self.listdir(*path))
 
-    async def listdir_set(self, path: str, full_path=False) -> set[str]:
-        return set(await self.listdir(path, full_path))
+    async def listdir_set(self, *path: str, full_path=False) -> set[str]:
+        return set(await self.listdir(*path, full_path=full_path))
 
     async def listdir_recursive(self, path: str) -> set[str]:
         res = []
