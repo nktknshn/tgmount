@@ -23,6 +23,24 @@ Client = tg.TgmountTelegramClient
 random_int = lambda max: lambda: int(max * random.random())
 
 
+class GlobalIds:
+    STARTING_ID = 0
+
+    def __init__(self) -> None:
+        self.ids: dict[str, int] = {}
+
+    def get_new_id(self, idid: str):
+        if idid not in self.ids:
+            self.ids[idid] = self.STARTING_ID
+
+        res = self.ids[idid]
+        self.ids[idid] += 1
+        return res
+
+
+global_ids = GlobalIds()
+
+
 @dataclass
 class MockedDocument(DocumentProto):
     size: int

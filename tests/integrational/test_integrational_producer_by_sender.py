@@ -87,17 +87,13 @@ async def test_producer_by_sender_1(
             assert await ctx.listdir_len(dir_name, "video") == 0
 
     async def test_update():
-        # assert await ctx.listdir_set("/") == set(expected_dirs.values())
         sender = next(iter(senders.keys()))
-
         msg = await ctx.client.sender(sender).send_file(
             source1.entity_id, file=files.video0
         )
-
         assert MessageWithVideo.guard(msg)
-
         assert await ctx.listdir_len(expected_dirs[sender], "video") == 1
 
-    ctx.debug = True
+    # ctx.debug = True
     await ctx.run_test(test, config)
     await ctx.run_test(test_update, config)

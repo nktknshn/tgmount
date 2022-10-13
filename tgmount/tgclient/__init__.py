@@ -5,6 +5,10 @@ from .message_source import (
     MessageSourceProto,
     MessageSourceSubscribableProto,
 )
+
+from .message_source_simple import MessageSourceSimple
+
+
 from .search.search import TelegramSearch
 from .types import (
     InputDocumentFileLocation,

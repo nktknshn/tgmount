@@ -1,14 +1,15 @@
 import abc
-from typing import Iterable, Mapping, Set, TypeVar
+from typing import Iterable, Mapping, TypeVar
 
 import pathvalidate
 from telethon.tl.custom import Message
 from tgmount import tglog
-from tgmount.tgclient.message_source import MessageSourceSimple, MessagesSet
+from tgmount.tgclient.message_source_simple import MessageSourceSimple
+from tgmount.tgclient.message_types import MessageProto
 from tgmount.tgmount.producers.producer_plain import VfsTreePlainDir
 from tgmount.tgmount.root_config_types import RootConfigContext
 from tgmount.tgmount.tgmount_types import TgmountResources
-from tgmount.tgmount.types import Set
+from tgmount.tgmount.types import Set, MessagesSet
 from tgmount.tgmount.error import TgmountError
 from tgmount.tgmount.vfs_tree_producer_types import ProducerConfig
 from tgmount.util import sanitize_string_for_path
@@ -30,7 +31,7 @@ class VfsTreeProducerGrouperBase(abc.ABC):
 
     DEFAULT_ROOT_CONFIG: Mapping = {"filter": "All"}
     VfsTreeProducer = VfsTreeProducer
-    MessageSource = MessageSourceSimple
+    MessageSource = MessageSourceSimple[MessageProto]
 
     def __init__(
         self,

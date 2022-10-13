@@ -30,6 +30,9 @@ Client = tg.TgmountTelegramClient
 
 
 class MockedClientReader(TgmountTelegramClientReaderProto):
+    def __repr__(self) -> str:
+        return f"MockedClientReader()"
+
     def __init__(self, storage: MockedTelegramStorage) -> None:
         self._storage = storage
 
