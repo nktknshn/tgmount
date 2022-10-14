@@ -43,8 +43,8 @@ async def main_function(
     tglog.init_logging(debug)
     test_logger = tglog.getLogger("main_test1")
 
-    tglog.getLogger("FileSystemOperations()").setLevel(logging.ERROR)
-    logging.getLogger("telethon").setLevel(logging.DEBUG)
+    # tglog.getLogger("FileSystemOperations()").setLevel(logging.ERROR)
+    # logging.getLogger("telethon").setLevel(logging.DEBUG)
 
     test_logger.debug("Building...")
     builder = MockedTgmountBuilderBase(storage=storage)
@@ -64,8 +64,8 @@ async def main_function(
 
 
 async def run_test(mount_coro, test_coro):
-    mount_task = asyncio.create_task(mount_coro)
-    test_task = asyncio.create_task(test_coro)
+    mount_task = asyncio.create_task(mount_coro, name="mount_task")
+    test_task = asyncio.create_task(test_coro, name="test_task")
 
     done, pending = await asyncio.wait(
         [mount_task, test_task],
@@ -120,7 +120,7 @@ class TgmountIntegrationContext:
         self._debug = value
 
         if self._caplog is not None:
-            self._caplog.setLevel(logging.DEBUG if value else logging.CRITICAL)
+            self._caplog.set_level(logging.DEBUG if value else logging.CRITICAL)
 
     @property
     def storage(self):

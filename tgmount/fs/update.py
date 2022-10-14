@@ -73,18 +73,31 @@ class FileSystemOperationsUpdatable(FileSystemOperations):
             await self._invalidate_children_by_path([k], v.inode)
             pyfuse3.invalidate_entry_async(v.inode, k)
 
+    def _remove_from_handles(self, item: RegistryItem):
+        # self._handles
+        # self.logger.debug(f"_remove_from_handles({self._handles.stats()})")
+
+        fh = self._handles.get_by_item(item)
+
+        self.logger.debug(f"_remove_from_handles({fh})")
+
+        if fh is None:
+            return
+
+        self._handles.release_fh(fh)
+
     async def update(self, update: FileSystemOperationsUpdate):
         for path, dir_like_or_content in update.update_dir_content.items():
             item = self.inodes.get_by_path(path)
 
             if item is None:
-                self._logger.info(
+                self.logger.debug(
                     f"on_update: update_dir_content: {path} is not in inodes"
                 )
                 continue
 
             if not isinstance(item.data.structure_item, vfs.DirLike):
-                self._logger.error(
+                self.logger.error(
                     f"on_update: update_dir_content: {path} is not a folder"
                 )
                 continue
@@ -96,7 +109,7 @@ class FileSystemOperationsUpdatable(FileSystemOperations):
             parent_item = self.inodes.get_by_path(parent_path)
 
             if parent_item is None:
-                self._logger.info(
+                self.logger.debug(
                     f"on_update: new_files: {parent_path} is not in inodes"
                 )
                 continue
@@ -112,7 +125,7 @@ class FileSystemOperationsUpdatable(FileSystemOperations):
             parent_item = self.inodes.get_by_path(parent_path)
 
             if parent_item is None:
-                self._logger.info(f"on_update: new_files: {path} is not in inodes")
+                self.logger.debug(f"on_update: new_files: {path} is not in inodes")
                 continue
 
             if not self.inodes.was_content_read(parent_item):
@@ -128,7 +141,7 @@ class FileSystemOperationsUpdatable(FileSystemOperations):
         for path in update.removed_files:
             item = self.inodes.get_by_path(path)
             if item is None:
-                self._logger.info(
+                self.logger.debug(
                     f"on_update: update_dir_content: {path} is not in inodes"
                 )
                 continue
@@ -142,7 +155,7 @@ class FileSystemOperationsUpdatable(FileSystemOperations):
         for path in update.removed_dir_contents:
             item = self.inodes.get_by_path(path)
             if item is None:
-                self._logger.info(
+                self.logger.debug(
                     f"on_update: update_dir_content: {path} is not in inodes"
                 )
                 continue
@@ -155,14 +168,23 @@ class FileSystemOperationsUpdatable(FileSystemOperations):
             await self._remove_item(item)
 
     async def _remove_item(self, item: FileSystemOperations.FsRegistryItem):
-        self._removed_items.append(item)
-        return await self._remove_item_by_inode(item.inode)
+        self.logger.debug(f"Remove item: {item}")
+        # self._removed_items.append(item)
+
+        removed = await self._remove_item_by_inode(item.inode)
+
+        if removed is None:
+            return
+
+        for i in removed:
+            self._remove_from_handles(i)
 
     async def _remove_item_by_inode(self, inode: int):
         # async with self._update_lock:
+
         result = self.inodes.remove_item_with_children(inode)
 
-        self._logger.info(
+        self.logger.info(
             f"_remove_item_by_inode({inode} ({self.inodes.get_item_path(inode)})) -> {result}"
         )
         return result

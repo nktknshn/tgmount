@@ -3,8 +3,9 @@ from typing import Mapping
 from telethon.tl.custom import Message
 
 from tgmount import tgclient, tglog
-from tgmount.tgclient.message_source import Subscribable
+from tgmount.tgclient.message_source_types import Subscribable
 from tgmount.tgmount.providers.provider_sources import SourcesProvider
+from tgmount.tgmount.types import Set
 from tgmount.tgmount.vfs_tree import VfsTree
 from tgmount.tgmount.vfs_tree_types import TreeEventType
 
@@ -40,10 +41,10 @@ class SourcesProviderMessageSource(
 
         self._logger = tglog.getLogger(f"AccumulatingMessageSource()")
 
-    async def get_messages(self) -> list[Message]:
+    async def get_messages(self) -> Set[Message]:
         return await self._wrapped_source.get_messages()
 
-    async def update_new_message(self, source, messages: list[Message]):
+    async def update_new_message(self, source, messages: Set[Message]):
 
         _events = []
 
@@ -64,7 +65,7 @@ class SourcesProviderMessageSource(
         await self.accumulated_updates.notify(_events)
         self._logger.info(f"Done dispatching events")
 
-    async def removed_messages(self, source, messages: list[Message]):
+    async def removed_messages(self, source, messages: Set[Message]):
         self._logger.debug("removed_messages")
 
         _updates = []

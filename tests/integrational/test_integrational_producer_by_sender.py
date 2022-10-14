@@ -5,6 +5,7 @@ import pytest
 import tgmount
 from tests.helpers.mocked.mocked_storage import StorageEntity
 from tests.integrational.helpers import create_config, mdict
+from tgmount.tglog import init_logging
 from tgmount.tgmount.producers.producer_by_sender import VfsTreeDirBySender
 from .fixtures import mnt_dir, files, FixtureFiles, Context
 from ..helpers.mocked.mocked_message import MockedSender
@@ -19,14 +20,14 @@ BY_SENDER_STRUCTURE = {
 }
 
 
-class _TestContext(Context):
+class _Context(Context):
     expected_dirs: dict
     senders: dict[str, list]
 
 
 @pytest.fixture
-def ctx(mnt_dir: str):
-    return _TestContext(mnt_dir)
+def ctx(mnt_dir: str, caplog):
+    return _Context(mnt_dir, caplog=caplog)
 
 
 @pytest.fixture
@@ -34,15 +35,17 @@ def source1(ctx):
     return ctx.storage.get_entity("source1")
 
 
+SENDERS = 5
+MESSAGES = 10
+MESSAGES_WITH_DOCS = 3
+
+
 @pytest_asyncio.fixture
 async def prepared_ctx(
-    ctx: _TestContext,
+    ctx: _Context,
     source1: StorageEntity,
     files: FixtureFiles,
 ):
-    SENDERS = 5
-    MESSAGES = 100
-    MESSAGES_WITH_DOCS = 33
 
     config = create_config(
         message_sources={"source1": "source1", "source2": "source2"},
@@ -99,7 +102,7 @@ async def prepared_ctx(
 
 @pytest.mark.asyncio
 async def test_producer_by_sender_1(
-    prepared_ctx: _TestContext,
+    prepared_ctx: _Context,
     source1: StorageEntity,
     files: FixtureFiles,
 ):
@@ -116,23 +119,42 @@ async def test_producer_by_sender_1(
                 "docs",
                 "video",
             }
-            assert await prepared_ctx.listdir_len(dir_name, "all") == 199
-            assert await prepared_ctx.listdir_len(dir_name, "texts") == 166
-            assert await prepared_ctx.listdir_len(dir_name, "docs") == 99
+            assert (
+                await prepared_ctx.listdir_len(dir_name, "all")
+                == MESSAGES + MESSAGES_WITH_DOCS * 3
+            )
+            assert (
+                await prepared_ctx.listdir_len(dir_name, "texts")
+                == MESSAGES + MESSAGES_WITH_DOCS * 2
+            )
+            assert (
+                await prepared_ctx.listdir_len(dir_name, "docs")
+                == MESSAGES_WITH_DOCS * 3
+            )
             assert await prepared_ctx.listdir_len(dir_name, "video") == 0
 
     # prepared_ctx.debug = True
     await prepared_ctx.run_test(test)
 
 
+import tgmount
+
+# tgmount.fs.exception_handler.catch = False
+
+
 @pytest.mark.asyncio
 async def test_producer_by_sender_update(
-    prepared_ctx: _TestContext,
+    prepared_ctx: _Context,
     source1: StorageEntity,
     files: FixtureFiles,
 ):
+    """Tests updates of the tree"""
     expected_dirs = prepared_ctx.expected_dirs
     senders = prepared_ctx.senders
+
+    # tgmount.fs.FileSystemOperations.logger.setLevel(logging.DEBUG)
+    # init_logging(True)
+    # prepared_ctx.debug = True
 
     async def test_update():
         _iter = iter(senders.keys())
@@ -165,5 +187,4 @@ async def test_producer_by_sender_update(
             expected_dirs[sender]
         } - {expected_dirs[sender2]}
 
-    # prepared_ctx.debug = True
     await prepared_ctx.run_test(test_update)

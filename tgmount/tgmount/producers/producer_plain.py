@@ -12,13 +12,15 @@ from tgmount.tgmount.vfs_tree_producer_types import (
 
 
 class VfsTreePlainDir(VfsTreeProducerProto):
+    logger = tglog.getLogger(f"VfsTreePlainDir")
+
     def __init__(self, dir: VfsTreeDir, config: ProducerConfig) -> None:
         self._config = config
         self._dir = dir
 
         self._messages = MessagesSet()
         self._message_to_file: dict[str, vfs.FileLike] = {}
-        self._logger = tglog.getLogger(f"VfsTreePlainDir({self._dir.path})")
+        self._logger = self.logger.getChild(f"{self._dir.path}")
 
     @classmethod
     async def from_config(
@@ -53,7 +55,7 @@ class VfsTreePlainDir(VfsTreeProducerProto):
             self.update_removed_messages
         )
 
-    async def update_new_messages(self, source, new_messages: list[Message]):
+    async def update_new_messages(self, source, new_messages: Set[Message]):
         self._logger.info(
             f"update_new_messages({list(map(lambda m: m.id, new_messages))})"
         )
@@ -73,7 +75,7 @@ class VfsTreePlainDir(VfsTreeProducerProto):
         if len(new_files):
             await self._dir.put_content(new_files)
 
-    async def update_removed_messages(self, source, removed_messages: list[Message]):
+    async def update_removed_messages(self, source, removed_messages: Set[Message]):
         self._logger.info(
             f"update_removed_messages({list(map(lambda m: m.id, removed_messages))})"
         )

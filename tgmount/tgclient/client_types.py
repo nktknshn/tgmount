@@ -1,20 +1,11 @@
 from abc import abstractmethod
-from typing import (
-    Awaitable,
-    Callable,
-    Optional,
-    Protocol,
-    Sequence,
-    Type,
-    TypedDict,
-    TypeVar,
-    Union,
-)
+from typing import Awaitable, Callable, Protocol
 
 from telethon import events, hints
-from tgmount.tgclient.types import TypeMessagesFilter
-from .types import InputDocumentFileLocation, InputPhotoFileLocation, TotalListTyped
 from telethon.tl.custom import Message
+
+from .types import (InputDocumentFileLocation, InputPhotoFileLocation,
+                    TotalListTyped)
 
 ListenerNewMessages = Callable[[events.NewMessage.Event], Awaitable[None]]
 ListenerRemovedMessages = Callable[[events.MessageDeleted.Event], Awaitable[None]]

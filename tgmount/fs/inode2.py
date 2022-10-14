@@ -24,12 +24,18 @@ class RegistryItem(Generic[T]):
     data: T
     parent_inode: int
 
+    def __hash__(self) -> int:
+        return self.inode
+
 
 @dataclass
 class RegistryRoot(Generic[T]):
     inode: int
     data: T
     name = b"<root>"
+
+    def __hash__(self) -> int:
+        return self.inode
 
 
 InodesRegistryItem = RegistryRoot[T] | RegistryItem[T]
@@ -130,7 +136,8 @@ class InodesRegistry(Generic[T]):
 
     def remove_item_with_children(
         self, inode_or_item: int | InodesRegistryItem[T]
-    ) -> set[int] | None:
+    ) -> set[RegistryItem[T]] | None:
+
         inode = InodesRegistry.get_inode(inode_or_item)
         removed = set()
         item = self.get_item_by_inode(inode)
@@ -141,27 +148,27 @@ class InodesRegistry(Generic[T]):
             )
             return None
 
-        if (subinodes := self.get_item_children_inodes_recursively(item)) is not None:
-            for _inode in subinodes:
-                removed.add(_inode)
-                self._dir_content_read -= {_inode}
-                del self._inodes[_inode]
+        if (subitems := self.get_item_children_inodes_recursively(item)) is not None:
+            for _item in subitems:
+                removed.add(_item)
+                self._dir_content_read -= {_item}
+                del self._inodes[_item.inode]
 
-        removed.add(item.inode)
+        removed.add(item)
         del self._inodes[item.inode]
         self._dir_content_read -= {item.inode}
         return removed
 
     def get_item_children_inodes_recursively(
         self, inode_or_item: int | RegistryItem[T] | RegistryRoot[T]
-    ) -> Optional[set[int]]:
+    ) -> Optional[set[RegistryItem[T]]]:
         result = set()
         children = self.get_items_by_parent(inode_or_item)
 
         if children is None:
             return None
 
-        result = result.union(set(item.inode for item in children))
+        result = result.union(set(item for item in children))
 
         for subitem in children:
             _inodes = self.get_item_children_inodes_recursively(subitem)

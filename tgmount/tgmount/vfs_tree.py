@@ -2,7 +2,7 @@ from collections.abc import Mapping, Sequence
 from typing import Union
 
 from tgmount import vfs, tglog
-from tgmount.tgclient.message_source import Subscribable
+from tgmount.tgclient.message_source_types import Subscribable
 from tgmount.tgmount.error import TgmountError
 from tgmount.tgmount.vfs_tree_types import (
     VfsTreeProto,
@@ -19,6 +19,16 @@ from tgmount.tgmount.vfs_tree_producer_types import VfsTreeProducerProto
 
 logger = tglog.getLogger("VfsStructureProducer")
 logger.setLevel(tglog.TRACE)
+
+
+class VfsTreeError(TgmountError):
+    pass
+
+
+class VfsTreeNotFoundError(TgmountError):
+    def __init__(self, *args: object, path: str) -> None:
+        super().__init__(*args)
+        self.path = path
 
 
 class VfsTreeDirContent(vfs.DirContentProto):
@@ -197,7 +207,7 @@ class SubdirsRegistry:
         """"""
 
         if path in self._subdirs_by_path:
-            raise TgmountError(f"SubdirsRegistry: {path} is already in registry")
+            raise VfsTreeError(f"SubdirsRegistry: {path} is already in registry")
 
         self._subdirs_by_path[path] = []
 
@@ -207,8 +217,9 @@ class SubdirsRegistry:
             return
 
         if parent not in self._subdirs_by_path:
-            raise TgmountError(
-                f"SubdirsRegistry: error putting {path}. Missing parent {parent} in registry"
+            raise VfsTreeNotFoundError(
+                f"SubdirsRegistry: error putting {path}. Missing parent {parent} in registry",
+                path=parent,
             )
 
         self._subdirs_by_path[parent].append(path)
@@ -229,7 +240,9 @@ class SubdirsRegistry:
         subs = self._subdirs_by_path.get(path)
 
         if subs is None:
-            raise TgmountError(f"SubdirsRegistry: Missing {path} in registry")
+            raise VfsTreeNotFoundError(
+                f"SubdirsRegistry: Missing {path} in registry", path=path
+            )
 
         # subs = subs[:]
         subssubs = []
@@ -311,7 +324,7 @@ class VfsTree(Subscribable, VfsTreeProto):
         """Removes a dir stored at `path` notifying parent dir with `UpdateRemovedDirs`."""
 
         if path == "/":
-            raise TgmountError(f"Cannot remove root folder.")
+            raise VfsTreeError(f"Cannot remove root folder.")
 
         self._logger.debug(f"Removing {path}")
 
@@ -411,7 +424,7 @@ class VfsTree(Subscribable, VfsTreeProto):
     async def get_dir(self, path: str) -> "VfsTreeDir":
         """Returns `VfsTreeDir` stored at `path`"""
         if path not in self._dirs:
-            raise TgmountError(f"Missing directory {path}")
+            raise VfsTreeNotFoundError(f"Missing directory {path}", path=path)
 
         return self._dirs[path]
 
