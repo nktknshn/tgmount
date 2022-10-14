@@ -74,15 +74,12 @@ class FileSystemOperationsUpdatable(FileSystemOperations):
             pyfuse3.invalidate_entry_async(v.inode, k)
 
     def _remove_from_handles(self, item: RegistryItem):
-        # self._handles
-        # self.logger.debug(f"_remove_from_handles({self._handles.stats()})")
-
         fh = self._handles.get_by_item(item)
-
-        self.logger.debug(f"_remove_from_handles({fh})")
 
         if fh is None:
             return
+
+        self.logger.debug(f"_remove_from_handles({fh})")
 
         self._handles.release_fh(fh)
 
@@ -168,7 +165,7 @@ class FileSystemOperationsUpdatable(FileSystemOperations):
             await self._remove_item(item)
 
     async def _remove_item(self, item: FileSystemOperations.FsRegistryItem):
-        self.logger.debug(f"Remove item: {item}")
+        # self.logger.debug(f"Remove item: {item}")
         # self._removed_items.append(item)
 
         removed = await self._remove_item_by_inode(item.inode)
@@ -184,7 +181,7 @@ class FileSystemOperationsUpdatable(FileSystemOperations):
 
         result = self.inodes.remove_item_with_children(inode)
 
-        self.logger.info(
-            f"_remove_item_by_inode({inode} ({self.inodes.get_item_path(inode)})) -> {result}"
-        )
+        # self.logger.debug(
+        #     f"_remove_item_by_inode({inode} ({self.inodes.get_item_path(inode)})) -> {result}"
+        # )
         return result

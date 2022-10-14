@@ -28,6 +28,12 @@ from .util import (
 # else:
 #     faulthandler.enable()
 
+""" 
+TODO
+lookup coconut
+
+"""
+
 
 @dataclass
 class FileSystemItem:
@@ -120,13 +126,14 @@ class FileSystemOperations(pyfuse3.Operations, FileSystemOperationsMixin):
         super(FileSystemOperations, self).__init__()
         self._root = root
 
-        self._init_root(root)
-        self._init_handles()
-
         """ Locks while updating """
         self._update_lock = MyLock(
             "FileSystemOperations.update_lock", logger=self.logger
         )
+
+    def init(self):
+        self._init_root(self._root)
+        self._init_handles()
 
     def _init_root(self, root: vfs.DirLike, last_inode=None):
         self.logger.debug(f"_init_root")
@@ -225,12 +232,13 @@ class FileSystemOperations(pyfuse3.Operations, FileSystemOperationsMixin):
 
     @exception_handler
     async def getattr(self, inode: int, ctx=None):
-        self.logger.debug(f"= getattr({inode},)")
         item = self._inodes.get_item_by_inode(inode)
 
         if item is None:
             self.logger.error(f"= getattr({inode}): missing in inodes registry")
             raise pyfuse3.FUSEError(errno.ENOENT)
+
+        self.logger.debug(f"getattr({inode}) = {item.name}")
 
         self.logger.debug(f"= getattr({inode},)\t{item.data.structure_item.name}")
 
@@ -339,7 +347,7 @@ class FileSystemOperations(pyfuse3.Operations, FileSystemOperationsMixin):
 
         fh = self._handles.open_fh(item, handle)
 
-        self.logger.debug(f"opendir({inode}) = {fh}")
+        self.logger.debug(f"= opendir({inode}) = {fh}")
         return fh
 
     # @measure_time(logger_func=measure_time_logger.debug)

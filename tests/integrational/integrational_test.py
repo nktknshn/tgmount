@@ -37,10 +37,10 @@ class MockedTgmountBuilderBase(TgmountBuilder):
 
 
 async def main_function(
-    *, mnt_dir: str, cfg: config.Config, debug: bool, storage: MockedTelegramStorage
+    *, mnt_dir: str, cfg: config.Config, debug: int, storage: MockedTelegramStorage
 ):
 
-    tglog.init_logging(debug)
+    tglog.init_logging(debug_level=debug)
     test_logger = tglog.getLogger("main_test1")
 
     # tglog.getLogger("FileSystemOperations()").setLevel(logging.ERROR)
@@ -90,7 +90,7 @@ async def _run_test(
     mnt_dir: str,
     cfg: config.Config,
     storage: MockedTelegramStorage,
-    debug: bool,
+    debug: int,
 ):
     await run_test(
         main_function(mnt_dir=mnt_dir, cfg=cfg, storage=storage, debug=debug),
@@ -117,10 +117,17 @@ class TgmountIntegrationContext:
 
     @debug.setter
     def debug(self, value):
-        self._debug = value
+        logging_level = (
+            logging.DEBUG
+            if value is True
+            else logging.CRITICAL
+            if value is False
+            else value
+        )
+        self._debug = logging_level
 
         if self._caplog is not None:
-            self._caplog.set_level(logging.DEBUG if value else logging.CRITICAL)
+            self._caplog.set_level(self._debug)
 
     @property
     def storage(self):
@@ -161,6 +168,11 @@ class TgmountIntegrationContext:
 
     async def listdir_set(self, *path: str, full_path=False) -> set[str]:
         return set(await self.listdir(*path, full_path=full_path))
+
+    def walkdir(
+        self, *path: str
+    ) -> AsyncGenerator[tuple[str, list[str], list[str]], None]:
+        return async_walkdir(self._path(*path))
 
     async def listdir_recursive(self, path: str) -> set[str]:
         res = []

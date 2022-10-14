@@ -4,7 +4,7 @@ import aiofiles
 import pytest
 import tgmount
 from tests.helpers.mocked.mocked_storage import StorageEntity
-from tests.integrational.helpers import create_config, mdict
+from tests.integrational.helpers import async_walkdir, create_config, mdict
 from tgmount.tglog import init_logging
 from tgmount.tgmount.producers.producer_by_sender import VfsTreeDirBySender
 from .fixtures import mnt_dir, files, FixtureFiles, Context
@@ -153,24 +153,32 @@ async def test_producer_by_sender_update(
     senders = prepared_ctx.senders
 
     # tgmount.fs.FileSystemOperations.logger.setLevel(logging.DEBUG)
-    # init_logging(True)
-    # prepared_ctx.debug = True
+    # prepared_ctx.debug = logging.DEBUG
+
+    logging.root.setLevel(logging.INFO)
 
     async def test_update():
         _iter = iter(senders.keys())
         sender = next(_iter)
         sender2 = next(_iter)
 
+        # async for path, subdirs, subfiles in prepared_ctx.walkdir("/"):
+        #     pass
+
         msg = await prepared_ctx.client.sender(sender).send_file(
             source1.entity_id, file=files.video0
         )
         assert MessageWithVideo.guard(msg)
+
+        # producer should add video message
         assert await prepared_ctx.listdir_len(expected_dirs[sender], "video") == 1
 
         await prepared_ctx.client.delete_messages(source1.entity_id, msg_ids=[msg.id])
 
+        # producer should add remove message
         assert await prepared_ctx.listdir_len(expected_dirs[sender], "video") == 0
 
+        # producer should remove sender's folder if there is no messages left
         for m in senders[sender]:
             await prepared_ctx.client.delete_messages(source1.entity_id, msg_ids=[m.id])
 
@@ -178,7 +186,7 @@ async def test_producer_by_sender_update(
             expected_dirs[sender]
         }
 
-        # for m in senders[sender]:
+        # producer should remove sender's folder if there is no messages left
         await prepared_ctx.client.delete_messages(
             source1.entity_id, msg_ids=[m.id for m in senders[sender2]]
         )

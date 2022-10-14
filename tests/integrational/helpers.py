@@ -1,17 +1,17 @@
 import asyncio
+import copy
 import os
 import threading
-from typing import Mapping, TypedDict
+from typing import AsyncGenerator, Mapping, TypedDict
 
+import aiofiles
 import telethon
-from tests.integrational.integrational_helpers import DEFAULT_ROOT
 import tgmount.config as config
 import tgmount.tgclient as tg
+from tests.integrational.integrational_helpers import DEFAULT_ROOT
+from tgmount import tglog, vfs
 from tgmount.main.util import read_tgapp_api
-from tgmount import tglog
 from tgmount.tgmount.builder import TgmountBuilder
-from tgmount import vfs
-import copy
 
 # import os
 
@@ -64,15 +64,32 @@ def create_config(
     )
 
 
-def async_listdir(path: str):
-    return asyncio.to_thread(os.listdir, path)
+import aiofiles.os
+
+async_listdir = aiofiles.os.listdir
 
 
-def async_walkdir(path: str):
-    def _walk():
-        return list(os.walk(path))
+async def async_walkdir(
+    path: str,
+) -> AsyncGenerator[tuple[str, list[str], list[str]], None]:
+    # item: os.DirEntry
+    subdirs: list[str] = []
+    subfiles: list[str] = []
 
-    return asyncio.to_thread(_walk)
+    for subitem in await aiofiles.os.listdir(path):
+        subitem_path = os.path.join(path, subitem)
+
+        if await aiofiles.os.path.isdir(subitem_path):
+            subdirs.append(subitem_path)
+        elif await aiofiles.os.path.isfile(subitem_path):
+            subfiles.append(subitem_path)
+
+    yield path, subdirs, subfiles
+
+    for subdir in subdirs:
+        dir_iter = async_walkdir(subdir)
+        async for res in dir_iter:
+            yield res
 
 
 class MyTgmountBuilder(TgmountBuilder):
