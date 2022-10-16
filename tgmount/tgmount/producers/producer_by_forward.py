@@ -24,6 +24,10 @@ async def group_by_forward(
 
     for m in forwarded_messages:
 
+        # XXX
+        if m.forward is None:
+            continue
+
         chat = await m.forward.get_chat()
         # sender = await m.forward.get_sender()
         from_name = m.forward.from_name

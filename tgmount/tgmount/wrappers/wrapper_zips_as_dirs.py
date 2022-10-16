@@ -1,4 +1,5 @@
 from typing import Mapping
+from zipfile import BadZipFile
 from tgmount import vfs, tglog, zip as z
 from ..vfs_tree import VfsTreeDir
 from ..vfs_tree_types import (
@@ -15,6 +16,8 @@ logger.setLevel(tglog.TRACE)
 
 
 class WrapperZipsAsDirs(Wrapper):
+    logger = tglog.getLogger(f"WrapperZipsAsDirs")
+
     @staticmethod
     def from_config(resources, dir: VfsTreeDir, arg: Mapping):
         pass
@@ -85,8 +88,9 @@ class WrapperZipsAsDirs(Wrapper):
                         try:
                             dirlike = await self._add_zip_file(item)
                             _e.new_items.append(dirlike)
-                        except:
+                        except BadZipFile:
                             # bad zip
+                            self.logger.error(f"{item} is a bad zip file")
                             _e.new_items.append(item)
                     else:
                         _e.new_items.append(item)

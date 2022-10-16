@@ -8,6 +8,7 @@ from pprint import pprint
 import yaml
 
 from tgmount.config import *
+from tgmount.tgmount.root_config_reader import TgmountConfigReader
 from tgmount.util import col
 
 
@@ -31,7 +32,9 @@ def main():
         cfg_dict: dict = yaml.safe_load(f)
         cfg = Config.from_dict(cfg_dict)
 
-        pprint(cfg)
+        for dir_props in TgmountConfigReader().walk_dir_props(cfg.root.content):
+            print(dir_props)
+        # print(cfg.root.content)
 
 
 if __name__ == "__main__":

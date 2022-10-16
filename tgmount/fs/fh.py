@@ -11,7 +11,7 @@ class FileSystemHandles(Generic[T]):
 
     def __init__(self, last_fh=None):
         self._fhs: Dict[int, Tuple[T, Any]] = {}
-        self._fh_by_item: Dict[T, int] = {}
+        self._fh_by_item: Dict[T, list[int]] = {}
 
         self._last_fh = last_fh if last_fh is not None else FileSystemHandles.LAST_FH
 
@@ -21,13 +21,16 @@ class FileSystemHandles(Generic[T]):
     def get_handles(self):
         return list(self._fhs.keys())
 
-    def get_by_item(self, item: T) -> int | None:
+    def get_by_item(self, item: T) -> list[int] | None:
         return self._fh_by_item.get(item)
 
     def open_fh(self, item: T, data=None):
         fh = self._new_fh()
         self._fhs[fh] = item, data
-        self._fh_by_item[item] = fh
+        fhs = self._fh_by_item.get(item, [])
+        fhs.append(fh)
+        self._fh_by_item[item] = fhs
+
         return fh
 
     def get_by_fh(self, fh: int) -> Tuple[Optional[T], Optional[Any]]:
@@ -42,7 +45,12 @@ class FileSystemHandles(Generic[T]):
         if fh in self._fhs:
             item, handle = self._fhs[fh]
             del self._fhs[fh]
-            del self._fh_by_item[item]
+
+            if item in self._fh_by_item:
+                fhs = self._fh_by_item[item]
+                fhs.remove(fh)
+                if fhs == []:
+                    del self._fh_by_item[item]
 
     def _new_fh(self):
         self._last_fh += 1

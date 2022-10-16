@@ -2,15 +2,22 @@ import logging
 import os
 from typing import TypeVar, Generator
 
-from tgmount import config, tglog
+from tgmount import config, tglog, vfs
 from tgmount.util import none_fallback
 from .root_config_reader_props import RootProducerPropsReader
 from .root_config_types import RootConfigContext
 from .tgmount_types import TgmountResources
 from .types import TgmountRootSource
 from .vfs_tree_producer_types import ProducerConfig, VfsStructureConfig
+from dataclasses import dataclass
 
 T = TypeVar("T")
+
+
+@dataclass
+class DirProps:
+    path: str
+    source_prop: RootProducerPropsReader.PropSourceType | None
 
 
 class TgmountConfigReader(RootProducerPropsReader):
@@ -21,6 +28,38 @@ class TgmountConfigReader(RootProducerPropsReader):
 
     def __init__(self) -> None:
         pass
+
+    def get_used_sources(self, d: TgmountRootSource) -> set[str]:
+        sources = set()
+        for dir_props in self.walk_dir_props(d):
+            if dir_props.source_prop is None:
+                continue
+
+            sources.add(dir_props.source_prop["source_name"])
+        return sources
+
+    def walk_dir_props(self, d: TgmountRootSource, *, current_path=[]):
+        # current_path_str = (
+        #     f"/{os.path.join(*ctx.current_path)}" if len(ctx.current_path) > 0 else "/"
+        # )
+
+        current_path_str = vfs.path_join(*current_path)
+
+        # self.logger.info(f"walk_config_with_ctx({current_path_str})")
+
+        other_keys = set(d.keys()).difference(self.PROPS_KEYS)
+
+        source_prop = self.read_prop_source(d)
+        filters_prop = self.read_prop_filter(d)
+        cache_prop = self.read_prop_cache(d)
+        wrappers_prop = self.read_prop_wrappers(d)
+        producer_prop = self.read_prop_producer(d)
+        treat_as_prop = self.read_prop_treat_as(d)
+
+        yield DirProps(current_path_str, source_prop)
+
+        for k in other_keys:
+            yield from self.walk_dir_props(d[k], current_path=[*current_path, k])
 
     def walk_config_with_ctx(
         self,

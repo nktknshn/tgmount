@@ -3,7 +3,7 @@ from typing import Mapping, Optional, Type
 
 from tgmount import fs, main, tgclient, tglog, vfs
 from tgmount.fs.update import FileSystemOperationsUpdate
-from tgmount.tgclient.add_hash import add_hash
+from tgmount.tgclient.add_hash import add_hash_to_telegram_message_class
 from .vfs_tree_types import (
     EventRemovedItems,
     EventNewItems,
@@ -20,13 +20,15 @@ from .error import TgmountError
 from .tgmount_types import TgmountResources
 from tgmount.util import none_fallback
 
-add_hash()
+add_hash_to_telegram_message_class()
 
 
 class TgmountBase:
     FileSystemOperations: Type[
         fs.FileSystemOperationsUpdatable
     ] = fs.FileSystemOperationsUpdatable
+
+    VfsTreeProducer = VfsTreeProducer
 
     _logger = tglog.getLogger("TgmountBase")
 
@@ -47,16 +49,13 @@ class TgmountBase:
 
         self._vfs_tree = VfsTree()
 
-        # self._updates_pending = False
-        # self._is_building_root = False
-
-        self._source_provider = SourcesProviderAccumulating(
-            tree=self._vfs_tree, source_map=self._resources.sources.as_mapping()
+        self._source_provider = SourcesProviderAccumulating.from_sources_provider(
+            self._resources.sources, self._vfs_tree
         )
 
         self._source_provider.accumulated_updates.subscribe(self._on_vfs_tree_update)
 
-        self._producer = VfsTreeProducer(
+        self._producer = self.VfsTreeProducer(
             resources=self._resources.set_sources(self._source_provider)
         )
 
@@ -67,6 +66,10 @@ class TgmountBase:
     @property
     def fs(self) -> fs.FileSystemOperationsUpdatable | None:
         return self._fs
+
+    @property
+    def vfs_tree(self) -> VfsTree:
+        return self._vfs_tree
 
     async def mount(
         self,
@@ -130,12 +133,15 @@ class TgmountBase:
         async with self._fs._update_lock:
             await self._fs.update(fs_update)
 
+    async def produce_vfs_tree(self):
+        await self._producer.produce(self._vfs_tree, self._root)
+
     async def create_fs(self):
 
         # for k, v in self._resources.sources.as_mapping().items():
         #     v.subscribe_to_client()
 
-        await self._producer.produce(self._vfs_tree, self._root)
+        await self.produce_vfs_tree()
 
         root_contet = await self._vfs_tree.get_dir_content()
 

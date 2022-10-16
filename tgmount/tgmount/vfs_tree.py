@@ -1,5 +1,5 @@
 from collections.abc import Mapping, Sequence
-from typing import Union
+from typing import Any, Union
 
 from tgmount import vfs, tglog
 from tgmount.tgclient.message_source_types import Subscribable
@@ -17,8 +17,8 @@ from tgmount.util import none_fallback
 from tgmount.tgmount.vfs_tree_producer_types import VfsTreeProducerProto
 
 
-logger = tglog.getLogger("VfsStructureProducer")
-logger.setLevel(tglog.TRACE)
+# logger = tglog.getLogger("VfsStructureProducer")
+# logger.setLevel(tglog.TRACE)
 
 
 class VfsTreeError(TgmountError):
@@ -102,6 +102,8 @@ class VfsTreeDir(VfsTreeDirMixin):
         self._wrappers: list[Wrapper] = none_fallback(wrappers, [])
         self._dir_content_items: list[vfs.DirContentItem] = []
         self._subs = none_fallback(subs, [])
+
+        self.additional_data: Any = None
 
     async def child_updated(self, child: "VfsTreeDir", events: list[TreeEventType]):
         """Method used by subdirs to notify the dir about its modifications. If this dir contains any wrappers updates are wrapped with `wrap_updates` method."""
@@ -270,7 +272,7 @@ class VfsTree(Subscribable, VfsTreeProto):
     def __init__(self) -> None:
         Subscribable.__init__(self)
 
-        self._logger = logger
+        self.logger = tglog.getLogger(f"VfsTree")
         self._dirs: dict[str, VfsTreeDir] = {}
         self._path_dy_dir: dict[VfsTreeDir, str] = {}
         self._subdirs = SubdirsRegistry()
@@ -288,7 +290,9 @@ class VfsTree(Subscribable, VfsTreeProto):
 
     async def child_updated(self, child, updates: list[TreeEventType]):
         """Notifies tree subscribers with subchild `updates`"""
-        await self.notify(updates)
+
+        self.logger.debug(f"child_updated({child})")
+        await self.notify(updates, child)
 
     async def remove_content(
         self,
@@ -326,7 +330,7 @@ class VfsTree(Subscribable, VfsTreeProto):
         if path == "/":
             raise VfsTreeError(f"Cannot remove root folder.")
 
-        self._logger.debug(f"Removing {path}")
+        self.logger.debug(f"Removing {path}")
 
         thedir = await self.get_dir(path)
         subdirs = await self.get_subdirs(path, recursive=True)

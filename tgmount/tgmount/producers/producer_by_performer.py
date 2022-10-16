@@ -17,7 +17,7 @@ T = TypeVar("T")
 
 def group_by_performer(
     messages: Iterable[MessageWithMusic],
-    minimum=2,
+    minimum=1,
 ) -> tuple[dict[str, list[MessageWithMusic]], list[MessageWithMusic]]:
 
     messages = list(messages)
@@ -59,6 +59,9 @@ class VfsTreeGroupByPerformer(VfsTreeProducerGrouperBase, VfsTreeProducerProto):
     async def group_messages(
         self, messages: Iterable[MessageWithMusic]
     ) -> GroupedMessages:
-        by_performer, no_performer = group_by_performer(messages)
+
+        by_performer, no_performer = group_by_performer(
+            filter(MessageWithMusic.guard, messages)
+        )
 
         return by_performer, no_performer

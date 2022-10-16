@@ -32,8 +32,13 @@ def dict_exclude(d: Mapping, keys: list[str]) -> dict:
     return {k: v for k, v in d.items() if not contains(k, keys)}
 
 
-def get_first_key(d: Mapping):
-    return next(iter(d.keys()), None)
+def get_first_key(d: Mapping, idx: int = 0) -> str | None:
+    keys = list(d.keys())
+
+    if idx > len(keys) - 1:
+        return
+
+    return keys[idx]
 
 
 def get_first_pair(d: Mapping):

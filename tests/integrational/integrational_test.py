@@ -10,6 +10,7 @@ import aiofiles
 import pyfuse3
 import pytest
 import pytest_asyncio
+import tgmount
 import tgmount.config as config
 from tgmount.config.types import Config
 import tgmount.tgclient as tg
@@ -24,10 +25,23 @@ from ..helpers.mocked.mocked_client import MockedClientReader, MockedClientWrite
 from ..helpers.mocked.mocked_message import MockedFile, MockedMessage, MockedSender
 from .helpers import *
 from tgmount.util import none_fallback
+from tgmount.tgmount import VfsTreeProducer, TgmountBase
+
+
+class MockedVfsTreeProducer(VfsTreeProducer):
+    async def produce_path(self, tree_dir, path: str, vfs_config, ctx):
+        # to test concurrent
+        # await asyncio.sleep(0.1)
+        return await super().produce_path(tree_dir, path, vfs_config, ctx)
+
+
+class MockedTgmountBase(TgmountBase):
+    VfsTreeProducer = MockedVfsTreeProducer
 
 
 class MockedTgmountBuilderBase(TgmountBuilder):
     TelegramClient = MockedClientReader
+    TgmountBase = MockedTgmountBase
 
     def __init__(self, storage: MockedTelegramStorage) -> None:
         self._storage = storage
@@ -37,28 +51,34 @@ class MockedTgmountBuilderBase(TgmountBuilder):
 
 
 async def main_function(
-    *, mnt_dir: str, cfg: config.Config, debug: int, storage: MockedTelegramStorage
+    *,
+    mnt_dir: str,
+    cfg: config.Config,
+    debug: int,
+    storage: MockedTelegramStorage,
 ):
 
-    tglog.init_logging(debug_level=debug)
+    # tglog.init_logging(debug_level=debug)
+
     test_logger = tglog.getLogger("main_test1")
+    test_logger.setLevel(debug)
 
     # tglog.getLogger("FileSystemOperations()").setLevel(logging.ERROR)
     # logging.getLogger("telethon").setLevel(logging.DEBUG)
 
-    test_logger.debug("Building...")
+    test_logger.info("Building...")
     builder = MockedTgmountBuilderBase(storage=storage)
 
-    test_logger.debug("Creating...")
+    test_logger.info("Creating resources...")
     tgm = await builder.create_tgmount(cfg)
 
-    test_logger.debug("Auth...")
+    test_logger.info("Auth...")
     await tgm.client.auth()
 
-    test_logger.debug("Creating FS...")
+    test_logger.info("Creating FS...")
     await tgm.create_fs()
 
-    test_logger.debug("Returng FS")
+    test_logger.info("Returng FS")
 
     await mount_ops(tgm.fs, mount_dir=mnt_dir, min_tasks=10)
 
@@ -91,6 +111,7 @@ async def _run_test(
     cfg: config.Config,
     storage: MockedTelegramStorage,
     debug: int,
+    main_function=main_function,
 ):
     await run_test(
         main_function(mnt_dir=mnt_dir, cfg=cfg, storage=storage, debug=debug),
@@ -110,6 +131,7 @@ class TgmountIntegrationContext:
         self._storage = self.create_storage()
         self._client = self.create_client()
         self._debug = False
+        self.main_function = main_function
 
     @property
     def debug(self):
@@ -125,6 +147,8 @@ class TgmountIntegrationContext:
             else value
         )
         self._debug = logging_level
+
+        tglog.init_logging(logging_level)
 
         if self._caplog is not None:
             self._caplog.set_level(self._debug)
@@ -223,64 +247,40 @@ class TgmountIntegrationContext:
     ):
         _debug = self.debug
         self.debug = none_fallback(debug, self.debug)
-        cfg_or_root = none_fallback(cfg_or_root, self._default_config)
 
         await _run_test(
             handle_mount(self.mnt_dir)(test_func),
             mnt_dir=self.mnt_dir,
-            cfg=cfg_or_root
-            if isinstance(cfg_or_root, config.Config)
-            else self.create_config(cfg_or_root),
+            cfg=self._get_config(cfg_or_root),
             storage=self.storage,
             debug=self.debug,
+            main_function=self.main_function,
         )
         self.debug = _debug
+
+    def _get_config(
+        self,
+        cfg_or_root: config.Config | Mapping | None = None,
+    ):
+        cfg_or_root = none_fallback(cfg_or_root, self._default_config)
+
+        return (
+            cfg_or_root
+            if isinstance(cfg_or_root, config.Config)
+            else self.create_config(cfg_or_root)
+        )
+
+    async def create_tgmount(
+        self,
+        cfg_or_root: config.Config | Mapping | None = None,
+    ) -> tgmount.tgmount.TgmountBase:
+
+        builder = MockedTgmountBuilderBase(storage=self.storage)
+        tgm = await builder.create_tgmount(self._get_config(cfg_or_root))
+
+        return tgm
 
 
 async def read_bytes(path: str):
     async with aiofiles.open(path, "rb") as f:
         return await f.read()
-
-
-# class TgmountIntegrationTest(TgmountIntegrationContext, abc.ABC):
-#     MockedTelegramStorage = MockedTelegramStorage
-#     MockedClientWriter = MockedClientWriter
-
-#     @classmethod
-#     async def run_test(cls, mnt_dir: str, caplog):
-#         await cls(mnt_dir, caplog).run()
-
-#     def __init__(self, mnt_dir: str, caplog) -> None:
-#         self._caplog = caplog
-
-#         self._root = self.get_root()
-#         self._storage = self.create_storage()
-#         self._client = self.create_client()
-#         self._cfg = self.create_config()
-
-#     @abstractmethod
-#     def get_root(self) -> Mapping:
-#         ...
-
-#     @abstractmethod
-#     async def prepare_storage(self, storage: MockedTelegramStorage):
-#         pass
-
-#     @abstractmethod
-#     async def test(self, storage: MockedTelegramStorage, client: MockedClientWriter):
-#         pass
-
-#     async def _test(self):
-#         await self.test(self._storage, self._client)
-
-#     async def run(self, debug=True):
-
-#         await self.prepare_storage(self._storage)
-
-#         await _run_test(
-#             handle_mount(self._mnt_dir)(self._test),
-#             mnt_dir=self._mnt_dir,
-#             cfg=self._cfg,
-#             storage=self._storage,
-#             debug=debug,
-#         )

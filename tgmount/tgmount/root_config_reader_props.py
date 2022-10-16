@@ -1,4 +1,4 @@
-from typing import TypeVar, Mapping, Optional, Any
+from typing import TypeVar, Mapping, Optional, Any, TypedDict
 
 from tgmount import config
 from tgmount.config.helpers import type_check
@@ -14,8 +14,11 @@ T = TypeVar("T")
 class RootProducerPropsReader:
     PROPS_KEYS = {"source", "filter", "cache", "wrappers", "producer", "treat_as"}
 
-    def read_prop_source(self, d: TgmountRootSource) -> Mapping | None:
-        source_prop_cfg = d.get("source")
+    PropSourceType = TypedDict("PropSource", source_name=str, recursive=bool)
+
+    @classmethod
+    def read_prop_source(cls, d: TgmountRootSource) -> PropSourceType | None:
+        source_prop_cfg: Mapping | str | None = d.get("source")
 
         if source_prop_cfg is None:
             return
@@ -24,10 +27,14 @@ class RootProducerPropsReader:
             source_name = source_prop_cfg
             recursive = False
         else:
-            source_name: str = source_prop_cfg["source"]
+            source_name: str | None = source_prop_cfg.get("source")
+            assert isinstance(source_name, str), f"Invalid source name: {source_name}"
             recursive = source_prop_cfg.get("recursive", False)
+            assert isinstance(
+                recursive, bool
+            ), f"Invalid value for recursive: {recursive}"
 
-        return dict(source_name=source_name, recursive=recursive)
+        return cls.PropSourceType(source_name=source_name, recursive=recursive)
 
     def read_prop_filter(self, d: TgmountRootSource) -> Mapping | None:
         filter_prop_cfg: FilterConfigValue = d.get("filter")

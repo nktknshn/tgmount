@@ -6,7 +6,7 @@ from typing import Any, Optional, TypedDict, overload
 import pyfuse3
 
 from tgmount import vfs, tglog
-from tgmount.util import none_fallback
+from tgmount.util import none_fallback, measure_time
 from tgmount.vfs.util import MyLock
 from .fh import FileSystemHandles
 from .inode2 import InodesRegistry, RegistryItem, RegistryRoot
@@ -14,7 +14,6 @@ from .util import (
     create_directory_attributes,
     create_file_attributes,
     exception_handler,
-    measure_time,
 )
 
 
@@ -131,7 +130,9 @@ class FileSystemOperations(pyfuse3.Operations, FileSystemOperationsMixin):
             "FileSystemOperations.update_lock", logger=self.logger
         )
 
-    def init(self):
+        self._init()
+
+    def _init(self):
         self._init_root(self._root)
         self._init_handles()
 

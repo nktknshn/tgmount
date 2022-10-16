@@ -14,22 +14,22 @@ from tgmount.tgmount.vfs_tree_producer_types import (
 class VfsTreePlainDir(VfsTreeProducerProto):
     logger = tglog.getLogger(f"VfsTreePlainDir")
 
-    def __init__(self, dir: VfsTreeDir, config: ProducerConfig) -> None:
+    def __init__(self, tree_dir: VfsTreeDir, config: ProducerConfig) -> None:
         self._config = config
-        self._dir = dir
+        self._tree_dir = tree_dir
 
         self._messages = MessagesSet()
         self._message_to_file: dict[str, vfs.FileLike] = {}
-        self._logger = self.logger.getChild(f"{self._dir.path}")
+        self._logger = self.logger.getChild(f"{self._tree_dir.path}")
 
     @classmethod
     async def from_config(
-        cls, resources, vfs_config: VfsStructureConfig, arg, dir: VfsTreeDir
+        cls, resources, vfs_config: VfsStructureConfig, arg, tree_dir: VfsTreeDir
     ):
         if vfs_config.producer_config is None:
-            raise TgmountError(f"Missing producer config: {dir.path}")
+            raise TgmountError(f"Missing producer config: {tree_dir.path}")
 
-        return VfsTreePlainDir(dir, vfs_config.producer_config)
+        return VfsTreePlainDir(tree_dir, vfs_config.producer_config)
 
     # @measure_time(logger_func=print)
     async def produce(self):
@@ -44,7 +44,7 @@ class VfsTreePlainDir(VfsTreeProducerProto):
         }
 
         if len(self._message_to_file) > 0:
-            await self._dir.put_content(list(self._message_to_file.values()))
+            await self._tree_dir.put_content(list(self._message_to_file.values()))
 
         # self._config.message_source.subscribe(self.update)
         self._config.message_source.event_new_messages.subscribe(
@@ -73,12 +73,13 @@ class VfsTreePlainDir(VfsTreeProducerProto):
         )
 
         if len(new_files):
-            await self._dir.put_content(new_files)
+            await self._tree_dir.put_content(new_files)
 
     async def update_removed_messages(self, source, removed_messages: Set[Message]):
         self._logger.info(
             f"update_removed_messages({list(map(lambda m: m.id, removed_messages))})"
         )
+
         removed_files = [
             self._message_to_file[m]
             for m in removed_messages
@@ -86,4 +87,4 @@ class VfsTreePlainDir(VfsTreeProducerProto):
         ]
 
         for f in removed_files:
-            await self._dir.remove_content(f)
+            await self._tree_dir.remove_content(f)

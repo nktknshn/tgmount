@@ -3,6 +3,7 @@ import os
 import random
 from dataclasses import dataclass, field
 
+import asyncio
 import aiofiles
 import telethon
 import tgmount.tgclient as tg
@@ -46,6 +47,7 @@ class MockedClientReader(TgmountTelegramClientReaderProto):
         self._storage.subscribe_removed_messages(listener=listener, chats=chats)
 
     async def get_messages(self, entity, **kwargs) -> TotalListTyped[MockedMessage]:
+        await asyncio.sleep(0.1)
         return await self._storage.get_messages(entity)
 
     def iter_download(

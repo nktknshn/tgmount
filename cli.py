@@ -1,4 +1,5 @@
 from collections.abc import Callable
+import logging
 import os
 import sys
 import argparse
@@ -54,7 +55,7 @@ async def main():
 
     args = get_parser().parse_args()
 
-    init_logging(args.debug)
+    init_logging(debug_level=logging.DEBUG if args.debug else logging.INFO)
 
     if args.command == "list" and args.list_subcommand == "dialogs":
         session, api_id, api_hash = get_tgapp_and_session(args)

@@ -61,6 +61,8 @@ def init_logging(debug_level: int = 0, debugs=[]):
     handler.setLevel(debug_level)
     root_logger.setLevel(debug_level)
     tgmount_logger.setLevel(debug_level)
+    logging.getLogger("telethon").setLevel(logging.ERROR)
+
     # if debug_level:
     #     handler.setLevel(debug_level)
     #     root_logger.setLevel(debug_level)

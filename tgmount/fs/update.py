@@ -5,11 +5,10 @@ from dataclasses import dataclass, field
 import pyfuse3
 
 import tgmount.vfs as vfs
-from tgmount.util import sets_difference
+from tgmount.util import sets_difference, measure_time
 from tgmount.vfs.types.dir import DirLike
 from .inode2 import InodesRegistry, RegistryItem
 from .operations import FileSystemOperations
-from .util import measure_time
 from tgmount import tglog
 
 
@@ -74,14 +73,15 @@ class FileSystemOperationsUpdatable(FileSystemOperations):
             pyfuse3.invalidate_entry_async(v.inode, k)
 
     def _remove_from_handles(self, item: RegistryItem):
-        fh = self._handles.get_by_item(item)
+        fhs = self._handles.get_by_item(item)
 
-        if fh is None:
+        if fhs is None:
             return
 
-        self.logger.debug(f"_remove_from_handles({fh})")
+        self.logger.debug(f"_remove_from_handles({fhs})")
 
-        self._handles.release_fh(fh)
+        for fh in fhs:
+            self._handles.release_fh(fh)
 
     async def update(self, update: FileSystemOperationsUpdate):
         for path, dir_like_or_content in update.update_dir_content.items():

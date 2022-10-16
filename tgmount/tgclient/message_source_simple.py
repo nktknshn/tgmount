@@ -2,7 +2,7 @@ from typing import Callable, Generic, Iterable, Optional, TypeVar
 
 from tgmount import tglog
 from tgmount.tgmount.types import Set
-from tgmount.util import sets_difference
+from tgmount.util import none_fallback, sets_difference
 
 from .message_source_types import MessageSourceSubscribableProto, Subscribable
 
@@ -12,14 +12,26 @@ MessageSourceSimpleFilter = Callable[[M], bool]
 
 
 class MessageSourceSimple(MessageSourceSubscribableProto, Generic[M]):
-    def __init__(self, messages=None) -> None:
-        self._logger = tglog.getLogger("MessageSourceSimple")
+    logger = tglog.getLogger("MessageSourceSimple")
+
+    def __repr__(self) -> str:
+        return f"MessageSourceSimple({self.tag})"
+
+    def __init__(self, messages=None, tag=None) -> None:
+        self._tag = tag
+
+        self._logger = self.logger.getChild(f"{self.tag}")
+
         self._messages: Optional[Set[M]] = messages
 
         self._filters: list[MessageSourceSimpleFilter[M]] = []
 
         self.event_new_messages: Subscribable = Subscribable()
         self.event_removed_messages: Subscribable = Subscribable()
+
+    @property
+    def tag(self):
+        return none_fallback(self._tag, "NoTag")
 
     @property
     def filters(self):

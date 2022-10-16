@@ -2,7 +2,9 @@ import abc
 from typing import Protocol, Type
 
 from tgmount import cache, config, tgclient, tglog
-from tgmount.tgclient import TgmountTelegramClient
+from tgmount.tgclient import TgmountTelegramClient, message_source
+from tgmount.tgmount.root_config_reader import TgmountConfigReader
+from tgmount.util import none_fallback
 
 from .file_factory import classifier, FileFactoryDefault
 from .providers.provider_caches import CachesProviderProto
@@ -64,16 +66,9 @@ class TgmountBuilderBase(abc.ABC):
 
         files_source = self.FilesSource(client)
         file_factory = self.FileFactory(files_source, cached_factories)
-
-        message_sources = self.SourcesProvider(
-            {
-                k: self.MessageSource(client, ms.entity, ms.limit)
-                for k, ms in cfg.message_sources.sources.items()
-            }
+        message_sources = await self.create_messages_source_provider(
+            client, file_factory, cfg
         )
-
-        for src in message_sources.as_mapping().values():
-            src.filters.append(file_factory.supports)
 
         return TgmountResources(
             file_factory=file_factory,
@@ -85,6 +80,32 @@ class TgmountBuilderBase(abc.ABC):
             classifier=self.classifier,
             vfs_wrappers={},
         )
+
+    async def create_messages_source_provider(
+        self,
+        client: tgclient.client_types.TgmountTelegramClientReaderProto,
+        file_factory: FileFactoryDefault,
+        cfg: config.Config,
+    ):
+        sources_used_in_root = TgmountConfigReader().get_used_sources(cfg.root.content)
+        message_source_dict = {
+            k: self.MessageSource(
+                client,
+                ms.entity,
+                ms.limit,
+                receive_updates=none_fallback(ms.updates, True),
+            )
+            for k, ms in cfg.message_sources.sources.items()
+            if k in sources_used_in_root
+        }
+
+        for src in message_source_dict.values():
+            src.filters.append(file_factory.supports)
+            
+        message_sources_provider = self.SourcesProvider(message_source_dict)
+
+
+        return message_sources_provider
 
     async def create_tgmount(self, cfg: config.Config) -> TgmountBase:
 

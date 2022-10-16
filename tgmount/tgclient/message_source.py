@@ -9,6 +9,7 @@ from tgmount.util import none_fallback
 from tgmount.tgmount.types import Set
 
 from .message_source_simple import MessageSourceSimple
+from tgmount.vfs.util import MyLock
 
 
 class TelegramMessageSource(MessageSourceSimple[Message]):
@@ -20,15 +21,20 @@ class TelegramMessageSource(MessageSourceSimple[Message]):
         client: TgmountTelegramClientReaderProto,
         chat_id: str | int,
         limit: Optional[int],
+        receive_updates=True,
     ) -> None:
         self._client = client
         self._chat_id = chat_id
         self._limit = limit
+
+        self._receive_updates = receive_updates
+
         super().__init__()
 
         self._logger = TelegramMessageSource.logger.getChild(f"{self._chat_id}")
 
-        self.subscribe_to_client()
+        if self._receive_updates:
+            self.subscribe_to_client()
 
     def subscribe_to_client(self):
         self._logger.info(f"Subscribing to {self._client} updates.")
@@ -40,11 +46,12 @@ class TelegramMessageSource(MessageSourceSimple[Message]):
         )
 
     async def _on_new_message(self, event: events.NewMessage.Event):
-        self._logger.debug(f"_on_new_message({event.message.id})")
+        self._logger.info(f"New message: {event.message}")
+
         await self.add_messages([event.message])
 
     async def _on_delete_message(self, event: events.MessageDeleted.Event):
-        self._logger.info(f"_on_delete_message({event.deleted_ids})")
+        self._logger.info(f"Removed messages:{event.deleted_ids}")
 
         _msgs = []
         _removed = []
@@ -55,8 +62,8 @@ class TelegramMessageSource(MessageSourceSimple[Message]):
             except ValueError:
                 _msgs.append(m)
             else:
+                self._logger.info(f"Removed message:{m}")
                 _removed.append(m)
-
         await self.set_messages(Set(_msgs))
 
     async def _fetch_from_client(self):

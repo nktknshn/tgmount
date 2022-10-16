@@ -7,7 +7,8 @@ from tgmount.tgmount.vfs_tree_producer_types import (
     VfsStructureConfig,
     VfsTreeProducerProto,
 )
-from tgmount.util import func
+from tgmount.util import func, measure_time
+from tgmount.tglog import tgmount_logger
 
 from .grouperbase import GroupedMessages, VfsTreeProducerGrouperBase
 
@@ -16,6 +17,7 @@ TM = TypeVar("TM", bound=MessageProto)
 Sender = Any
 
 
+@measure_time(logger_func=tgmount_logger.info, threshold=10)
 async def get_key(m: TM) -> str | None:
     sender = await m.get_sender()
 
