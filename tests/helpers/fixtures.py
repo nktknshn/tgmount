@@ -14,6 +14,7 @@ from tgmount.vfs.types.dir import DirLike
 
 @pytest.fixture()
 def mnt_dir(tmpdir):
+    """str(tmpdir)"""
     return str(tmpdir)
 
 

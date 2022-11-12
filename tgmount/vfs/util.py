@@ -2,23 +2,31 @@ import asyncio
 import os
 from collections.abc import Callable
 from typing import List
+import logging
 
 
 class MyLock(asyncio.Lock):
-    def __init__(self, id: str, logger):
+    def __init__(self, id: str, logger, level=logging.DEBUG):
         super(MyLock, self).__init__()
         self.id = id
         self.logger = logger
+        self.level = level
+
+    @property
+    def state(self):
+        return "locked" if self.locked() else "unlocked"
 
     async def acquire(self) -> bool:
-        self.logger.debug(f"{self.id}: + acquiring. Current state: {self.locked()}")
+        self.logger.log(
+            self.level, f"{self.id}: + acquiring. Current state: {self.state}"
+        )
         # traceback.print_stack()
         ret = await super(MyLock, self).acquire()
-        self.logger.debug(f"{self.id}: + locked")
+        self.logger.log(self.level, f"{self.id}: + locked")
         return ret
 
     def release(self) -> None:
-        self.logger.debug(f"{self.id}: - release")
+        self.logger.log(self.level, f"{self.id}: - release")
         # logger.debug('waiters: %s', str(self._waiters))
         # traceback.print_stack()
         super(MyLock, self).release()

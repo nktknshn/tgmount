@@ -1,7 +1,7 @@
 from typing import Any, Iterable, Mapping, Sequence, TypeVar
 
 import telethon
-from tgmount.tgclient.message_types import MessageProto
+from tgmount.tgclient.message_types import MessageProto, SenderProto
 from tgmount.tgmount.error import TgmountError
 from tgmount.tgmount.vfs_tree_producer_types import (
     VfsStructureConfig,
@@ -17,25 +17,42 @@ TM = TypeVar("TM", bound=MessageProto)
 Sender = Any
 
 
-@measure_time(logger_func=tgmount_logger.info, threshold=10)
-async def get_key(m: TM) -> str | None:
-    sender = await m.get_sender()
+class MockedSender(SenderProto):
+    def __init__(self, id: int, username: str) -> None:
+        self.id: int = id
+        self.username = username
 
-    key = None
 
-    if sender is None:
-        return None
+def get_get_key(*, use_get_sender=True):
+    @measure_time(logger_func=tgmount_logger.info, threshold=10)
+    async def get_key(m: TM) -> str | None:
 
-    if sender.username is not None:
-        key = sender.username
+        if m.from_id is None:
+            return
 
-    if key is None:
-        key = telethon.utils.get_display_name(sender)
+        if use_get_sender:
+            sender = await m.get_sender()
+        else:
+            id = telethon.utils.get_peer_id(m.from_id)
+            sender = MockedSender(id=id, username=str(id))
 
-    if key == "":
         key = None
 
-    return key
+        if sender is None:
+            return None
+
+        if sender.username is not None:
+            key = sender.username
+
+        if key is None:
+            key = telethon.utils.get_display_name(sender)
+
+        if key == "":
+            key = None
+
+        return key
+
+    return get_key
 
 
 async def group_by_sender(
@@ -43,7 +60,7 @@ async def group_by_sender(
 ) -> tuple[Mapping[str, list[TM]], list[TM], list[TM],]:
 
     return await func.group_by_func_async(
-        get_key,
+        get_get_key(use_get_sender=False),
         messages,
         minimum=minimum,
     )

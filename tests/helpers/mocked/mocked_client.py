@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 import asyncio
 import aiofiles
 import telethon
+from tgmount import tglog
 import tgmount.tgclient as tg
 from telethon import events, hints
 from tgmount.tgclient.client_types import (
@@ -31,6 +32,8 @@ Client = tg.TgmountTelegramClient
 
 
 class MockedClientReader(TgmountTelegramClientReaderProto):
+    logger = tglog.getLogger("MockedClientReader")
+
     def __repr__(self) -> str:
         return f"MockedClientReader()"
 
@@ -69,6 +72,8 @@ class MockedClientReader(TgmountTelegramClientReaderProto):
 
 
 class MockedClientWriter(TgmountTelegramClientWriterProto):
+    logger = tglog.getLogger("MockedClientWriter")
+
     def __init__(self, storage: MockedTelegramStorage, sender=None) -> None:
         self._storage = storage
         self._sender: MockedSender | None = sender
@@ -85,6 +90,7 @@ class MockedClientWriter(TgmountTelegramClientWriterProto):
         message=None,
         file: str | None = None,
     ) -> Message:
+        self.logger.info(f"send_message({entity}, {message})")
         return await self._storage.get_entity(entity).message(
             text=message,
             # file=file,

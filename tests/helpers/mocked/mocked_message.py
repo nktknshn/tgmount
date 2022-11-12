@@ -197,6 +197,7 @@ class MockedMessage(MessageProto):
         self.reactions = reactions
 
         self.storage_document = None
+        self.from_id = None
 
     @property
     def text(self):

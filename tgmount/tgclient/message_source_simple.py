@@ -12,18 +12,33 @@ MessageSourceSimpleFilter = Callable[[M], bool]
 
 
 class MessageSourceSimple(MessageSourceSubscribableProto, Generic[M]):
+    """
+
+    Generic storage for a set of messages. It gets updated with methods and can be subscribed for new and for removed messages.
+
+    The only constraint on message type is that it has to be hashable.
+
+    Returns stored messages set via `get_messages()` method.
+
+    The updating methods are `add_messages(Set[M])`, `remove_messages(Set[M])`, `set_messages(Set[M])`. Calling these methods triggers `event_new_messages` or/and `event_removed_messages` events.
+
+    `filters` property is a list of predicates that are applied to the incoming sets passed to the updating methods.
+
+    To add a filter use `add_filter`
+
+    """
+
     logger = tglog.getLogger("MessageSourceSimple")
 
     def __repr__(self) -> str:
         return f"MessageSourceSimple({self.tag})"
 
     def __init__(self, messages=None, tag=None) -> None:
-        self._tag = tag
+        self._tag = none_fallback(tag, "NoTag")
 
         self._logger = self.logger.getChild(f"{self.tag}")
 
         self._messages: Optional[Set[M]] = messages
-
         self._filters: list[MessageSourceSimpleFilter[M]] = []
 
         self.event_new_messages: Subscribable = Subscribable()
@@ -31,7 +46,7 @@ class MessageSourceSimple(MessageSourceSubscribableProto, Generic[M]):
 
     @property
     def tag(self):
-        return none_fallback(self._tag, "NoTag")
+        return self._tag
 
     @property
     def filters(self):
@@ -53,6 +68,8 @@ class MessageSourceSimple(MessageSourceSubscribableProto, Generic[M]):
         return res
 
     async def add_messages(self, messages: Iterable[M]):
+        self.logger.debug(f"add_messages()")
+
         if self._messages is None:
             self._messages = Set()
 
@@ -70,7 +87,13 @@ class MessageSourceSimple(MessageSourceSubscribableProto, Generic[M]):
 
         await self.event_new_messages.notify(diff)
 
+    # async def remove_messages_by_func(
+    #     self, select_removed: Callable[[Iterable[M]], Iterable[M]]
+    # ):
+    #     msgs = await self.get_messages()
+
     async def remove_messages(self, messages: Iterable[M]):
+        self.logger.debug(f"remove_messages()")
         if self._messages is None:
             self._messages = Set()
 
@@ -82,6 +105,7 @@ class MessageSourceSimple(MessageSourceSubscribableProto, Generic[M]):
         await self.event_removed_messages.notify(inter)
 
     async def get_messages(self) -> Set[M]:
+        self.logger.debug(f"get_messages()")
         if self._messages is None:
             self._logger.error(f"Messages are not initiated yet")
             return Set()
@@ -89,10 +113,16 @@ class MessageSourceSimple(MessageSourceSubscribableProto, Generic[M]):
         return self._messages
 
     async def set_messages(self, messages: Set[M], notify=True):
+        """Sets the source messages. `notify` controls if the subscribers should be notified about the update"""
+        self.logger.debug(f"set_messages(notify={notify})")
+
         _set = Set(await self._filter_messages(messages))
 
         if self._messages is None:
             self._messages = _set
+            if not notify:
+                return
+
             await self.event_new_messages.notify(_set)
             return
 

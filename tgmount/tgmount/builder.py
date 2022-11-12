@@ -36,7 +36,7 @@ MyClassifier.classes.append(MessageWithText)
 
 class TgmountBuilder(TgmountBuilderBase):
     TelegramClient = tgclient.TgmountTelegramClient
-    MessageSource = tgclient.TelegramMessageSource
+    MessageSource = tgclient.MessageSourceSimple
     FilesSource = tgclient.TelegramFilesSource
     FilesSourceCaching = cache.FilesSourceCaching
     FileFactory = MyFileFactoryDefault

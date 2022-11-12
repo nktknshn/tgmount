@@ -4,6 +4,13 @@ from typing import Mapping, Optional, Type
 from tgmount import fs, main, tgclient, tglog, vfs
 from tgmount.fs.update import FileSystemOperationsUpdate
 from tgmount.tgclient.add_hash import add_hash_to_telegram_message_class
+from tgmount.tgclient.client_types import TgmountTelegramClientReaderProto
+from tgmount.tgclient.message_source_simple import MessageSourceSimple
+from tgmount.tgclient.telegram_message_source import (
+    TelegramEventsDispatcher,
+    TelegramMessagesFetcher,
+)
+from tgmount.tgmount.types import Set
 from .vfs_tree_types import (
     EventRemovedItems,
     EventNewItems,
@@ -19,29 +26,36 @@ from .vfs_tree_message_source import SourcesProviderAccumulating
 from .error import TgmountError
 from .tgmount_types import TgmountResources
 from tgmount.util import none_fallback
+from tgmount import config
 
 add_hash_to_telegram_message_class()
 
 
 class TgmountBase:
+    """
+    Wraps the application state and all the async initialization, connects all the app parts together
+
+    Connects VfsTree and FilesystemOperations by dispatches events from the virtual tree to FilesystemOperations
+    """
+
     FileSystemOperations: Type[
         fs.FileSystemOperationsUpdatable
     ] = fs.FileSystemOperationsUpdatable
 
     VfsTreeProducer = VfsTreeProducer
 
-    _logger = tglog.getLogger("TgmountBase")
+    logger = tglog.getLogger("TgmountBase")
 
     def __init__(
         self,
         *,
         client: tgclient.client_types.TgmountTelegramClientReaderProto,
-        root: Mapping,
         resources: TgmountResources,
+        root_config: Mapping,
         mount_dir: Optional[str] = None,
     ) -> None:
         self._client = client
-        self._root = root
+        self._root_config = root_config
         self._resources = resources
         self._mount_dir: Optional[str] = mount_dir
 
@@ -58,6 +72,39 @@ class TgmountBase:
         self._producer = self.VfsTreeProducer(
             resources=self._resources.set_sources(self._source_provider)
         )
+
+        self._messages_dispatcher = TelegramEventsDispatcher(client)
+
+    async def fetch_messages(self):
+        """Fetch initial messages from message_sources"""
+        pass
+
+    async def register_sources(self):
+        """Add sources to dispatcher"""
+        assert self._resources.fetchers_dict
+
+        self.logger.info(self._resources.fetchers_dict)
+
+        for k, fetcher_dict in self._resources.fetchers_dict.items():
+            fetcher: TelegramMessagesFetcher = fetcher_dict["fetcher"]
+            fetcher_cfg: config.MessageSource = fetcher_dict["config"]
+            updates: bool = fetcher_dict["updates"]
+            source: MessageSourceSimple = fetcher_dict["source"]
+
+            if updates:
+                self._messages_dispatcher.register_source(fetcher_cfg.entity, source)
+
+        for k, fetcher_dict in self._resources.fetchers_dict.items():
+            self.logger.info(f"Fetching from {k}")
+
+            fetcher: TelegramMessagesFetcher = fetcher_dict["fetcher"]
+            source: MessageSourceSimple = fetcher_dict["source"]
+            initial_messages = await fetcher.fetch()
+
+            await source.set_messages(Set(initial_messages), notify=False)
+
+        # for entity_id, source in self._source_provider.as_mapping().items():
+        #     self._messages_dispatcher.register_source(source)
 
     @property
     def client(self):
@@ -84,11 +131,16 @@ class TgmountBase:
         if mount_dir is None:
             raise TgmountError(f"missing destination")
 
-        self._logger.info(f"Building root...")
+        self.logger.info(f"Building root...")
 
+        await self.register_sources()
+        # we need to start accumulating incoming messages here during
+        # the construction of the file system and pass them later
+        # to the message sources
         await self.create_fs()
+        await self._messages_dispatcher.resume()
 
-        self._logger.info(f"Mounting into {mount_dir}")
+        self.logger.info(f"Mounting into {mount_dir}")
 
         await main.util.mount_ops(
             self._fs,
@@ -127,27 +179,29 @@ class TgmountBase:
     async def _update_fs(self, fs_update: FileSystemOperationsUpdate):
 
         if self._fs is None:
-            self._logger.error(f"self._fs is not created yet.")
+            self.logger.error(f"self._fs is not created yet.")
             return
 
         async with self._fs._update_lock:
             await self._fs.update(fs_update)
 
     async def produce_vfs_tree(self):
-        await self._producer.produce(self._vfs_tree, self._root)
+        await self._producer.produce(self._vfs_tree, self._root_config)
 
     async def create_fs(self):
 
         # for k, v in self._resources.sources.as_mapping().items():
         #     v.subscribe_to_client()
+        async with self._source_provider.update_lock:
+            await self.produce_vfs_tree()
 
-        await self.produce_vfs_tree()
+            root_contet = await self._vfs_tree.get_dir_content()
 
-        root_contet = await self._vfs_tree.get_dir_content()
+            root = vfs.root(root_contet)
 
-        root = vfs.root(root_contet)
+            self.logger.debug(f"Used loggers: {tglog.get_loggers()}")
 
-        self._fs = self.FileSystemOperations(root)
+            self._fs = self.FileSystemOperations(root)
 
     async def _on_vfs_tree_update(self, provider, source, updates: list[TreeEventType]):
 
@@ -156,7 +210,7 @@ class TgmountBase:
 
         fs_update = await self._join_events(updates)
 
-        self._logger.info(
+        self.logger.info(
             f"UPDATE: new_files={list(fs_update.new_files.keys())} removed_files={list(fs_update.removed_files)} update_dir_content={list(fs_update.update_dir_content.keys())} new_dir_content={list(fs_update.new_dirs.keys())} removed_dirs={fs_update.removed_dir_contents}"
         )
 

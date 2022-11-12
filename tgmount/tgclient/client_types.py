@@ -4,8 +4,7 @@ from typing import Awaitable, Callable, Protocol
 from telethon import events, hints
 from telethon.tl.custom import Message
 
-from .types import (InputDocumentFileLocation, InputPhotoFileLocation,
-                    TotalListTyped)
+from .types import InputDocumentFileLocation, InputPhotoFileLocation, TotalListTyped
 
 ListenerNewMessages = Callable[[events.NewMessage.Event], Awaitable[None]]
 ListenerRemovedMessages = Callable[[events.MessageDeleted.Event], Awaitable[None]]
@@ -68,6 +67,8 @@ class TgmountTelegramClientReaderProto(
     TgmountTelegramClientEventProto,
     TgmountTelegramClientIterDownloadProto,
 ):
+    """Interface for client that can fetch messages and receive updates"""
+
     @abstractmethod
     def __init__(self, *args, **kwargs) -> None:
         pass
@@ -81,21 +82,3 @@ class TgmountTelegramClientWriterProto(
     TgmountTelegramClientSendMessageProto, TgmountTelegramClientDeleteMessagesProto
 ):
     pass
-
-
-# class GetMessagesQuery(TypedDict):
-#     limit: Optional[int]
-
-#     offset_date: Optional[hints.DateLike]
-#     offset_id: int
-#     max_id: int
-#     min_id: int
-#     add_offset: int
-#     search: Optional[str]
-#     filter: Optional[Union[TypeMessagesFilter, Type[TypeMessagesFilter]]]
-#     from_user: Optional[hints.EntityLike]
-#     wait_time: Optional[float]
-#     ids: Optional[Union[int, Sequence[int]]]
-#     reverse: bool
-#     reply_to: Optional[int]
-#     scheduled: bool

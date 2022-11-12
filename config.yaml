@@ -1,0 +1,164 @@
+# optional. may be specified as command line argument
+mount_dir: /home/horn/mnt/tgmount1
+# client settings
+client:
+  session: tgfs
+  api_id: 123
+  api_hash: deadbeed121212121
+# caches
+caches:
+  # will instantiate a single in memory cache
+  memory1:
+    type: memory
+    capacity: 50MB
+    block_size: 128KB
+# every source is a separate get_messages request
+count: &count 1000
+updates: &updates True
+
+    
+# definiton
+ogranized: &ogranized
+  filter: { filter: [OnlyUniqueDocs], recursive: True }
+  # cache: { cache: memory1, filter: { ByExtension: .zip }, recursive: True }
+  docs:
+    filter:
+      - MessageWithOtherDocument
+      - Not:
+          - ByExtension: .zip
+  mixed-audio:
+    filter: MessageWithZip
+    music:
+      filter: MessageWithMusic
+    voices:
+      filter: MessageWithVoice
+  music:
+    filter: MessageWithMusic
+  reactions:
+    filter: MessageWithReactions
+  zips:
+    filter: MessageWithZip
+  personal:
+    filter:
+      Union: [MessageWithKruzhochek, MessageWithVoice]
+  video:
+    filter: MessageWithVideoFile
+  images:
+    filter:
+      Union: [MessageWithDocumentImage, MessageWithCompressedPhoto]
+  stickers:
+    filter:
+      Union: [MessageWithAnimated, MessageWithSticker]
+  messages:
+    filter: MessageWithText
+    treat_as: MessageWithText
+  all:
+    filter: All
+  by-forward: 
+    filter: MessageForwarded
+    producer: ByForward  
+  music-by-performer:
+    filter: MessageWithMusic
+    producer: ByPerformer
+  forwareded-video:
+    filter:
+      And: [MessageForwarded, MessageWithVideo]
+      
+  unpacked:
+    filter: MessageWithZip
+    # it's recommended to use cache with ZipsAsDirs. otherwise it is slow
+    cache: memory1
+    wrappers: ZipsAsDirs
+    #   - ZipsAsDirs:
+    #       recursive: True
+    #       skip_folder_if_single_subfolder: True
+    #       hide_sources: True
+  wrappers: ExcludeEmptyDirs
+
+by-sender: &by-sender
+  filter: All
+  producer:
+    BySender:
+      dir_structure:
+        <<: *ogranized
+message_sources:
+  ru2chmu:
+    entity: ru2chmu
+    limit: *count
+    reverse: False
+    updates: *updates
+  relocationguidebig:
+    entity: relocationguidebig
+    limit: *count
+    updates: *updates
+  kz:
+    entity: -1001631461778
+    limit: *count
+    updates: *updates
+  armenia:
+    entity: -1001735630504
+    limit: *count
+    updates: *updates
+  ru_python:
+    entity: ru_python
+    limit: *count
+    updates: *updates
+  NappingCat:
+    entity: NappingCat
+    limit: *count
+    updates: *updates
+  ts_cool:
+    entity: ts_cool
+    limit: *count
+    updates: *updates
+  ru_python_beginners:
+    entity: ru_python_beginners
+    limit: *count
+    updates: *updates
+  my-mount:
+    entity: -1001678896566
+  tmtc:
+    entity: tgmounttestingchannel
+    # filter: InputMessagesFilterMusic
+root:
+  ru2chmu:
+    source: { source: ru2chmu, recursive: True }
+    <<: *ogranized
+    by-sender: *by-sender
+  armenia:
+    source: { source: armenia, recursive: True }
+    <<: *ogranized
+    by-sender: *by-sender
+  kz:
+    source: { source: kz, recursive: True }
+    <<: *ogranized
+    by-sender: *by-sender
+  relocationguidebig:
+    source: { source: relocationguidebig, recursive: True }
+    <<: *ogranized
+    by-sender: *by-sender
+  ru_python_beginners:
+    source: { source: ru_python_beginners, recursive: True }
+    <<: *ogranized
+    by-sender: *by-sender
+  ru_python:
+    source: { source: ru_python, recursive: True }
+    <<: *ogranized
+    by-sender: *by-sender
+  ts_cool:
+    source: { source: ts_cool, recursive: True }
+    <<: *ogranized
+    by-sender: *by-sender
+  NappingCat_Chat:
+    source: { source: NappingCat, recursive: True }
+    <<: *ogranized
+    by-sender: *by-sender
+  tmtc:
+    source: { source: tmtc, recursive: True }
+    <<: *ogranized
+    by-sender:
+      <<: *by-sender
+  my-mount:
+    source: { source: my-mount, recursive: True }
+    wrappers: ExcludeEmptyDirs
+    <<: *ogranized

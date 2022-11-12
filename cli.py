@@ -59,6 +59,7 @@ async def main():
 
     if args.command == "list" and args.list_subcommand == "dialogs":
         session, api_id, api_hash = get_tgapp_and_session(args)
+
         async with ClientEnv(session, api_id, api_hash) as client:
             await cli.list_dialogs(client)
 

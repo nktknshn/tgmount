@@ -5,9 +5,7 @@ from .vfs_tree_producer_types import VfsStructureConfig
 from .root_config_reader import TgmountConfigReader
 from .root_config_types import RootConfigContext
 from .tgmount_types import TgmountResources
-from .types import (
-    TgmountRootSource,
-)
+from .types import TgmountRootSource
 from .vfs_tree import VfsTreeDir, VfsTree
 from .vfs_tree_wrapper import WrapperEmpty, WrapperZipsAsDirs
 import asyncio
@@ -15,6 +13,8 @@ from tgmount.tgclient.message_source_types import MessageSourceSubscribableProto
 
 
 class VfsTreeProducer:
+    """Class that using `TgmountResources` and `VfsStructureConfig` produces content into `VfsTreeDir` or `VfsTree`"""
+
     def __init__(self, resources: TgmountResources) -> None:
 
         self._logger = tglog.getLogger(f"VfsTreeProducer()")
@@ -73,4 +73,4 @@ class VfsTreeProducer:
         ):
             await self.produce_path(tree_dir, path, vfs_config, ctx)
 
-        self._logger.info(f"Done producing")
+        self._logger.info(f"Done producing {tree_dir.path}")

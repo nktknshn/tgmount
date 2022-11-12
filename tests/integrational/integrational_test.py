@@ -4,7 +4,7 @@ import asyncio
 from collections.abc import Awaitable, Callable
 import logging
 import os
-from typing import Any, Iterable, Mapping, TypedDict
+from typing import Any, AsyncGenerator, Iterable, Mapping, TypedDict
 
 import aiofiles
 import pyfuse3
@@ -23,7 +23,7 @@ from tgmount.tgmount.builder import TgmountBuilder
 from ..helpers.fixtures import mnt_dir
 from ..helpers.mocked.mocked_client import MockedClientReader, MockedClientWriter
 from ..helpers.mocked.mocked_message import MockedFile, MockedMessage, MockedSender
-from .helpers import *
+from .helpers import async_walkdir, create_config, async_listdir
 from tgmount.util import none_fallback
 from tgmount.tgmount import VfsTreeProducer, TgmountBase
 

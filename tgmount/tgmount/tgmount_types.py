@@ -17,6 +17,7 @@ class TgmountResources:
     wrappers: Mapping[str, Type[Any]]
     vfs_wrappers: Mapping[str, Type[Any]]
     classifier: ClassifierBase
+    fetchers_dict: Mapping | None = None
 
     def set_sources(self, sources: SourcesProviderProto):
         return replace(self, sources=sources)

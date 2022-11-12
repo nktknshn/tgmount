@@ -2,11 +2,12 @@ from tgmount.tgclient import TgmountTelegramClient
 
 
 class ClientEnv:
+    """Authorizes client on enter and disconnects on exit"""
+
     TelegramClient = TgmountTelegramClient
 
-    @classmethod
-    def get_client(cls, session: str, api_id: int, api_hash: str):
-        return cls.TelegramClient(
+    def get_client(self, session: str, api_id: int, api_hash: str):
+        return self.TelegramClient(
             session,
             api_id,
             api_hash,

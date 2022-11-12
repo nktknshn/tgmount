@@ -7,6 +7,9 @@ logging.addLevelName(TRACE, "TRACE")
 
 import logging
 
+_loggers: set[str] = set()
+tgmount_logger = logging.getLogger("tgmount")
+
 
 class TgmountLogger(logging.Logger):
     def __init__(self, name: str, level=logging.NOTSET) -> None:
@@ -18,10 +21,13 @@ class TgmountLogger(logging.Logger):
 
 logging.setLoggerClass(TgmountLogger)
 
-tgmount_logger = logging.getLogger("tgmount")
+
+def get_loggers():
+    return frozenset(_loggers)
 
 
 def getLogger(name: str) -> TgmountLogger:
+    _loggers.add(name)
     return tgmount_logger.getChild(name)  # type: ignore
 
 
@@ -36,7 +42,7 @@ class ContextFilter(logging.Filter):
         return True
 
 
-def init_logging(debug_level: int = 0, debugs=[]):
+def init_logging(debug_level: int = 0):
     # print(f"init_logging: {debug}", file=sys.stderr)
 
     f = ContextFilter()
@@ -62,31 +68,3 @@ def init_logging(debug_level: int = 0, debugs=[]):
     root_logger.setLevel(debug_level)
     tgmount_logger.setLevel(debug_level)
     logging.getLogger("telethon").setLevel(logging.ERROR)
-
-    # if debug_level:
-    #     handler.setLevel(debug_level)
-    #     root_logger.setLevel(debug_level)
-    #     tgmount_logger.setLevel(debug_level)
-    #     # logging.getLogger("tgvfs").setLevel(logging.DEBUG)
-    #     # logging.getLogger("tgmount-zip").setLevel(logging.DEBUG)
-    #     # logging.getLogger("tgmount-cache").setLevel(logging.DEBUG)
-    #     # # logging.getLogger("tgvfs-ops").setLevel(logging.DEBUG)
-    #     # # logging.getLogger("tgvfs-ops-updates").setLevel(logging.INFO)
-    #     # logging.getLogger("tgclient").setLevel(logging.DEBUG)
-    #     # logging.getLogger("tgmount-cli").setLevel(logging.DEBUG)
-    #     logging.getLogger("telethon").setLevel(logging.INFO)
-    # else:
-    #     handler.setLevel(debug_level)
-    #     root_logger.setLevel(logging.INFO)
-    #     tgmount_logger.setLevel(logging.ERROR)
-    #     # logging.getLogger("tgvfs").setLevel(logging.INFO)
-    #     # # logging.getLogger("tgvfs-ops").setLevel(logging.INFO)
-    #     # # logging.getLogger("tgvfs-ops-updates").setLevel(logging.INFO)
-    #     # logging.getLogger("tgmount-zip").setLevel(logging.INFO)
-    #     # logging.getLogger("tgmount-cache").setLevel(logging.INFO)
-    #     # logging.getLogger("tgmount-cli").setLevel(logging.INFO)
-    #     # logging.getLogger("tgclient").setLevel(logging.INFO)
-    #     logging.getLogger("telethon").setLevel(logging.ERROR)
-
-    # for d in debugs:
-    #     logging.getLogger(d).setLevel(logging.DEBUG)

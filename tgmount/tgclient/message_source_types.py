@@ -1,33 +1,16 @@
 from abc import abstractmethod
-from typing import (
-    Any,
-    Awaitable,
-    Callable,
-    Generic,
-    Iterable,
-    Optional,
-    Protocol,
-    TypeVar,
-)
+from typing import Any, Awaitable, Callable, Protocol, TypeVar
 
 from telethon import events
 from telethon.tl.custom import Message
 
-from tgmount import tglog
-from tgmount.tgclient.client_types import (
-    TgmountTelegramClientEventProto,
-    TgmountTelegramClientReaderProto,
-)
-from tgmount.util import none_fallback, sets_difference
-from tgmount.tgmount.types import Set, MessagesSet
-from .client import TgmountTelegramClient
-from .logger import logger
+
+from tgmount.tgmount.types import Set
 
 T = TypeVar("T")
 Arg = TypeVar("Arg")
 Arg_co = TypeVar("Arg_co", covariant=True)
 
-# MessagesSet = frozenset[Message] | set[Message]
 
 Listener = Callable[
     [
@@ -54,7 +37,7 @@ class MessageSourceProto(Protocol):
         pass
 
 
-class MessageSourceSubscribableProto(MessageSourceProto):
+class MessageSourceSubscribableProto(MessageSourceProto, Protocol):
 
     event_new_messages: SubscribableProto[Set[Message]]
     event_removed_messages: SubscribableProto[Set[Message]]

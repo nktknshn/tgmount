@@ -5,11 +5,10 @@ from typing import Optional, Iterable, Type, Protocol
 from typing import Mapping
 from abc import abstractmethod
 from tgmount.tgclient import MessageSourceSubscribableProto
-from tgmount.tgclient.message_source import Set
 from tgmount.tgclient.message_types import MessageProto
 from tgmount.tgmount.file_factory import FileFactoryProto
 from tgmount.tgmount.filters_types import Filter
-from tgmount.tgmount.types import MessagesSet
+from tgmount.tgmount.types import MessagesSet, Set
 
 # from .tgmount_types import TgmountResources
 # from .vfs_tree import VfsTreeDir

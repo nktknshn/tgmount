@@ -2,8 +2,10 @@ import abc
 from typing import Protocol, Type
 
 from tgmount import cache, config, tgclient, tglog
-from tgmount.tgclient import TgmountTelegramClient, message_source
+from tgmount.tgclient.guards import TelegramMessage
+from tgmount.tgclient.telegram_message_source import TelegramMessagesFetcher
 from tgmount.tgmount.root_config_reader import TgmountConfigReader
+from tgmount.tgmount.vfs_tree import VfsTree
 from tgmount.util import none_fallback
 
 from .file_factory import classifier, FileFactoryDefault
@@ -18,10 +20,12 @@ from .tgmountbase import TgmountBase
 
 
 class TgmountBuilderBase(abc.ABC):
+    """Construct TgmountBase from confif"""
+
     logger = tglog.getLogger(f"TgmountBuilderBase()")
 
     TelegramClient: Type[tgclient.client_types.TgmountTelegramClientReaderProto]
-    MessageSource: Type[tgclient.TelegramMessageSource]
+    MessageSource: Type[tgclient.MessageSourceSimple]
     FilesSource: Type[tgclient.TelegramFilesSource]
     FileFactory: Type[FileFactoryDefault]
     FilesSourceCaching: Type[cache.FilesSourceCaching]
@@ -66,7 +70,8 @@ class TgmountBuilderBase(abc.ABC):
 
         files_source = self.FilesSource(client)
         file_factory = self.FileFactory(files_source, cached_factories)
-        message_sources = await self.create_messages_source_provider(
+
+        message_sources, fetchers_dict = await self.create_messages_source_provider(
             client, file_factory, cfg
         )
 
@@ -79,6 +84,7 @@ class TgmountBuilderBase(abc.ABC):
             wrappers=self.wrappers.get_wrappers(),
             classifier=self.classifier,
             vfs_wrappers={},
+            fetchers_dict=fetchers_dict,
         )
 
     async def create_messages_source_provider(
@@ -88,24 +94,35 @@ class TgmountBuilderBase(abc.ABC):
         cfg: config.Config,
     ):
         sources_used_in_root = TgmountConfigReader().get_used_sources(cfg.root.content)
+
         message_source_dict = {
             k: self.MessageSource(
-                client,
-                ms.entity,
-                ms.limit,
-                receive_updates=none_fallback(ms.updates, True),
+                # client,
+                # ms.entity,
+                # ms.limit,
+                # receive_updates=none_fallback(ms.updates, True),
             )
+            for k, ms in cfg.message_sources.sources.items()
+            if k in sources_used_in_root
+        }
+
+        fetchers_dict = {
+            k: {
+                "source": message_source_dict[k],
+                "config": ms,
+                "fetcher": TelegramMessagesFetcher(client, ms),
+                "updates": none_fallback(ms.updates, True),
+            }
             for k, ms in cfg.message_sources.sources.items()
             if k in sources_used_in_root
         }
 
         for src in message_source_dict.values():
             src.filters.append(file_factory.supports)
-            
+
         message_sources_provider = self.SourcesProvider(message_source_dict)
 
-
-        return message_sources_provider
+        return message_sources_provider, fetchers_dict
 
     async def create_tgmount(self, cfg: config.Config) -> TgmountBase:
 
@@ -114,8 +131,8 @@ class TgmountBuilderBase(abc.ABC):
 
         tgm = self.TgmountBase(
             client=self.client,
-            root=cfg.root.content,
             resources=self.resources,
+            root_config=cfg.root.content,
             mount_dir=cfg.mount_dir,
         )
 
@@ -128,3 +145,6 @@ class TgmountBuilderBase(abc.ABC):
     ):
         cache_factory_cls = await self.caches.get_cache_factory(cache_config.type)
         return cache_factory_cls(**cache_config.kwargs)
+
+    async def create_vfs_tree(self):
+        return VfsTree()

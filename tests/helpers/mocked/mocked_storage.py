@@ -167,6 +167,8 @@ class StorageEntityMixin:
                 if isinstance(sender, str)
                 else sender
             )
+            msg.from_id = msg.sender.id
+
         if forward is not None:
             if isinstance(forward, MockedForward):
                 msg.forward = forward

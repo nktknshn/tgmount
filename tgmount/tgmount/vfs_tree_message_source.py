@@ -1,9 +1,13 @@
+import logging
 from typing import Mapping
 
 from telethon.tl.custom import Message
 
 from tgmount import tgclient, tglog
-from tgmount.tgclient.message_source_types import Subscribable
+from tgmount.tgclient.message_source_types import (
+    MessageSourceSubscribableProto,
+    Subscribable,
+)
 from tgmount.tgmount.providers.provider_sources import (
     SourcesProvider,
     SourcesProviderProto,
@@ -14,13 +18,29 @@ from tgmount.tgmount.vfs_tree_types import TreeEventType
 from tgmount.vfs.util import MyLock
 from tgmount.util import measure_time
 
+""" 
+
+TelegramMessageSource(MessageSourceSimple) receives updates
+ 
+currently: 
+TelegramClient -> TelegramMessageSource -> SourcesProviderMessageSource -> VfsTreeProducers -> VfsTree -> SourcesProviderMessageSource -> TgmountBase -> FileSystemOperationsUpdate
+
+TelegramClient -> TelegramUpdatesDispatcher( ) -> SimpleMessageSource -> VfsTreeProducer -> VfsTree -> TelegramUpdatesDispatcher
+
+TelegramClient -> TgmountBase().process_update() -> SimpleMessageSource -> VfsTreeProducer -> VfsTree -> TelegramUpdatesDispatcher
+
+"""
+
 
 class SourcesProviderMessageSource(
     Subscribable, tgclient.MessageSourceSubscribableProto
 ):
     """
-    Wraps MessageSource to accumulate updates in the tree that were triggered
-    by parent message source
+    Wraps a MessageSourceSubscribableProto to accumulate updates in VfsTree
+    that were triggered by the wrapped message source
+
+    Acquires provider's update_lock when processing update. So the updates
+    processing is atomic
     """
 
     logger = tglog.getLogger(f"AccumulatingMessageSource()")
@@ -58,10 +78,10 @@ class SourcesProviderMessageSource(
 
     @measure_time(logger_func=logger.info)
     async def update_new_message(self, source, messages: Set[Message]):
+        self.logger.debug(f"update_new_message({len(messages)})")
 
         # start accumulating updates
         async with self._provider.update_lock:
-
             _events = []
 
             async def append_events(
@@ -89,7 +109,7 @@ class SourcesProviderMessageSource(
 
     @measure_time(logger_func=logger.info)
     async def removed_messages(self, source, messages: Set[Message]):
-        self.logger.debug("removed_messages")
+        self.logger.debug("removed_messages()")
         async with self._provider.update_lock:
             _updates = []
 
@@ -113,6 +133,7 @@ class SourcesProviderAccumulating(SourcesProvider[SourcesProviderMessageSource])
 
     MessageSource = SourcesProviderMessageSource
     logger = tglog.getLogger("SourcesProviderAccumulating")
+    # logger.setLevel(logging.DEBUG)
 
     def __init__(
         self,
@@ -122,7 +143,13 @@ class SourcesProviderAccumulating(SourcesProvider[SourcesProviderMessageSource])
 
         self.accumulated_updates: Subscribable = Subscribable()
         self._tree = tree
-        self._update_lock = MyLock("SourcesProviderAccumulating", logger=self.logger)
+
+        """Locks when new event (new messsage or removed messages) received until the event is processed by VfsTree and FileSystemOperations.update"""
+        self._update_lock = MyLock(
+            "SourcesProviderAccumulating.update_lock",
+            logger=self.logger,
+            level=logging.INFO,
+        )
 
         super().__init__(
             {k: self.MessageSource(self, self._tree, v) for k, v in source_map.items()}

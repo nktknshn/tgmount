@@ -2,19 +2,27 @@ import asyncio
 import copy
 import os
 import threading
-from typing import AsyncGenerator, Mapping, TypedDict
+from typing import Any, AsyncGenerator, Coroutine, Mapping, TypedDict
+
+import aiofiles.os
 
 import aiofiles
 import telethon
+from tests.helpers.mocked.mocked_storage import StorageEntity
 import tgmount.config as config
 import tgmount.tgclient as tg
 from tests.integrational.integrational_helpers import DEFAULT_ROOT
 from tgmount import tglog, vfs
 from tgmount.main.util import read_tgapp_api
 from tgmount.tgmount.builder import TgmountBuilder
+import pytest
+from tgmount.tgmount.producers.producer_by_sender import VfsTreeDirBySender
+
+# from tests.integrational.helpers import async_walkdir, create_config, mdict
 
 # import os
 
+from tgmount.util import Timer, none_fallback
 
 Message = telethon.tl.custom.Message
 Document = telethon.types.Document
@@ -40,6 +48,34 @@ DEFAULT_CACHES: Mapping = {
 }
 
 
+import asyncio
+
+
+async def concurrentlys(*coros: Coroutine):
+    ts = map(asyncio.create_task, coros)
+
+    done, prending = await asyncio.wait(ts, return_when=asyncio.ALL_COMPLETED)
+
+    if len(done) < len(coros):
+        pytest.fail(f"some of the coros threw an exception: {done.pop().exception()}")
+
+    return tuple(map(lambda r: r.result(), done))
+
+
+async def concurrently(coro1: Coroutine, coro2: Coroutine):
+    t1 = asyncio.create_task(coro1)
+    t2 = asyncio.create_task(coro2)
+
+    done, prending = await asyncio.wait([t1, t2], return_when=asyncio.ALL_COMPLETED)
+
+    if len(done) < 2:
+        pytest.fail(f"some of the coros threw an exception: {done.pop().exception()}")
+
+    [res1, res2] = done
+
+    return res1.result(), res2.result()
+
+
 def create_config(
     *,
     message_sources={"source1": "source1"},
@@ -63,8 +99,6 @@ def create_config(
         root=config.Root(root),
     )
 
-
-import aiofiles.os
 
 async_listdir = aiofiles.os.listdir
 
@@ -139,57 +173,3 @@ class mdict:
 
     def get(self):
         return self._root
-
-
-# async def main_test1(props: Props, on_event):
-
-#     # on_event(props["ev0"], print_tasks)
-#     # on_event(props["ev1"], print_tasks)
-
-#     async def on_new_message(event):
-#         print(event)
-
-#     tglog.init_logging(props["debug"])
-
-#     test_logger = tglog.getLogger("main_test1")
-
-#     # tglog.getLogger("FileSystemOperations()").setLevel(logging.ERROR)
-#     # logging.getLogger("telethon").setLevel(logging.INFO)
-
-#     test_logger.debug("Building...")
-#     builder = MyTgmountBuilder(
-#         client_kwargs=dict(
-#             # sequential_updates=True,
-#         )
-#     )
-
-#     test_logger.debug("Creating...")
-#     tgm = await builder.create_tgmount(props["cfg"])
-
-#     # tgm.client.add_event_handler(
-#     #     on_new_message, events.NewMessage(chats=TESTING_CHANNEL)
-#     # )
-
-#     test_logger.debug("Auth...")
-#     await tgm.client.auth()
-
-#     # tgm.client.on(events.NewMessage(chats=TESTING_CHANNEL))(on_new_message)
-
-#     test_logger.debug("Creating FS...")
-#     await tgm.create_fs()
-
-#     test_logger.debug("Returng FS")
-
-#     return tgm.fs
-
-
-# class Client:
-#     def __init__(self, client, entity=TESTING_CHANNEL) -> None:
-#         self.client = client
-#         self.entity = entity
-
-#     async def send_message(self, **kwargs):
-#         return await self.client.send_message(self.entity, **kwargs)
-
-#     async def delete_messages(self, msg_ids: list[int], **kwargs):
-#         return await self.client.delete_messages(self.entity, msg_ids)
