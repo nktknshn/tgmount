@@ -3,24 +3,25 @@ from zipfile import BadZipFile
 from tgmount import vfs, tglog, zip as z
 from ..vfs_tree import VfsTreeDir
 from ..vfs_tree_types import (
-    EventNewItems,
-    EventRemovedDirs,
-    EventNewDirs,
-    EventRemovedItems,
+    TreeEventNewItems,
+    TreeEventRemovedDirs,
+    TreeEventNewDirs,
+    TreeEventRemovedItems,
     TreeEventType,
-    Wrapper,
 )
+
+from ..vfs_tree_wrapper import VfsTreeWrapperProto
 
 logger = tglog.getLogger("VfsStructureProducer")
 logger.setLevel(tglog.TRACE)
 
 
-class WrapperZipsAsDirs(Wrapper):
+class WrapperZipsAsDirs(VfsTreeWrapperProto):
     logger = tglog.getLogger(f"WrapperZipsAsDirs")
 
-    @staticmethod
-    def from_config(resources, dir: VfsTreeDir, arg: Mapping):
-        pass
+    @classmethod
+    def from_config(cls, arg: Mapping, sub_dir: VfsTreeDir):
+        WrapperZipsAsDirs(sub_dir)
 
     def __init__(self, wrapped_dir: "VfsTreeDir") -> None:
         self._wrapped_dir = wrapped_dir
@@ -80,8 +81,8 @@ class WrapperZipsAsDirs(Wrapper):
         modified_updates = []
 
         for e in events:
-            if isinstance(e, EventNewItems):
-                _e = EventNewItems(e.update_path, [])
+            if isinstance(e, TreeEventNewItems):
+                _e = TreeEventNewItems(e.update_path, [])
 
                 for item in e.new_items:
                     if isinstance(item, vfs.FileLike) and await self._is_zip_file(item):
@@ -96,8 +97,8 @@ class WrapperZipsAsDirs(Wrapper):
                         _e.new_items.append(item)
                 modified_updates.append(_e)
 
-            elif isinstance(e, EventRemovedItems):
-                _e = EventRemovedItems(e.update_path, [])
+            elif isinstance(e, TreeEventRemovedItems):
+                _e = TreeEventRemovedItems(e.update_path, [])
 
                 for item in e.removed_items:
                     if isinstance(item, vfs.FileLike) and item in self._zip_to_folder:

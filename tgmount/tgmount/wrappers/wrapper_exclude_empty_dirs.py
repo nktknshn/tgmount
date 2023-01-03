@@ -1,6 +1,11 @@
 from tgmount import vfs, tglog
 from ..vfs_tree import VfsTreeDir
-from ..vfs_tree_types import EventRemovedDirs, EventNewDirs, TreeEventType, Wrapper
+from ..vfs_tree_types import (
+    TreeEventRemovedDirs,
+    TreeEventNewDirs,
+    TreeEventType,
+)
+from ..vfs_tree_wrapper import VfsTreeWrapperProto
 
 logger = tglog.getLogger("VfsStructureProducer")
 logger.setLevel(tglog.TRACE)
@@ -22,7 +27,11 @@ def remove_empty_dirs_content(
     return vfs.dir_content_filter_items(filter_empty, d)
 
 
-class WrapperEmpty(Wrapper):
+class WrapperEmpty(VfsTreeWrapperProto):
+    @classmethod
+    def from_config(cls, arg, sub_dir):
+        return WrapperEmpty(sub_dir)
+
     def __init__(self, wrapped_dir: "VfsTreeDir") -> None:
         self._wrapped_dir = wrapped_dir
         self._wrapped_dir_subdirs: set["VfsTreeDir"] = set()
@@ -68,11 +77,11 @@ class WrapperEmpty(Wrapper):
 
         if child in self._wrapped_dir_subdirs:
             if is_empty:
-                events = [EventRemovedDirs(self._wrapped_dir.path, [child.path])]
+                events = [TreeEventRemovedDirs(self._wrapped_dir.path, [child.path])]
         else:
             if not is_empty:
                 events = [
-                    EventNewDirs(self._wrapped_dir.path, [child.path]),
+                    TreeEventNewDirs(self._wrapped_dir.path, [child.path]),
                     *events,
                 ]
                 self._wrapped_dir_subdirs.add(child)

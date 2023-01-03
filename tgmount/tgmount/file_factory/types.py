@@ -41,6 +41,8 @@ class WithFilenameMethodProto(Protocol[T]):
 
 
 class FileFactoryProto(Protocol[T]):
+    """Constructs a `FileLike` from a message of type `T`"""
+
     @abstractmethod
     def supports(self, message: Message) -> TypeGuard[T]:
         ...

@@ -4,10 +4,11 @@ import telethon
 from tgmount.tgclient.message_types import MessageProto, SenderProto
 from tgmount.tgmount.error import TgmountError
 from tgmount.tgmount.vfs_tree_producer_types import (
-    VfsStructureConfig,
+    VfsDirConfig,
+    VfsTreeProducerConfig,
     VfsTreeProducerProto,
 )
-from tgmount.util import func, measure_time
+from tgmount.util import func, measure_time, none_fallback
 from tgmount.tglog import tgmount_logger
 
 from .grouperbase import GroupedMessages, VfsTreeProducerGrouperBase
@@ -75,16 +76,17 @@ class VfsTreeDirBySender(VfsTreeProducerGrouperBase, VfsTreeProducerProto):
 
     @classmethod
     async def from_config(
-        cls, resources, config: VfsStructureConfig, arg: Mapping, sub_dir
+        cls, resources, config: VfsTreeProducerConfig, arg: Mapping, sub_dir
     ):
 
-        if config.producer_config is None:
-            raise TgmountError(f"Missing producer config at: {sub_dir.path}")
+        # if config.vfs_producer_factory_config is None:
+        #     raise TgmountError(f"Missing producer config at: {sub_dir.path}")
+        # vfs_producer_arg = none_fallback(config.vfs_producer_arg, {})
 
         return VfsTreeDirBySender(
             resources=resources,
             tree_dir=sub_dir,
-            config=config.producer_config,
+            config=config,
             dir_structure=arg.get(
                 "dir_structure",
                 VfsTreeDirBySender.DEFAULT_ROOT_CONFIG,

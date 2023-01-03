@@ -1,3 +1,4 @@
+from typing import Mapping
 from telethon.tl.custom import Message
 
 from tgmount import vfs, tglog
@@ -5,8 +6,8 @@ from tgmount.tgmount.error import TgmountError
 from tgmount.tgmount.types import MessagesSet, Set
 from tgmount.tgmount.vfs_tree import VfsTreeDir
 from tgmount.tgmount.vfs_tree_producer_types import (
-    ProducerConfig,
-    VfsStructureConfig,
+    VfsTreeProducerConfig,
+    VfsDirConfig,
     VfsTreeProducerProto,
 )
 from tgmount.util import measure_time
@@ -15,7 +16,11 @@ from tgmount.util import measure_time
 class VfsTreePlainDir(VfsTreeProducerProto):
     logger = tglog.getLogger(f"VfsTreePlainDir")
 
-    def __init__(self, tree_dir: VfsTreeDir, config: ProducerConfig) -> None:
+    def __init__(
+        self,
+        tree_dir: VfsTreeDir,
+        config: VfsTreeProducerConfig,
+    ) -> None:
         self._config = config
         self._tree_dir = tree_dir
 
@@ -25,12 +30,14 @@ class VfsTreePlainDir(VfsTreeProducerProto):
 
     @classmethod
     async def from_config(
-        cls, resources, vfs_config: VfsStructureConfig, arg, tree_dir: VfsTreeDir
+        cls,
+        resources,
+        vfs_config: VfsTreeProducerConfig,
+        arg: Mapping,
+        tree_dir: VfsTreeDir,
     ):
-        if vfs_config.producer_config is None:
-            raise TgmountError(f"Missing producer config: {tree_dir.path}")
 
-        return VfsTreePlainDir(tree_dir, vfs_config.producer_config)
+        return VfsTreePlainDir(tree_dir, vfs_config)
 
     # @measure_time(logger_func=print)
     async def produce(self):

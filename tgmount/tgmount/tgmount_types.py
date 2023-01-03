@@ -5,6 +5,9 @@ from tgmount.tgmount.file_factory import FileFactoryProto, ClassifierBase
 from tgmount.tgmount.providers.provider_filters import FiltersMapping
 from tgmount.tgmount.providers.provider_sources import SourcesProviderProto
 from tgmount.tgmount.providers.provider_producers import ProducersProviderBase
+from tgmount.tgmount.providers.provider_vfs_wrappers import ProviderVfsWrappersBase
+
+# from tgmount.tgmount.providers.provider_producers import ProducersProviderBase
 
 
 @dataclass
@@ -14,8 +17,8 @@ class TgmountResources:
     filters: FiltersMapping
     producers: ProducersProviderBase
     caches: Mapping[str, FileFactoryProto]
-    wrappers: Mapping[str, Type[Any]]
-    vfs_wrappers: Mapping[str, Type[Any]]
+    # wrappers: Mapping[str, Type[Any]]
+    vfs_wrappers: ProviderVfsWrappersBase
     classifier: ClassifierBase
     fetchers_dict: Mapping | None = None
 

@@ -7,10 +7,10 @@ from tgmount.tgclient.add_hash import add_hash_to_telegram_message_class
 from tgmount.tgclient.client_types import TgmountTelegramClientReaderProto
 from tgmount.tgclient.telegram_message_source import TelegramEventsDispatcher
 from .vfs_tree_types import (
-    EventRemovedItems,
-    EventNewItems,
-    EventRemovedDirs,
-    EventNewDirs,
+    TreeEventRemovedItems,
+    TreeEventNewItems,
+    TreeEventRemovedDirs,
+    TreeEventNewDirs,
     TreeEventType,
 )
 from tgmount.tgmount.vfs_tree_producer import (

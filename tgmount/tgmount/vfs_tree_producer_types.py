@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from typing import Optional, Iterable, Type, Protocol
 
-# from telethon.tl.custom import Message
 from typing import Mapping
 from abc import abstractmethod
 from tgmount.tgclient import MessageSourceSubscribableProto
@@ -9,9 +8,7 @@ from tgmount.tgclient.message_types import MessageProto
 from tgmount.tgmount.file_factory import FileFactoryProto
 from tgmount.tgmount.filters_types import Filter
 from tgmount.tgmount.types import MessagesSet, Set
-
-# from .tgmount_types import TgmountResources
-# from .vfs_tree import VfsTreeDir
+from tgmount.tgmount.vfs_tree_wrapper import VfsTreeWrapperProto
 
 
 class VfsTreeProducerProto(Protocol):
@@ -24,7 +21,7 @@ class VfsTreeProducerProto(Protocol):
     async def from_config(
         cls,
         resources,
-        config: "VfsStructureConfig",
+        config: "VfsTreeProducerConfig",
         arg: Mapping,
         dir,
         # dir: VfsTreeDir,
@@ -33,7 +30,9 @@ class VfsTreeProducerProto(Protocol):
         ...
 
 
-class ProducerConfig:
+class VfsTreeProducerConfig:
+    """Wraps `message_source` with other"""
+
     message_source: MessageSourceSubscribableProto
     factory: FileFactoryProto
     filters: list[Filter]
@@ -46,13 +45,10 @@ class ProducerConfig:
         filters: list[Filter],
         treat_as_prop: Optional[list[str]] = None,
     ) -> None:
-        # print("ProducerConfig")
         self.message_source = message_source
         self.factory = factory
         self.filters = filters
         self.treat_as_prop = treat_as_prop
-
-        # self.message_source.subscribe(self.on_update)
 
         self._messages: MessagesSet | None = None
 
@@ -89,7 +85,7 @@ class ProducerConfig:
         return self._messages
 
     def set_message_source(self, message_source: MessageSourceSubscribableProto):
-        return ProducerConfig(
+        return VfsTreeProducerConfig(
             message_source=message_source,
             factory=self.factory,
             filters=self.filters,
@@ -98,16 +94,21 @@ class ProducerConfig:
 
 
 @dataclass
-class VfsStructureConfig:
-    """Defines the content of the VfsStructure"""
+class VfsDirConfig:
+    """Contains information for creating a `VfsProducer`"""
+
+    source_config: Mapping
+    """ Config this structure was sourced from """
 
     vfs_producer: Type[VfsTreeProducerProto] | None
-    """ Producer of the dir content """
+    """ Producer for a vfs structure content """
 
-    source_dict: Mapping
-    """ Definition of the structure """
+    vfs_producer_arg: Optional[Mapping] = None
+    """ Producer constructor argument """
 
-    vfs_producer_name: str | None = None
-    vfs_producer_arg: Optional[dict] = None
+    vfs_producer_config: Optional[VfsTreeProducerConfig] = None
 
-    producer_config: Optional[ProducerConfig] = None
+    vfs_wrappers: Optional[
+        list[tuple[Type[VfsTreeWrapperProto], Optional[Mapping]]]
+    ] = None
+    # vfs_wrapper_arg: Optional[Type[Mapping]] = None

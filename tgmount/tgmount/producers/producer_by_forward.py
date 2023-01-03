@@ -7,10 +7,11 @@ from tgmount import tglog
 from tgmount.tgclient.guards import MessageForwarded
 from tgmount.tgmount.error import TgmountError
 from tgmount.tgmount.vfs_tree_producer_types import (
-    ProducerConfig,
-    VfsStructureConfig,
+    VfsTreeProducerConfig,
+    VfsDirConfig,
     VfsTreeProducerProto,
 )
+from tgmount.util import none_fallback
 from tgmount.util.col import sets_difference
 from tgmount.util.tg import get_entity_type_str
 
@@ -65,14 +66,11 @@ async def group_by_forward(
 class VfsTreeGroupByForward(VfsTreeProducerGrouperBase, VfsTreeProducerProto):
     @classmethod
     async def from_config(
-        cls, resources, config: VfsStructureConfig, arg: Mapping, sub_dir
+        cls, resources, config: VfsTreeProducerConfig, arg: Mapping, sub_dir
     ):
 
-        if config.producer_config is None:
-            raise TgmountError(f"Missing producer config at: {sub_dir.path}")
-
         return VfsTreeGroupByForward(
-            config=config.producer_config,
+            config=config,
             dir_structure=arg.get(
                 "dir_structure",
                 VfsTreeGroupByForward.DEFAULT_ROOT_CONFIG,

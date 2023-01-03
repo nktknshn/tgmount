@@ -6,11 +6,12 @@ from tgmount.tgmount.producers.grouperbase import (
 )
 from tgmount.tgmount.vfs_tree import VfsTreeDir
 from tgmount.tgmount.vfs_tree_producer_types import (
-    VfsStructureConfig,
+    VfsDirConfig,
+    VfsTreeProducerConfig,
     VfsTreeProducerProto,
 )
 from tgmount.tgmount.error import TgmountError
-from tgmount.util import func
+from tgmount.util import func, none_fallback
 
 T = TypeVar("T")
 
@@ -40,14 +41,16 @@ def group_by_performer(
 class VfsTreeGroupByPerformer(VfsTreeProducerGrouperBase, VfsTreeProducerProto):
     @classmethod
     async def from_config(
-        cls, resources, config: VfsStructureConfig, arg: Mapping, sub_dir: VfsTreeDir
+        cls, resources, config: VfsTreeProducerConfig, arg: Mapping, sub_dir: VfsTreeDir
     ):
 
-        if config.producer_config is None:
-            raise TgmountError(f"Missing producer config at: {sub_dir.path}")
+        # if config.vfs_producer_config is None:
+        #     raise TgmountError(f"Missing producer config at: {sub_dir.path}")
+
+        # vfs_producer_arg = none_fallback(config.vfs_producer_arg, {})
 
         return VfsTreeGroupByPerformer(
-            config=config.producer_config,
+            config=config,
             dir_structure=arg.get(
                 "dir_structure",
                 VfsTreeGroupByPerformer.DEFAULT_ROOT_CONFIG,

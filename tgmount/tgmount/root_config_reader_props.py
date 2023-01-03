@@ -4,7 +4,7 @@ from tgmount import config
 from tgmount.config.helpers import type_check
 from tgmount.util import col
 from .filters_types import FilterConfigValue, Filter
-from .root_config_types import RootConfigContext
+from .root_config_types import RootConfigWalkingContext
 from .tgmount_types import TgmountResources
 from .types import TgmountRootSource
 
@@ -134,7 +134,10 @@ class RootProducerPropsReader:
         return producer_name, producer_arg
 
     def get_filters_from_prop(
-        self, filter_prop: list, resources: TgmountResources, ctx: RootConfigContext
+        self,
+        filter_prop: list,
+        resources: TgmountResources,
+        ctx: RootConfigWalkingContext,
     ) -> list[Filter]:
         def _parse_filter(filt: FilterConfigValue) -> list[Filter]:
             filter_prop = self.read_prop_filter({"filter": filt})

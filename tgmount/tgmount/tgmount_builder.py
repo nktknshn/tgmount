@@ -10,7 +10,7 @@ from .providers.provider_sources import SourcesProvider
 from .providers.provider_wrappers import DirWrapperProviderProto
 from .tgmount_providers import (
     CachesProvider,
-    DirWrappersProvider,
+    VfsWrappersProvider,
     FilterProvider,
     ProducersProvider,
 )
@@ -44,6 +44,6 @@ class TgmountBuilder(TgmountBuilderBase):
 
     classifier = ClassifierDefault()
     filters: FilterProviderProto = FilterProvider()
-    caches: CachesProviderProto = CachesProvider()
-    wrappers: DirWrapperProviderProto = DirWrappersProvider()
+    wrappers: VfsWrappersProvider = VfsWrappersProvider()
     producers = ProducersProvider()
+    caches = CachesProvider()

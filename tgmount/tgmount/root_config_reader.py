@@ -5,10 +5,10 @@ from typing import TypeVar, Generator
 from tgmount import config, tglog, vfs
 from tgmount.util import none_fallback
 from .root_config_reader_props import RootProducerPropsReader
-from .root_config_types import RootConfigContext
+from .root_config_types import RootConfigWalkingContext
 from .tgmount_types import TgmountResources
 from .types import TgmountRootSource
-from .vfs_tree_producer_types import ProducerConfig, VfsStructureConfig
+from .vfs_tree_producer_types import VfsTreeProducerConfig, VfsDirConfig
 from dataclasses import dataclass
 
 T = TypeVar("T")
@@ -66,9 +66,9 @@ class TgmountConfigReader(RootProducerPropsReader):
         dir_config: TgmountRootSource,
         *,
         resources: TgmountResources,
-        ctx: RootConfigContext,
-    ) -> Generator[tuple[str, set, VfsStructureConfig, RootConfigContext], None, None]:
-        """Walks `dir_config` yielding a tuple (current path, keys other than current path props, `VfsStructureConfig`, `RootConfigContext`)"""
+        ctx: RootConfigWalkingContext,
+    ) -> Generator[tuple[str, set, VfsDirConfig, RootConfigWalkingContext], None, None]:
+        """Walks `dir_config` yielding a tuple (current path, keys other than current path props, `VfsStructureConfig`, `RootConfigWalkingContext`)"""
         current_path_str = (
             f"/{os.path.join(*ctx.current_path)}" if len(ctx.current_path) > 0 else "/"
         )
@@ -218,7 +218,16 @@ class TgmountConfigReader(RootProducerPropsReader):
 
         vfs_wrappers = []
 
-        # if wrappers_prop is not None:
+        if wrappers_prop is not None:
+            for wrapper_name, wrapper_arg in wrappers_prop:
+                wrapper_cls = resources.vfs_wrappers.get_by_name(wrapper_name)
+
+                if wrapper_cls is None:
+                    raise config.ConfigError(
+                        f"Missing wrapper: {wrapper_name}. path: {ctx.current_path}"
+                    )
+
+                vfs_wrappers.append((wrapper_cls, wrapper_arg))
 
         #     for wrapper_name, wrapper_arg in wrappers_prop:
         #         wrapper_cls = resources.vfs_wrappers.get(wrapper_name)
@@ -232,20 +241,20 @@ class TgmountConfigReader(RootProducerPropsReader):
         #         vfs_wrappers.append(wrapper)
 
         if message_source is not None:
-            producer_config = ProducerConfig(
+            producer_config = VfsTreeProducerConfig(
                 message_source=message_source,
                 factory=current_file_factory,
                 filters=filters,
                 treat_as_prop=treat_as_prop,
             )
 
-        vfs_config = VfsStructureConfig(
-            source_dict=dir_config,
-            vfs_producer_name=producer_name,
+        vfs_config = VfsDirConfig(
+            source_config=dir_config,
+            # vfs_producer_name=producer_name,
             vfs_producer=producer_cls,
             vfs_producer_arg=producer_arg,
-            # vfs_wrappers=vfs_wrappers,
-            producer_config=producer_config,
+            vfs_wrappers=vfs_wrappers,
+            vfs_producer_config=producer_config,
         )
 
         yield (current_path_str, other_keys, vfs_config, ctx)
@@ -264,7 +273,7 @@ class TgmountConfigReader(RootProducerPropsReader):
         yield from self.walk_config_with_ctx(
             d,
             resources=resources,
-            ctx=RootConfigContext(
+            ctx=RootConfigWalkingContext(
                 current_path=[],
                 file_factory=resources.file_factory,
                 classifier=resources.classifier,

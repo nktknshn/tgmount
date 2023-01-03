@@ -1,58 +1,74 @@
 from tgmount import vfs, tglog
 from tgmount.util import none_fallback
-from .vfs_tree_producer_types import VfsStructureConfig
+from .vfs_tree_producer_types import VfsDirConfig
 
 from .root_config_reader import TgmountConfigReader
-from .root_config_types import RootConfigContext
+from .root_config_types import RootConfigWalkingContext
 from .tgmount_types import TgmountResources
 from .types import TgmountRootSource
 from .vfs_tree import VfsTreeDir, VfsTree
-from .vfs_tree_wrapper import WrapperEmpty, WrapperZipsAsDirs
+
+""" 
+
+
+
+"""
 
 
 class VfsTreeProducer:
     """Class that using `TgmountResources` and `VfsStructureConfig` produces content into `VfsTreeDir` or `VfsTree`"""
 
-    def __init__(self, resources: TgmountResources) -> None:
+    logger = tglog.getLogger(f"VfsTreeProducer()")
 
-        self._logger = tglog.getLogger(f"VfsTreeProducer()")
+    def __init__(self, resources: TgmountResources) -> None:
         self._resources = resources
 
     def __repr__(self) -> str:
         return f"VfsTreeProducer()"
 
-    async def produce_at(
+    async def produce_from_config(
         self,
         tree_dir: VfsTreeDir | VfsTree,
         path: str,
-        vfs_config: VfsStructureConfig,
-        ctx: RootConfigContext,
+        vfs_config: VfsDirConfig,
+        # ctx: RootConfigContext,
     ):
-        self._logger.debug(f"produce: {vfs.path_join(tree_dir.path, path)}")
+        """Using `VfsStructureConfig` produce content into `tree_dir`"""
 
-        if vfs_config.source_dict.get("wrappers") == "ExcludeEmptyDirs":
-            # print(vfs_config.source_dict.get("wrappers"))
-            sub_dir = await tree_dir.create_dir(path)
-            sub_dir._wrappers.append(WrapperEmpty(sub_dir))
-        elif vfs_config.source_dict.get("wrappers") == "ZipsAsDirs":
-            # print(vfs_config.source_dict.get("wrappers"))
-            sub_dir = await tree_dir.create_dir(path)
-            sub_dir._wrappers.append(WrapperZipsAsDirs(sub_dir))
-        else:
-            sub_dir = await tree_dir.create_dir(path)
+        self.logger.debug(f"produce: {vfs.path_join(tree_dir.path, path)}")
 
-        # if vfs_config.producer_config is not None:
-        #     sub_dir.additional_data = vfs_config.producer_config.message_source
+        # create the subdir
+        sub_dir = await tree_dir.create_dir(path)
 
-        if vfs_config.vfs_producer is not None:
+        # If the directory has any wrapper
+        if vfs_config.vfs_wrappers is not None:
+            for wrapper_cls, wrapper_arg in vfs_config.vfs_wrappers:
+                wrapper = wrapper_cls.from_config(wrapper_arg, sub_dir)
+                sub_dir._wrappers.append(wrapper)
+
+            # wrapper = vfs_config.vfs_wrappers.from_config(
+            #     none_fallback(vfs_config.vfs_wrapper_arg, {}), sub_dir
+            # )
+            # vfs_config.vfs_wrapper
+
+        # if vfs_config.source_config.get("wrappers") == "ExcludeEmptyDirs":
+        #     sub_dir._wrappers.append(WrapperEmpty(sub_dir))
+        # elif vfs_config.source_config.get("wrappers") == "ZipsAsDirs":
+        #     sub_dir._wrappers.append(WrapperZipsAsDirs(sub_dir))
+
+        # If the directory has any producer
+        if (
+            vfs_config.vfs_producer is not None
+            and vfs_config.vfs_producer_config is not None
+        ):
             producer = await vfs_config.vfs_producer.from_config(
                 self._resources,
-                vfs_config,
+                vfs_config.vfs_producer_config,
                 none_fallback(vfs_config.vfs_producer_arg, {}),
                 sub_dir,
             )
 
-            sub_dir._subs.append(producer)
+            # sub_dir._subs.append(producer)
 
             await producer.produce()
 
@@ -68,8 +84,10 @@ class VfsTreeProducer:
         for (path, keys, vfs_config, ctx) in config_reader.walk_config_with_ctx(
             dir_config,
             resources=self._resources,
-            ctx=none_fallback(ctx, RootConfigContext.from_resources(self._resources)),
+            ctx=none_fallback(
+                ctx, RootConfigWalkingContext.from_resources(self._resources)
+            ),
         ):
-            await self.produce_at(tree_dir, path, vfs_config, ctx)
+            await self.produce_from_config(tree_dir, path, vfs_config)
 
-        self._logger.info(f"Done producing {tree_dir.path}")
+        self.logger.info(f"Done producing {tree_dir.path}")

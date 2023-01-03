@@ -9,7 +9,7 @@ from tgmount.util import none_fallback
 
 
 @dataclass
-class RootConfigContext:
+class RootConfigWalkingContext:
     """Immutable context to traverse root config dictionary"""
 
     current_path: list[str]
@@ -45,7 +45,7 @@ class RootConfigContext:
         current_path: list[str] | None = None,
         recursive_source: Optional[MessageSourceSubscribableProto] = None,
     ):
-        return RootConfigContext(
+        return RootConfigWalkingContext(
             current_path=none_fallback(current_path, []),
             recursive_source=recursive_source,
             file_factory=resources.file_factory,

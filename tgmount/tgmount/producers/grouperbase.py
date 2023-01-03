@@ -6,11 +6,11 @@ from tgmount import tglog
 from tgmount.tgclient.message_source_simple import MessageSourceSimple
 from tgmount.tgclient.message_types import MessageProto
 from tgmount.tgmount.producers.producer_plain import VfsTreePlainDir
-from tgmount.tgmount.root_config_types import RootConfigContext
+from tgmount.tgmount.root_config_types import RootConfigWalkingContext
 from tgmount.tgmount.tgmount_types import TgmountResources
 from tgmount.tgmount.types import Set, MessagesSet
 from tgmount.tgmount.error import TgmountError
-from tgmount.tgmount.vfs_tree_producer_types import ProducerConfig
+from tgmount.tgmount.vfs_tree_producer_types import VfsTreeProducerConfig
 from tgmount.util import sanitize_string_for_path
 from tgmount.util.col import sets_difference
 
@@ -24,7 +24,7 @@ GroupedMessages = tuple[Mapping[str, list[TM]], list[TM]]
 
 class VfsTreeProducerGrouperBase(abc.ABC):
     """
-    Base class for a producer that using message_source splits messages into groups creating a directory for each group. The structure of directores is
+    Base class for a producer that splits messages into groups creating a directory for each group. The structure of directores is
     defined by `dir_structure`.
     """
 
@@ -35,7 +35,7 @@ class VfsTreeProducerGrouperBase(abc.ABC):
     def __init__(
         self,
         tree_dir: VfsTreeDir,
-        config: ProducerConfig,
+        config: VfsTreeProducerConfig,
         resources: TgmountResources,
         *,
         dir_structure=DEFAULT_ROOT_CONFIG,
@@ -81,7 +81,7 @@ class VfsTreeProducerGrouperBase(abc.ABC):
         await self.VfsTreeProducer(self._resources).produce(
             tree_dir,
             self._dir_structure,
-            ctx=RootConfigContext.from_resources(
+            ctx=RootConfigWalkingContext.from_resources(
                 self._resources, recursive_source=dir_source
             ),
         )

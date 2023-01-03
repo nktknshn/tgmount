@@ -12,10 +12,10 @@ from tgmount.tgclient.telegram_message_source import (
 )
 from tgmount.tgmount.types import Set
 from .vfs_tree_types import (
-    EventRemovedItems,
-    EventNewItems,
-    EventRemovedDirs,
-    EventNewDirs,
+    TreeEventRemovedItems,
+    TreeEventNewItems,
+    TreeEventRemovedDirs,
+    TreeEventNewDirs,
     TreeEventType,
 )
 from tgmount.tgmount.vfs_tree_producer import (
@@ -219,20 +219,20 @@ class TgmountBase:
         for e in events:
             path = e.update_path
 
-            if isinstance(e, EventRemovedItems):
+            if isinstance(e, TreeEventRemovedItems):
                 for item in e.removed_items:
                     update.removed_files.append(os.path.join(path, item.name))
-            elif isinstance(e, EventNewItems):
+            elif isinstance(e, TreeEventNewItems):
                 for item in e.new_items:
                     if isinstance(item, vfs.FileLike):
                         update.new_files[os.path.join(path, item.name)] = item
                     else:
                         update.new_dirs[os.path.join(path, item.name)] = item
                         # raise TgmountError(f"item is supposed to be FileLike")
-            elif isinstance(e, EventRemovedDirs):
+            elif isinstance(e, TreeEventRemovedDirs):
                 for path in e.removed_dirs:
                     update.removed_dir_contents.append(path)
-            elif isinstance(e, EventNewDirs):
+            elif isinstance(e, TreeEventNewDirs):
                 for path in e.new_dirs:
                     update.new_dirs[path] = await self._vfs_tree.get_dir_content(path)
 

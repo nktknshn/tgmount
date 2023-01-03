@@ -4,6 +4,7 @@ from typing import Protocol, Type
 from tgmount import cache, config, tgclient, tglog
 from tgmount.tgclient.guards import TelegramMessage
 from tgmount.tgclient.telegram_message_source import TelegramMessagesFetcher
+from tgmount.tgmount.providers.provider_vfs_wrappers import ProviderVfsWrappersBase
 from tgmount.tgmount.root_config_reader import TgmountConfigReader
 from tgmount.tgmount.vfs_tree import VfsTree
 from tgmount.util import none_fallback
@@ -35,7 +36,7 @@ class TgmountBuilderBase(abc.ABC):
     classifier: classifier.ClassifierBase
     caches: CachesProviderProto
     filters: FilterProviderProto
-    wrappers: DirWrapperProviderProto
+    wrappers: ProviderVfsWrappersBase
     producers: ProducersProviderBase
 
     async def create_client(self, cfg: config.Config, **kwargs):
@@ -80,9 +81,9 @@ class TgmountBuilderBase(abc.ABC):
             filters=self.filters.get_filters(),
             producers=self.producers,
             caches=cached_factories,
-            wrappers=self.wrappers.get_wrappers(),
+            # wrappers=self.wrappers.get_wrappers(),
             classifier=self.classifier,
-            vfs_wrappers={},
+            vfs_wrappers=self.wrappers,
             fetchers_dict=fetchers_dict,
         )
 

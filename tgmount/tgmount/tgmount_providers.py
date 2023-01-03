@@ -6,6 +6,7 @@ from tgmount.tgmount.producers.producer_by_forward import VfsTreeGroupByForward
 from tgmount.tgmount.producers.producer_by_sender import VfsTreeDirBySender
 from tgmount.tgmount.producers.producer_plain import VfsTreePlainDir
 from tgmount.tgmount.vfs_tree_producer_types import VfsTreeProducerProto
+from tgmount.tgmount.wrappers.wrapper_exclude_empty_dirs import WrapperEmpty
 from .filters import (
     All,
     And,
@@ -20,12 +21,16 @@ from .filters import (
 )
 from .providers.provider_caches import CacheProviderBase
 from .providers.provider_filters import FilterProviderBase, FiltersMapping
-from .providers.provider_wrappers import DirWrappersProviderBase
+from .providers.provider_vfs_wrappers import ProviderVfsWrappersBase
 from .providers.provider_producers import ProducersProviderBase
+from .wrappers.wrapper_zips_as_dirs import WrapperZipsAsDirs
 
 
-class DirWrappersProvider(DirWrappersProviderBase):
-    wrappers = {}
+class VfsWrappersProvider(ProviderVfsWrappersBase):
+    wrappers = {
+        "ExcludeEmptyDirs": WrapperEmpty,
+        "ZipsAsDirs": WrapperZipsAsDirs,
+    }
 
 
 class CachesProvider(CacheProviderBase):
