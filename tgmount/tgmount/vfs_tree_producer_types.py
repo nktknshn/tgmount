@@ -99,8 +99,14 @@ class ProducerConfig:
 
 @dataclass
 class VfsStructureConfig:
+    """Defines the content of the VfsStructure"""
+
     vfs_producer: Type[VfsTreeProducerProto] | None
+    """ Producer of the dir content """
+
     source_dict: Mapping
+    """ Definition of the structure """
+
     vfs_producer_name: str | None = None
     vfs_producer_arg: Optional[dict] = None
 

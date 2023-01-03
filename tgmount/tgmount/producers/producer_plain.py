@@ -9,6 +9,7 @@ from tgmount.tgmount.vfs_tree_producer_types import (
     VfsStructureConfig,
     VfsTreeProducerProto,
 )
+from tgmount.util import measure_time
 
 
 class VfsTreePlainDir(VfsTreeProducerProto):
@@ -33,11 +34,11 @@ class VfsTreePlainDir(VfsTreeProducerProto):
 
     # @measure_time(logger_func=print)
     async def produce(self):
-        self._logger.debug(f"Producing...")
+        self._logger.info(f"Producing...")
 
         self._messages = await self._config.get_messages()
 
-        self._logger.debug(f"Producing from {len(self._messages)} messages...")
+        self._logger.info(f"Producing from {len(self._messages)} messages...")
 
         self._message_to_file = {
             m: await self._config.produce_file(m) for m in self._messages
@@ -56,9 +57,13 @@ class VfsTreePlainDir(VfsTreeProducerProto):
         )
 
     async def update_new_messages(self, source, new_messages: Set[Message]):
+
         self._logger.info(
             f"update_new_messages({list(map(lambda m: m.id, new_messages))})"
         )
+
+        if len(new_messages) == 0:
+            return
 
         new_messages_set = await self._config.apply_filters(Set(new_messages))
 

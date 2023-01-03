@@ -57,8 +57,8 @@ class SourcesProviderMessageSource(
         self._wrapped_source = wrapped_source
         self._tree = tree
 
-        self._wrapped_source.event_removed_messages.subscribe(self.removed_messages)
-        self._wrapped_source.event_new_messages.subscribe(self.update_new_message)
+        self._wrapped_source.event_removed_messages.subscribe(self.on_removed_messages)
+        self._wrapped_source.event_new_messages.subscribe(self.on_new_message)
 
         """ Events for file system """
         self.accumulated_updates: Subscribable = Subscribable()
@@ -77,7 +77,7 @@ class SourcesProviderMessageSource(
         return await self._wrapped_source.get_messages()
 
     @measure_time(logger_func=logger.info)
-    async def update_new_message(self, source, messages: Set[Message]):
+    async def on_new_message(self, source, messages: Set[Message]):
         self.logger.debug(f"update_new_message({len(messages)})")
 
         # start accumulating updates
@@ -108,7 +108,7 @@ class SourcesProviderMessageSource(
                 self.logger.info(f"Done dispatching events")
 
     @measure_time(logger_func=logger.info)
-    async def removed_messages(self, source, messages: Set[Message]):
+    async def on_removed_messages(self, source, messages: Set[Message]):
         self.logger.debug("removed_messages()")
         async with self._provider.update_lock:
             _updates = []
@@ -127,8 +127,9 @@ class SourcesProviderMessageSource(
 
 class SourcesProviderAccumulating(SourcesProvider[SourcesProviderMessageSource]):
     """
-    Wraps MessageSource to accumulate updates in the tree that were triggered
-    by parent message source before passing them to FS
+    Wraps MessageSource to accumulate updates from the VfsTree that were
+    triggered by parent message source. Subscribe to `accumulated_updates` for
+    the list of updates
     """
 
     MessageSource = SourcesProviderMessageSource
@@ -160,6 +161,7 @@ class SourcesProviderAccumulating(SourcesProvider[SourcesProviderMessageSource])
 
     @property
     def update_lock(self):
+        """This lock is used to make VfsTree updates atomic"""
         return self._update_lock
 
     @classmethod

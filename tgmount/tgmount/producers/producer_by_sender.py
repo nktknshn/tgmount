@@ -56,17 +56,23 @@ def get_get_key(*, use_get_sender=True):
 
 
 async def group_by_sender(
-    messages: Iterable[TM], minimum=1
+    messages: Iterable[TM], minimum=1, use_get_sender=False
 ) -> tuple[Mapping[str, list[TM]], list[TM], list[TM],]:
 
     return await func.group_by_func_async(
-        get_get_key(use_get_sender=False),
+        get_get_key(use_get_sender=use_get_sender),
         messages,
         minimum=minimum,
     )
 
 
 class VfsTreeDirBySender(VfsTreeProducerGrouperBase, VfsTreeProducerProto):
+    def __init__(
+        self, tree_dir, config, resources, *, dir_structure, use_get_sender
+    ) -> None:
+        super().__init__(tree_dir, config, resources, dir_structure=dir_structure)
+        self.use_get_sender = use_get_sender
+
     @classmethod
     async def from_config(
         cls, resources, config: VfsStructureConfig, arg: Mapping, sub_dir
@@ -83,10 +89,13 @@ class VfsTreeDirBySender(VfsTreeProducerGrouperBase, VfsTreeProducerProto):
                 "dir_structure",
                 VfsTreeDirBySender.DEFAULT_ROOT_CONFIG,
             ),
+            use_get_sender=arg.get("use_get_sender", False),
         )
 
     async def group_messages(self, messages: Iterable[MessageProto]) -> GroupedMessages:
-        by_user, less, nones = await group_by_sender(messages, minimum=1)
+        by_user, less, nones = await group_by_sender(
+            messages, minimum=1, use_get_sender=self.use_get_sender
+        )
         res = {}
 
         for sname, ms in by_user.items():

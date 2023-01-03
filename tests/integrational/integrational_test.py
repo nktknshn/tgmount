@@ -32,7 +32,7 @@ class MockedVfsTreeProducer(VfsTreeProducer):
     async def produce_path(self, tree_dir, path: str, vfs_config, ctx):
         # to test concurrent
         # await asyncio.sleep(0.1)
-        return await super().produce_path(tree_dir, path, vfs_config, ctx)
+        return await super().produce_at(tree_dir, path, vfs_config, ctx)
 
 
 class MockedTgmountBase(TgmountBase):

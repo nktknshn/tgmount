@@ -1,7 +1,6 @@
 import abc
 from typing import Iterable, Mapping, TypeVar
 
-import pathvalidate
 from telethon.tl.custom import Message
 from tgmount import tglog
 from tgmount.tgclient.message_source_simple import MessageSourceSimple

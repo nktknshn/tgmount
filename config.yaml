@@ -79,6 +79,7 @@ by-sender: &by-sender
   filter: All
   producer:
     BySender:
+      use_get_sender: false
       dir_structure:
         <<: *ogranized
 message_sources:
@@ -92,7 +93,7 @@ message_sources:
     limit: *count
     updates: *updates
   kz:
-    entity: -1001631461778
+    entity: relocationguidekazakhstan
     limit: *count
     updates: *updates
   armenia:
@@ -121,44 +122,44 @@ message_sources:
     entity: tgmounttestingchannel
     # filter: InputMessagesFilterMusic
 root:
-  ru2chmu:
-    source: { source: ru2chmu, recursive: True }
-    <<: *ogranized
-    by-sender: *by-sender
-  armenia:
-    source: { source: armenia, recursive: True }
-    <<: *ogranized
-    by-sender: *by-sender
+  # ru2chmu:
+  #   source: { source: ru2chmu, recursive: True }
+  #   <<: *ogranized
+  #   by-sender: *by-sender
+  # armenia:
+  #   source: { source: armenia, recursive: True }
+  #   <<: *ogranized
+  #   by-sender: *by-sender
   kz:
     source: { source: kz, recursive: True }
     <<: *ogranized
     by-sender: *by-sender
-  relocationguidebig:
-    source: { source: relocationguidebig, recursive: True }
-    <<: *ogranized
-    by-sender: *by-sender
-  ru_python_beginners:
-    source: { source: ru_python_beginners, recursive: True }
-    <<: *ogranized
-    by-sender: *by-sender
-  ru_python:
-    source: { source: ru_python, recursive: True }
-    <<: *ogranized
-    by-sender: *by-sender
-  ts_cool:
-    source: { source: ts_cool, recursive: True }
-    <<: *ogranized
-    by-sender: *by-sender
-  NappingCat_Chat:
-    source: { source: NappingCat, recursive: True }
-    <<: *ogranized
-    by-sender: *by-sender
-  tmtc:
-    source: { source: tmtc, recursive: True }
-    <<: *ogranized
-    by-sender:
-      <<: *by-sender
-  my-mount:
-    source: { source: my-mount, recursive: True }
-    wrappers: ExcludeEmptyDirs
-    <<: *ogranized
+  # relocationguidebig:
+  #   source: { source: relocationguidebig, recursive: True }
+  #   <<: *ogranized
+  #   by-sender: *by-sender
+  # ru_python_beginners:
+  #   source: { source: ru_python_beginners, recursive: True }
+  #   <<: *ogranized
+  #   by-sender: *by-sender
+  # ru_python:
+  #   source: { source: ru_python, recursive: True }
+  #   <<: *ogranized
+  #   by-sender: *by-sender
+  # ts_cool:
+  #   source: { source: ts_cool, recursive: True }
+  #   <<: *ogranized
+  #   by-sender: *by-sender
+  # NappingCat_Chat:
+  #   source: { source: NappingCat, recursive: True }
+  #   <<: *ogranized
+  #   by-sender: *by-sender
+  # tmtc:
+  #   source: { source: tmtc, recursive: True }
+  #   <<: *ogranized
+  #   by-sender:
+  #     <<: *by-sender
+  # my-mount:
+  #   source: { source: my-mount, recursive: True }
+  #   wrappers: ExcludeEmptyDirs
+  #   <<: *ogranized

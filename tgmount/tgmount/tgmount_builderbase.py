@@ -20,7 +20,7 @@ from .tgmountbase import TgmountBase
 
 
 class TgmountBuilderBase(abc.ABC):
-    """Construct TgmountBase from confif"""
+    """Construct TgmountBase from a config"""
 
     logger = tglog.getLogger(f"TgmountBuilderBase()")
 
@@ -30,14 +30,13 @@ class TgmountBuilderBase(abc.ABC):
     FileFactory: Type[FileFactoryDefault]
     FilesSourceCaching: Type[cache.FilesSourceCaching]
     SourcesProvider: Type[SourcesProvider]
+    TgmountBase = TgmountBase
 
     classifier: classifier.ClassifierBase
     caches: CachesProviderProto
     filters: FilterProviderProto
     wrappers: DirWrapperProviderProto
     producers: ProducersProviderBase
-
-    TgmountBase = TgmountBase
 
     async def create_client(self, cfg: config.Config, **kwargs):
         return self.TelegramClient(

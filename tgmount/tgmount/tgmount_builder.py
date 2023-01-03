@@ -2,7 +2,7 @@ from tgmount import cache, tgclient, vfs
 from tgmount.tgclient.guards import MessageWithText
 from tgmount.tgmount.file_factory.classifier import ClassifierDefault
 
-from .builderbase import TgmountBuilderBase
+from .tgmount_builderbase import TgmountBuilderBase
 from .file_factory import FileFactoryDefault
 from .providers.provider_caches import CachesProviderProto
 from .providers.provider_filters import FilterProviderProto

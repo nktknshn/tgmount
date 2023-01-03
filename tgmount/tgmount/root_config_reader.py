@@ -63,26 +63,26 @@ class TgmountConfigReader(RootProducerPropsReader):
 
     def walk_config_with_ctx(
         self,
-        d: TgmountRootSource,
+        dir_config: TgmountRootSource,
         *,
         resources: TgmountResources,
         ctx: RootConfigContext,
     ) -> Generator[tuple[str, set, VfsStructureConfig, RootConfigContext], None, None]:
-
+        """Walks `dir_config` yielding a tuple (current path, keys other than current path props, `VfsStructureConfig`, `RootConfigContext`)"""
         current_path_str = (
             f"/{os.path.join(*ctx.current_path)}" if len(ctx.current_path) > 0 else "/"
         )
 
         self.logger.info(f"walk_config_with_ctx({current_path_str})")
 
-        other_keys = set(d.keys()).difference(self.PROPS_KEYS)
+        other_keys = set(dir_config.keys()).difference(self.PROPS_KEYS)
 
-        source_prop = self.read_prop_source(d)
-        filters_prop = self.read_prop_filter(d)
-        cache_prop = self.read_prop_cache(d)
-        wrappers_prop = self.read_prop_wrappers(d)
-        producer_prop = self.read_prop_producer(d)
-        treat_as_prop = self.read_prop_treat_as(d)
+        source_prop = self.read_prop_source(dir_config)
+        filters_prop = self.read_prop_filter(dir_config)
+        cache_prop = self.read_prop_cache(dir_config)
+        wrappers_prop = self.read_prop_wrappers(dir_config)
+        producer_prop = self.read_prop_producer(dir_config)
+        treat_as_prop = self.read_prop_treat_as(dir_config)
 
         # if source_prop:
         self.logger.info(f"source_prop={source_prop}")
@@ -240,7 +240,7 @@ class TgmountConfigReader(RootProducerPropsReader):
             )
 
         vfs_config = VfsStructureConfig(
-            source_dict=d,
+            source_dict=dir_config,
             vfs_producer_name=producer_name,
             vfs_producer=producer_cls,
             vfs_producer_arg=producer_arg,
@@ -252,7 +252,7 @@ class TgmountConfigReader(RootProducerPropsReader):
 
         for k in other_keys:
             yield from self.walk_config_with_ctx(
-                d[k],
+                dir_config[k],
                 resources=resources,
                 ctx=ctx.add_path(k),
             )

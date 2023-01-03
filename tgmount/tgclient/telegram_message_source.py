@@ -49,13 +49,15 @@ ChatId = str | int
 
 
 class TelegramEventsDispatcher:
-    logger = tglog.getLogger("TelegramEventsDispatcher")
-
     """
     Receives telethon.events and passes them to corresponding messages sources.
 
-    Accumulates events if the source is paused
+    Accumulates events if paused
+
+    Use `resume` method to pass the accumulated events to message sources
     """
+
+    logger = tglog.getLogger("TelegramEventsDispatcher")
 
     def __init__(self, client: TgmountTelegramClientEventProto) -> None:
         self._client = client
