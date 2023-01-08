@@ -1,20 +1,19 @@
 from collections.abc import Mapping, Sequence
 from typing import Any, Union
 
-from tgmount import vfs, tglog
+from tgmount import tglog, vfs
 from tgmount.tgclient.message_source_types import Subscribable
 from tgmount.tgmount.error import TgmountError
 from tgmount.tgmount.vfs_tree_types import (
-    VfsTreeProto,
-    TreeEventRemovedItems,
+    TreeEventNewDirs,
     TreeEventNewItems,
     TreeEventRemovedDirs,
-    TreeEventNewDirs,
+    TreeEventRemovedItems,
     TreeEventType,
+    VfsTreeProto,
 )
+from tgmount.tgmount.vfs_tree_wrapper_types import VfsTreeWrapperProto
 from tgmount.util import none_fallback
-from tgmount.tgmount.vfs_tree_producer_types import VfsTreeProducerProto
-from tgmount.tgmount.vfs_tree_wrapper import VfsTreeWrapperProto
 
 
 class VfsTreeError(TgmountError):
@@ -57,7 +56,7 @@ class VfsTreeDirContent(vfs.DirContentProto):
 
 class VfsTreeDirMixin:
     async def _put_content(
-        self: "VfsTreeDir",
+        self: "VfsTreeDir",  # type: ignore
         content: Sequence[vfs.DirContentItem],
         path: str = "/",
         *,
@@ -68,7 +67,7 @@ class VfsTreeDirMixin:
         else:
             self._dir_content_items.extend(content)
 
-    async def _get_dir_content_items(self: "VfsTreeDir"):
+    async def _get_dir_content_items(self: "VfsTreeDir"):  # type: ignore
         return self._dir_content_items[:]
 
     async def _remove_from_content(
@@ -334,7 +333,7 @@ class VfsTree(Subscribable, VfsTreeProto):
         self._subdirs.remove_path(path)
 
         await parent.child_updated(
-            parent,
+            parent,  # type: ignore
             [TreeEventRemovedDirs(removed_dirs=[path])],
         )
 
@@ -361,7 +360,7 @@ class VfsTree(Subscribable, VfsTreeProto):
         self._subdirs.add_path(path)
 
         await parent.child_updated(
-            parent,
+            parent,  # type: ignore
             [TreeEventNewDirs(new_dirs=[path])],
         )
 

@@ -1,5 +1,6 @@
 from abc import abstractmethod
 from typing import Any, Awaitable, Callable, Protocol, TypeVar
+from typing_extensions import TypeVarTuple, Unpack
 
 from telethon import events
 from telethon.tl.custom import Message
@@ -12,10 +13,12 @@ Arg = TypeVar("Arg")
 Arg_co = TypeVar("Arg_co", covariant=True)
 
 
+Ts = TypeVarTuple("Ts")
+
 Listener = Callable[
     [
         Any,
-        Arg,
+        *Ts,
     ],
     Awaitable[None],
 ]
@@ -23,11 +26,11 @@ Listener = Callable[
 
 class SubscribableProto(Protocol[Arg_co]):
     @abstractmethod
-    def subscribe(self, listener: Listener[Arg_co]):
+    def subscribe(self, listener: Listener):
         ...
 
     @abstractmethod
-    def unsubscribe(self, listener: Listener[Arg_co]):
+    def unsubscribe(self, listener: Listener):
         ...
 
 
@@ -49,12 +52,12 @@ class MessageSourceSubscribableProto(MessageSourceProto, Protocol):
 
 class Subscribable(SubscribableProto[Arg]):
     def __init__(self) -> None:
-        self._listeners: list[Listener[Arg]] = []
+        self._listeners: list[Listener] = []
 
-    def subscribe(self, listener: Listener[Arg]):
+    def subscribe(self, listener: Listener):
         self._listeners.append(listener)
 
-    def unsubscribe(self, listener: Listener[Arg]):
+    def unsubscribe(self, listener: Listener):
         self._listeners.remove(listener)
 
     async def notify(self, *args):

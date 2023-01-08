@@ -18,7 +18,7 @@ def is_file(zi: ZipInfo):
     return not zi.filename.endswith("/")
 
 
-def get_zipinfo_list(zf: ZipFile, *, filter_non_relative=True) -> list[ZipInfo]:
+def get_zipinfo_list(zf: ZipFile, *, exclude_global_paths=True) -> list[ZipInfo]:
     """
     Returns a list of `ZipInfo`
     excluding dirs themselves
@@ -26,7 +26,7 @@ def get_zipinfo_list(zf: ZipFile, *, filter_non_relative=True) -> list[ZipInfo]:
     """
     filelist = list_filter(is_file, zf.infolist())
 
-    if filter_non_relative:
+    if exclude_global_paths:
         filelist = list_filter(lambda f: not f.filename.startswith("/"), filelist)
 
     return filelist

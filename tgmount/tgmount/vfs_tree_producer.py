@@ -65,7 +65,9 @@ class VfsTreeProducer:
         # If the directory has any wrapper
         if vfs_config.vfs_wrappers is not None:
             for wrapper_cls, wrapper_arg in vfs_config.vfs_wrappers:
-                wrapper = wrapper_cls.from_config(wrapper_arg, sub_dir)
+                wrapper = wrapper_cls.from_config(
+                    none_fallback(wrapper_arg, {}), sub_dir
+                )
                 sub_dir._wrappers.append(wrapper)
 
         # If the directory has any producer

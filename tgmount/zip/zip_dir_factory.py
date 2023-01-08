@@ -18,7 +18,6 @@ from .zip_file_id3v1_fix import FileContentZipFixingId3v1
 
 from tgmount.util import none_fallback
 
-logger = tglog.getLogger("tgmount-zip")
 
 FileContentFactory = Callable[
     [
@@ -38,7 +37,7 @@ ZipDirContentFactory = Callable[
 async def zipfile_factory(
     file_content: vfs.FileContentProto,
 ) -> zipfile.ZipFile:
-    """async thunk so tasks can spawn their own handles for reading files inside a zip"""
+    """Async thunk so tasks can spawn their own handles for reading files inside a zip"""
 
     await greenback.ensure_portal()  # type: ignore
 
@@ -52,16 +51,24 @@ async def zipfile_factory(
     try:
         zf = zipfile.ZipFile(fc)
     except zipfile.BadZipFile as e:
-        logger.error(f"zipfile.BadZipFile: {file_content}")
+        DirContentZipFactory.logger.error(f"zipfile.BadZipFile: {file_content}")
         raise
     else:
         return zf
 
 
-async def file_content_factory(
+async def file_content_factory_basic(
     get_zipfile: ZipFileAsyncThunk,
     zinfo: zipfile.ZipInfo,
-):
+) -> vfs.FileContentProto:
+
+    return FileContentZip(get_zipfile, zinfo)
+
+
+async def file_content_factory_Id3v1(
+    get_zipfile: ZipFileAsyncThunk,
+    zinfo: zipfile.ZipInfo,
+) -> vfs.FileContentProto:
 
     if zinfo.filename.endswith(".mp3") or zinfo.filename.endswith(".flac"):
         return FileContentZipFixingId3v1(get_zipfile, zinfo)
@@ -72,10 +79,20 @@ async def file_content_factory(
 class DirContentZipFactory:
     """takes zip file's `FileContentProto` and produces `DirContentProto`"""
 
+    logger = tglog.getLogger("DirContentZipFactory")
+
+    @staticmethod
+    def create_from_props(fix_Id3v1=True):
+        return DirContentZipFactory(
+            file_content_factory=file_content_factory_Id3v1
+            if fix_Id3v1
+            else file_content_factory_basic,
+        )
+
     def __init__(
         self,
         zipfile_factory=zipfile_factory,
-        file_content_factory=file_content_factory,
+        file_content_factory=file_content_factory_basic,
         dir_content_factory=vfs.DirContentList,
     ) -> None:
         self._file_content_factory: FileContentFactory = file_content_factory
@@ -113,11 +130,11 @@ class DirContentZipFactory:
 
     async def get_ziptree(
         self,
-        file_content: vfs.FileContentProto,
-        path=[],
+        zip_file_content: vfs.FileContentProto,
+        path=None,
     ) -> ZipTree:
-        """ """
-        zf = await self._zipfile_factory(file_content)
+        """Given `vfs.FileContentProto` with zip file bytes returns `ZipTree` at `path`"""
+        zf = await self._zipfile_factory(zip_file_content)
         zt = get_zip_tree(get_zipinfo_list(zf))
         zt = ls_zip_tree(zt, none_fallback(path, []))
 

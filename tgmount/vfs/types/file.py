@@ -20,6 +20,7 @@ class FileLike:
     creation_time: datetime = datetime.now()
 
     extra: Optional[Any] = None
+    """ Any extra data attached to the FileLike  """
 
     @staticmethod
     def guard(item: Any) -> TypeGuard["FileLike"]:

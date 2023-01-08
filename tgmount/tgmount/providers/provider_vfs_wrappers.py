@@ -1,6 +1,6 @@
 from typing import Mapping, Type
 
-from tgmount.tgmount.vfs_tree_wrapper import VfsTreeWrapperProto
+from tgmount.tgmount.vfs_tree_wrapper_types import VfsTreeWrapperProto
 
 
 class ProviderVfsWrappersBase:

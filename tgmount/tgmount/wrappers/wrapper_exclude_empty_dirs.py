@@ -5,7 +5,7 @@ from ..vfs_tree_types import (
     TreeEventNewDirs,
     TreeEventType,
 )
-from ..vfs_tree_wrapper import VfsTreeWrapperProto
+from ..vfs_tree_wrapper_types import VfsTreeWrapperProto
 
 logger = tglog.getLogger("VfsStructureProducer")
 logger.setLevel(tglog.TRACE)
@@ -14,7 +14,6 @@ from tgmount import vfs
 
 
 async def filter_empty(item: vfs.DirContentItem):
-
     if vfs.DirLike.guard(item):
         return len(list(await vfs.dir_content_read(item.content))) > 0
 
@@ -28,6 +27,8 @@ def remove_empty_dirs_content(
 
 
 class WrapperEmpty(VfsTreeWrapperProto):
+    logger = tglog.getLogger("WrapperEmpty")
+
     @classmethod
     def from_config(cls, arg, sub_dir):
         return WrapperEmpty(sub_dir)
@@ -35,7 +36,7 @@ class WrapperEmpty(VfsTreeWrapperProto):
     def __init__(self, wrapped_dir: "VfsTreeDir") -> None:
         self._wrapped_dir = wrapped_dir
         self._wrapped_dir_subdirs: set["VfsTreeDir"] = set()
-        self._logger = tglog.getLogger(f"WrapperEmpty({self._wrapped_dir})")
+        self._logger = self.logger.getChild(self._wrapped_dir.path)
 
     async def wrap_dir_content(
         self, dir_content: vfs.DirContentProto
@@ -65,13 +66,7 @@ class WrapperEmpty(VfsTreeWrapperProto):
 
         self._logger.debug(f"from {child} events: {events}")
 
-        # if not await self._wrapped_dir.tree.exists(child):
-        #     return events
-
         is_empty = await self._is_empty(child)
-        # print(
-        #     f"self={self._wrapped_dir.path} child={child.path} is_empty={is_empty} wrapped_subdirs={self._wrapped_dir_subdirs} updates={updates}"
-        # )
 
         if child in self._wrapped_dir_subdirs:
             if is_empty:

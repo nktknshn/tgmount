@@ -9,7 +9,6 @@ from tgmount.tgclient.telegram_message_source2 import (
 from tgmount.tgmount.providers.provider_vfs_wrappers import ProviderVfsWrappersBase
 from tgmount.tgmount.root_config_reader import TgmountConfigReader
 from tgmount.tgmount.vfs_tree import VfsTree
-from tgmount.tgmount.vfs_tree_message_source import SourcesProviderAccumulating
 from tgmount.tgmount.vfs_tree_producer import VfsTreeProducer
 from tgmount.util import none_fallback
 

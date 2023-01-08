@@ -16,9 +16,6 @@ class FileContentZipFixingId3v1(FileContentZip):
 
     async def read_func(self, handle: FileContentZipHandle, off, size):
 
-        # if self.zinfo.filename.endswith(".mp3") or self.zinfo.filename.endswith(
-        #     ".flac"
-        # ):
         if size == 4096:
             logger.warning(f"FileContentZipFixingId3v1.read_func()!!!")
             return b"\x00" * 4096

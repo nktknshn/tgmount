@@ -8,7 +8,7 @@ from tgmount.tgclient.message_types import MessageProto
 from tgmount.tgmount.file_factory import FileFactoryProto
 from tgmount.tgmount.filters_types import Filter
 from tgmount.tgmount.types import MessagesSet, Set
-from tgmount.tgmount.vfs_tree_wrapper import VfsTreeWrapperProto
+from tgmount.tgmount.vfs_tree_wrapper_types import VfsTreeWrapperProto
 
 
 class VfsTreeProducerProto(Protocol):
