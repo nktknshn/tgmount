@@ -16,7 +16,7 @@ from tgmount.tgmount.types import Set
 from tgmount.tgmount.vfs_tree import VfsTree, VfsTreeDir
 from tgmount.tgmount.vfs_tree_types import TreeEventType
 from tgmount.vfs.util import MyLock
-from tgmount.util import measure_time
+from tgmount.util import measure_time, none_fallback
 
 """ 
 
@@ -139,11 +139,12 @@ class SourcesProviderAccumulating(SourcesProvider[SourcesProviderMessageSource])
     def __init__(
         self,
         tree: VfsTree,
-        source_map: Mapping[str, tgclient.MessageSourceSubscribableProto],
+        source_map: Mapping[str, tgclient.MessageSourceSubscribableProto] | None = None,
     ) -> None:
 
         self.accumulated_updates: Subscribable = Subscribable()
         self._tree = tree
+        source_map = none_fallback(source_map, {})
 
         """Locks when new event (new messsage or removed messages) received until the event is processed by VfsTree and FileSystemOperations.update"""
         self._update_lock = MyLock(
@@ -167,3 +168,15 @@ class SourcesProviderAccumulating(SourcesProvider[SourcesProviderMessageSource])
     @classmethod
     def from_sources_provider(cls, provider: SourcesProviderProto, tree: VfsTree):
         return cls(tree, provider.as_mapping())
+
+    def add_source(
+        self, source_id: str, source: tgclient.MessageSourceSubscribableProto
+    ):
+        if source_id in self._source_map:
+            return
+
+        self._source_map[source_id] = self.MessageSource(self, self._tree, source)
+
+        self._source_map[source_id].accumulated_updates.subscribe(
+            self.accumulated_updates.notify
+        )

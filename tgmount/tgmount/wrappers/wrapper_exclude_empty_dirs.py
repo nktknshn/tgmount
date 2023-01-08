@@ -54,10 +54,8 @@ class WrapperEmpty(VfsTreeWrapperProto):
     async def wrap_events(
         self,
         child: "VfsTreeDir",
-        # child: Union["VfsTreeDir", "VfsTree"],
         events: list[TreeEventType],
     ) -> list[TreeEventType]:
-        # print(updates)
 
         parent = await child.get_parent()
 

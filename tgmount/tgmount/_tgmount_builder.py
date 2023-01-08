@@ -51,7 +51,7 @@ class TgmountBuilder(TgmountBuilderBase):
     FileFactory = MyFileFactoryDefault
     """ Class that constructs file from messages """
 
-    classifier = MyClassifier()
+    classifier = ClassifierDefault()
     """ classifies messages  """
 
     filters: FilterProviderProto = FilterProvider()

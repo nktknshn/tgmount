@@ -21,7 +21,7 @@ class WrapperZipsAsDirs(VfsTreeWrapperProto):
 
     @classmethod
     def from_config(cls, arg: Mapping, sub_dir: VfsTreeDir):
-        WrapperZipsAsDirs(sub_dir)
+        return WrapperZipsAsDirs(sub_dir)
 
     def __init__(self, wrapped_dir: "VfsTreeDir") -> None:
         self._wrapped_dir = wrapped_dir
@@ -65,11 +65,11 @@ class WrapperZipsAsDirs(VfsTreeWrapperProto):
     async def wrap_events(
         self, source: "VfsTreeDir", events: list[TreeEventType]
     ) -> list[TreeEventType]:
-        """Catch updates related to zip files and process them in a propriate
+        """Catch updates for zip files and process them in a propriate
         way.
 
-        If a zip file appears: add a corresponding folder.
-        If a zip file has gone remove the folder.
+        If a zip file appears - add a corresponding folder.
+        If a zip file has gone - remove the folder.
 
         """
         # parent = await child.get_parent()

@@ -1,7 +1,8 @@
 from . import client_types
 from .client import TgmountTelegramClient
 from .files_source import TelegramFilesSource
-from .telegram_message_source import TelegramMessageSource
+
+# from .telegram_message_source import TelegramMessageSource
 from .message_source_simple import MessageSourceSimple
 from .message_source_types import MessageSourceProto, MessageSourceSubscribableProto
 from .search.search import TelegramSearch

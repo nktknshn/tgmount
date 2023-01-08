@@ -13,6 +13,8 @@ Message = telethon.tl.custom.Message
 
 
 class FilesSourceCaching(TelegramFilesSource):
+    """Caches telegram file content"""
+
     def __init__(
         self,
         client: TgmountTelegramClientReaderProto,

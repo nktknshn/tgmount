@@ -2,24 +2,14 @@
 
 left to right direction
 
-class VfsTree {
-    +init()
-    +create_dir(path)
-    +put_content(path, content: list[DirLike | FileLike])
-    +remove(path)
-    -asas
+class TgmountBase {
+
 }
 
-class VfsTreePlain {
-    +init(message_source, factory, filters, treat_as_prop)
-    +produce(tree: VfsTree)
+class TgmountBuilderBase {
+
 }
 
-class ProducerConfig {
-    message_source
-    factory
-    filters
-    treat_as_prop
-}
+TgmountBuilderBase -> "produces" TgmountBase 
 
 @enduml

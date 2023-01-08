@@ -14,7 +14,7 @@ import tgmount.tgclient as tg
 from tests.integrational.integrational_helpers import DEFAULT_ROOT
 from tgmount import tglog, vfs
 from tgmount.main.util import read_tgapp_api
-from tgmount.tgmount.builder import TgmountBuilder
+from tgmount.tgmount.tgmount_builder import TgmountBuilder
 import pytest
 from tgmount.tgmount.producers.producer_by_sender import VfsTreeDirBySender
 

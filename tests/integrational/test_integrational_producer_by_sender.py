@@ -123,7 +123,12 @@ async def ctx(
         message_sources={"source1": "source1", "source2": "source2"},
         root={
             "source": {"source": "source1", "recursive": True},
-            "producer": {"BySender": {"dir_structure": BY_SENDER_STRUCTURE}},
+            "producer": {
+                "BySender": {
+                    "dir_structure": BY_SENDER_STRUCTURE,
+                    "use_get_sender": True,
+                }
+            },
         },
     )
 
@@ -204,10 +209,10 @@ async def test_producer_by_sender_update(
     senders = ctx.senders
     source1 = ctx.source1
 
-    # tgmount.fs.FileSystemOperations.logger.setLevel(logging.DEBUG)
+    tgmount.fs.FileSystemOperations.logger.setLevel(logging.INFO)
     # prepared_ctx.debug = logging.DEBUG
-
-    logging.root.setLevel(logging.INFO)
+    ctx.debug = logging.DEBUG
+    logging.root.setLevel(logging.DEBUG)
 
     async def test_update():
         _iter = iter(senders.keys())
@@ -251,7 +256,7 @@ async def test_producer_by_sender_update(
 
 
 @pytest.mark.asyncio
-async def test_producer_by_sender_update_performance(
+async def test_producer_by_sender_performance(
     fixtures: Fixtures,
 ):
     """Tests updates of the tree"""

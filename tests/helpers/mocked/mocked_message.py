@@ -51,23 +51,6 @@ class MockedDocument(DocumentProto):
     attributes: list = field(default_factory=list)
 
 
-# class MockedFile:
-#     def __init__(self, name: str) -> None:
-#         self._name = name
-
-#     @property
-#     def name(self):
-#         return self._name
-
-#     @property
-#     def media(self):
-#         return None
-
-#     @property
-#     def ext(self):
-#         return os.path.splitext(self._name)[1]
-
-
 @dataclass
 class MockedForward(ForwardProto):
     from_id: int
@@ -145,7 +128,7 @@ class MockedFile(FileProto):
 
 class MockedMessage(MessageProto):
     def __repr__(self) -> str:
-        return f"MockedMessage({self.id}, file={map_none(self.file, lambda f: f.name)}, sender={self.sender})"
+        return f"MockedMessage({self.id}, file={map_none(self.file, lambda f: f.name)}, sender={self.sender}, chat_id={self.chat_id})"
 
     def __init__(
         self,

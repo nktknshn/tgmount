@@ -17,10 +17,6 @@ from tgmount.tgmount.vfs_tree_producer_types import VfsTreeProducerProto
 from tgmount.tgmount.vfs_tree_wrapper import VfsTreeWrapperProto
 
 
-# logger = tglog.getLogger("VfsStructureProducer")
-# logger.setLevel(tglog.TRACE)
-
-
 class VfsTreeError(TgmountError):
     pass
 
@@ -103,7 +99,7 @@ class VfsTreeDir(VfsTreeDirMixin):
         self._dir_content_items: list[vfs.DirContentItem] = []
         self._subs = none_fallback(subs, [])
 
-        self.additional_data: Any = None
+        # self.additional_data: Any = None
 
     async def child_updated(self, child: "VfsTreeDir", events: list[TreeEventType]):
         """Method used by subdirs to notify the dir about its modifications. If this dir contains any wrappers updates are wrapped with `wrap_updates` method."""
@@ -191,12 +187,6 @@ class VfsTreeDir(VfsTreeDirMixin):
         subpath: str = "/",
     ):
         await self._parent_tree.remove_content(self._globalpath(subpath), item)
-
-    # async def list_content(self):
-    #     vfs_items = await self.get_dir_content_items()
-    #     subdirs = await self.get_subdirs()
-
-    #     return subdirs, vfs_items
 
 
 class SubdirsRegistry:

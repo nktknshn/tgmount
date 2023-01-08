@@ -47,9 +47,9 @@ def get_downloadable_item(message: MessageDownloadable) -> SourceItem:
     raise ValueError(f"message {message} is not downloadable")
 
 
-class TelegramFilesSource(
-    # TelegramFilesSourceBase[InputSourceItem],
-):
+class TelegramFilesSource:
+    """Class that provides file content for a `MessageDownloadable`"""
+
     def __init__(
         self,
         client: tgclient.client_types.TgmountTelegramClientReaderProto,
@@ -59,11 +59,7 @@ class TelegramFilesSource(
         self.items_file_references: dict[int, bytes] = {}
         self.request_size = request_size
 
-    def file_content(
-        self,
-        message: MessageDownloadable
-        # , input_item: InputSourceItem
-    ) -> vfs.FileContent:
+    def file_content(self, message: MessageDownloadable) -> vfs.FileContent:
 
         item = get_downloadable_item(message)
 
@@ -75,10 +71,7 @@ class TelegramFilesSource(
         return fc
 
     async def read(
-        self,
-        message: MessageDownloadable,
-        offset: int,
-        limit: int,
+        self, message: MessageDownloadable, offset: int, limit: int
     ) -> bytes:
 
         return await self._item_read_function(message, offset, limit)
@@ -103,7 +96,7 @@ class TelegramFilesSource(
 
         item = get_downloadable_item(message)
 
-        refetched_msg: Message
+        refetched_msg: MessageProto
 
         [refetched_msg] = await self.client.get_messages(
             message.chat_id, ids=[message.id]
@@ -209,16 +202,3 @@ class TelegramFilesSource(
 """ 
 https://core.telegram.org/api/files
 """
-
-
-# async def document_to_file_content(
-#     message: telethon.tl.custom.Message,
-#     item: T,
-#     document_read_function: ItemReadFunctionAsync,
-# ) -> vfs.FileContent:
-#     async def read_func(handle: Any, off: int, size: int) -> bytes:
-#         return await document_read_function(message, document, off, size)
-
-#     fc = vfs.FileContent(size=item.size, read_func=read_func)
-
-#     return fc

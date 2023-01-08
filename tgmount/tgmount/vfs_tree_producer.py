@@ -1,5 +1,6 @@
 from tgmount import vfs, tglog
 from tgmount.util import none_fallback
+from tgmount.util.timer import Timer
 from .vfs_tree_producer_types import VfsDirConfig
 
 from .root_config_reader import TgmountConfigReader
@@ -35,7 +36,7 @@ class VfsTreeProducer:
     ):
         """Using `VfsStructureConfig` produce content into `tree_dir`"""
 
-        self.logger.debug(f"produce: {vfs.path_join(tree_dir.path, path)}")
+        self.logger.debug(f"Produce: {vfs.path_join(tree_dir.path, path)}")
 
         # create the subdir
         sub_dir = await tree_dir.create_dir(path)
@@ -45,16 +46,6 @@ class VfsTreeProducer:
             for wrapper_cls, wrapper_arg in vfs_config.vfs_wrappers:
                 wrapper = wrapper_cls.from_config(wrapper_arg, sub_dir)
                 sub_dir._wrappers.append(wrapper)
-
-            # wrapper = vfs_config.vfs_wrappers.from_config(
-            #     none_fallback(vfs_config.vfs_wrapper_arg, {}), sub_dir
-            # )
-            # vfs_config.vfs_wrapper
-
-        # if vfs_config.source_config.get("wrappers") == "ExcludeEmptyDirs":
-        #     sub_dir._wrappers.append(WrapperEmpty(sub_dir))
-        # elif vfs_config.source_config.get("wrappers") == "ZipsAsDirs":
-        #     sub_dir._wrappers.append(WrapperZipsAsDirs(sub_dir))
 
         # If the directory has any producer
         if (
@@ -68,8 +59,6 @@ class VfsTreeProducer:
                 sub_dir,
             )
 
-            # sub_dir._subs.append(producer)
-
             await producer.produce()
 
     async def produce(
@@ -81,6 +70,9 @@ class VfsTreeProducer:
         """Produce content into `tree_dir` using `dir_config`"""
         config_reader = TgmountConfigReader()
 
+        t1 = Timer()
+        t1.start("producer")
+
         for (path, keys, vfs_config, ctx) in config_reader.walk_config_with_ctx(
             dir_config,
             resources=self._resources,
@@ -90,4 +82,8 @@ class VfsTreeProducer:
         ):
             await self.produce_from_config(tree_dir, path, vfs_config)
 
-        self.logger.info(f"Done producing {tree_dir.path}")
+        t1.stop()
+
+        self.logger.info(
+            f"Done producing {tree_dir.path}. {t1.intervals[0].duration:.2f} ms"
+        )

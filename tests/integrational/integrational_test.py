@@ -1,46 +1,40 @@
-from abc import abstractmethod
-import abc
 import asyncio
-from collections.abc import Awaitable, Callable
 import logging
-import os
+from collections.abc import Awaitable, Callable
 from typing import Any, AsyncGenerator, Iterable, Mapping, TypedDict
 
 import aiofiles
-import pyfuse3
-import pytest
-import pytest_asyncio
-import tgmount
+
 import tgmount.config as config
-from tgmount.config.types import Config
 import tgmount.tgclient as tg
 from tests.helpers.mocked.mocked_storage import EntityId, MockedTelegramStorage
 from tests.helpers.mount import handle_mount
 from tgmount import tglog, vfs
+from tgmount.config.types import Config
 from tgmount.main.util import mount_ops
-from tgmount.tgmount.builder import TgmountBuilder
+from tgmount.tgmount import TgmountBase, VfsTreeProducer
+from tgmount.tgmount.tgmount_builder import TgmountBuilder
+from tgmount.util import none_fallback
 
 from ..helpers.fixtures import mnt_dir
 from ..helpers.mocked.mocked_client import MockedClientReader, MockedClientWriter
-from ..helpers.mocked.mocked_message import MockedFile, MockedMessage, MockedSender
-from .helpers import async_walkdir, create_config, async_listdir
-from tgmount.util import none_fallback
-from tgmount.tgmount import VfsTreeProducer, TgmountBase
+from .helpers import async_listdir, async_walkdir, create_config
 
 
 class MockedVfsTreeProducer(VfsTreeProducer):
     async def produce_path(self, tree_dir, path: str, vfs_config, ctx):
         # to test concurrent
         # await asyncio.sleep(0.1)
-        return await super().produce_from_config(tree_dir, path, vfs_config, ctx)
+        return await super().produce_from_config(tree_dir, path, vfs_config)
 
 
 class MockedTgmountBase(TgmountBase):
-    VfsTreeProducer = MockedVfsTreeProducer
+    ...
 
 
 class MockedTgmountBuilderBase(TgmountBuilder):
     TelegramClient = MockedClientReader
+    VfsTreeProducer = MockedVfsTreeProducer
     TgmountBase = MockedTgmountBase
 
     def __init__(self, storage: MockedTelegramStorage) -> None:
@@ -75,10 +69,15 @@ async def main_function(
     test_logger.info("Auth...")
     await tgm.client.auth()
 
+    test_logger.info("Fetching messages...")
+    await tgm.fetch_messages()
+
     test_logger.info("Creating FS...")
     await tgm.create_fs()
 
     test_logger.info("Returng FS")
+
+    await tgm.events_dispatcher.resume()
 
     await mount_ops(tgm.fs, mount_dir=mnt_dir, min_tasks=10)
 
@@ -273,7 +272,7 @@ class TgmountIntegrationContext:
     async def create_tgmount(
         self,
         cfg_or_root: config.Config | Mapping | None = None,
-    ) -> tgmount.tgmount.TgmountBase:
+    ) -> TgmountBase:
 
         builder = MockedTgmountBuilderBase(storage=self.storage)
         tgm = await builder.create_tgmount(self._get_config(cfg_or_root))

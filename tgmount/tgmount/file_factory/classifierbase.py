@@ -48,3 +48,7 @@ class ClassifierBase(ClassifierProto[Any, TG]):
                 klasses.append(klass)
 
         return klasses
+
+    @classmethod
+    def register(cls, klass: Type[TG]):
+        cls.classes = [*cls.classes, klass]

@@ -64,7 +64,9 @@ class MessageForwarded(TelegramMessage, Protocol):
 
 
 class MessageDownloadable(
-    TelegramMessage, TryGetFromGuard["MessageDownloadable"], Protocol
+    TelegramMessage,
+    TryGetFromGuard["MessageDownloadable"],
+    Protocol,
 ):
     @staticmethod
     def guard(msg: Any) -> TypeGuard["MessageDownloadable"]:
@@ -442,7 +444,7 @@ class MessageWithText(
 
 
 class MessageWithOtherDocument(
-    MessageDownloadable,
+    MessageWithFilename,
     TryGetFromGuard["MessageWithOtherDocument"],
     Protocol,
 ):
@@ -454,8 +456,9 @@ class MessageWithOtherDocument(
     def guard(msg: Any) -> TypeGuard["MessageWithOtherDocument"]:
 
         return (
-            TelegramMessage.guard(msg)
-            and msg.document is not None
+            # TelegramMessage.guard(msg)
+            # and msg.document is not None
+            MessageWithFilename.guard(msg)
             and not (
                 MessageWithDocumentImage.guard(msg)
                 or MessageWithCompressedPhoto.guard(msg)

@@ -84,13 +84,9 @@ class TgmountConfigReader(RootProducerPropsReader):
         producer_prop = self.read_prop_producer(dir_config)
         treat_as_prop = self.read_prop_treat_as(dir_config)
 
-        # if source_prop:
         self.logger.info(f"source_prop={source_prop}")
-        # if filters_prop:
         self.logger.info(f"filters_prop={filters_prop}")
-        # if producer_prop:
         self.logger.info(f"producer_prop={producer_prop}")
-        # if wrappers_prop:
         self.logger.info(f"wrappers_prop={wrappers_prop}")
 
         message_source = None
@@ -228,17 +224,6 @@ class TgmountConfigReader(RootProducerPropsReader):
                     )
 
                 vfs_wrappers.append((wrapper_cls, wrapper_arg))
-
-        #     for wrapper_name, wrapper_arg in wrappers_prop:
-        #         wrapper_cls = resources.vfs_wrappers.get(wrapper_name)
-
-        #         if wrapper_cls is None:
-        #             raise config.ConfigError(
-        #                 f"Missing wrapper: {wrapper_name}. path: {ctx.current_path}"
-        #             )
-
-        #         wrapper = wrapper_cls.from_config(wrapper_arg)
-        #         vfs_wrappers.append(wrapper)
 
         if message_source is not None:
             producer_config = VfsTreeProducerConfig(

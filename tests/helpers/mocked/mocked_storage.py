@@ -269,7 +269,8 @@ class StorageEntity(StorageEntityMixin):
         self._storage: MockedTelegramStorage = storage
         self._messages = []
         self._entity_id = entity
-        self._chat_id = hash(entity)
+        self._chat_id = _get_chat_id(entity)
+        # self._chat_id = entity
         self._last_message_id = 0
 
     @property
@@ -316,6 +317,10 @@ class StorageEntity(StorageEntityMixin):
         return self._messages
 
 
+def _get_chat_id(ent):
+    return hash(ent)
+
+
 class MockedTelegramStorage:
     _logger = tglog.getLogger("MockedTelegramStorage()")
 
@@ -342,7 +347,7 @@ class MockedTelegramStorage:
     def get_entity(self, entity: EntityId) -> StorageEntity:
         if entity not in self._entities:
             self._entities[entity] = self._create_entity(entity)
-            self._entity_by_id[hash(entity)] = self._entities[entity]
+            self._entity_by_id[_get_chat_id(entity)] = self._entities[entity]
 
         return self._entities[entity]
 

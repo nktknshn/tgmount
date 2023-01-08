@@ -1,11 +1,12 @@
 import abc
+import os
 from typing import Iterable, Mapping, TypeVar
 
 from telethon.tl.custom import Message
 from tgmount import tglog
 from tgmount.tgclient.message_source_simple import MessageSourceSimple
 from tgmount.tgclient.message_types import MessageProto
-from tgmount.tgmount.producers.producer_plain import VfsTreePlainDir
+from tgmount.tgmount.producers.producer_plain import VfsTreeProducerPlainDir
 from tgmount.tgmount.root_config_types import RootConfigWalkingContext
 from tgmount.tgmount.tgmount_types import TgmountResources
 from tgmount.tgmount.types import Set, MessagesSet
@@ -13,6 +14,8 @@ from tgmount.tgmount.error import TgmountError
 from tgmount.tgmount.vfs_tree_producer_types import VfsTreeProducerConfig
 from tgmount.util import sanitize_string_for_path
 from tgmount.util.col import sets_difference
+from tgmount.util.func import map_values
+from tgmount.util.timer import Timer
 
 from ..vfs_tree import VfsTreeDir
 from ..vfs_tree_producer import VfsTreeProducer
@@ -27,6 +30,8 @@ class VfsTreeProducerGrouperBase(abc.ABC):
     Base class for a producer that splits messages into groups creating a directory for each group. The structure of directores is
     defined by `dir_structure`.
     """
+
+    logger = tglog.getLogger("VfsTreeProducerGrouperBase")
 
     DEFAULT_ROOT_CONFIG: Mapping = {"filter": "All"}
     VfsTreeProducer = VfsTreeProducer
@@ -47,9 +52,9 @@ class VfsTreeProducerGrouperBase(abc.ABC):
 
         self._source_by_name: dict[str, VfsTreeProducerGrouperBase.MessageSource] = {}
 
-        self._source_root = self.MessageSource()
+        self._source_root = self.MessageSource(tag=os.path.join(self._dir.path))
 
-        self._logger = tglog.getLogger(f"VfsTreeProducerGrouperBase({self._dir.path})")
+        self._logger = self.logger.getChild(f"{self._dir.path}")
 
     @classmethod
     def sanitize(cls, dirname: str):
@@ -70,11 +75,11 @@ class VfsTreeProducerGrouperBase(abc.ABC):
     async def _add_dir(self, dir_name: str, dir_messages: MessagesSet):
 
         dir_source = self.MessageSource(
-            messages=dir_messages, tag=f"{self._dir.path}/{dir_name}"
+            messages=dir_messages, tag=f"{os.path.join(self._dir.path, dir_name)}"
         )
 
         tree_dir = await self._dir.create_dir(dir_name)
-        tree_dir.additional_data = self._dir.additional_data
+        # tree_dir.additional_data = self._dir.additional_data
 
         self._source_by_name[dir_name] = dir_source
 
@@ -140,19 +145,28 @@ class VfsTreeProducerGrouperBase(abc.ABC):
                 del self._source_by_name[dir_name]
 
     async def produce(self):
+        t1 = Timer()
+
+        t1.start("messages")
         messages = await self._config.get_messages()
 
+        t1.start("grouping")
         grouped, root = await self._group_messages(messages)
 
+        t1.start("subdirs")
         for dir_name, dir_messages in grouped.items():
             await self._add_dir(dir_name, Set(dir_messages))
 
+        t1.start("root")
+
         await self._source_root.set_messages(Set(root))
 
-        await VfsTreePlainDir(
+        await VfsTreeProducerPlainDir(
             self._dir,
             self._config.set_message_source(self._source_root),
         ).produce()
+
+        t1.stop()
 
         self._config.message_source.event_new_messages.subscribe(
             self._update_new_message
@@ -161,3 +175,6 @@ class VfsTreeProducerGrouperBase(abc.ABC):
         self._config.message_source.event_removed_messages.subscribe(
             self._update_removed_messages
         )
+
+        self._logger.debug(f"Producing took: {t1.total:.2f} ms.")
+        self._logger.debug(f"{map_values(lambda v: f'{v:.2f}', t1.durations)}")

@@ -31,7 +31,7 @@ class FileFactoryItem:
     file: Optional[FileGetter]
 
 
-class FileFactoryBase(FileFactoryProto[T]):
+class FileFactoryBase(FileFactoryProto[T], abc.ABC):
     """Takes a message and produces vfs.FileLike or vfs.FileContentProto"""
 
     _supported: dict[ClassName, FileFactoryItem] = {}

@@ -4,7 +4,7 @@ from typing import Any, Optional, Protocol
 import telethon
 
 MessageId = int
-ChatId = int
+ChatId = str | int
 
 
 class StickerProto(Protocol):

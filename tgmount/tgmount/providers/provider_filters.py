@@ -16,37 +16,41 @@ FilterGetter = Callable[[str], Type[FilterFromConfigProto]]
 
 class FilterProviderProto(Protocol):
     @abstractmethod
-    def get_filters(self) -> "FiltersMapping":
+    def get(self, filter_name: str) -> Type[FilterFromConfigProto] | None:
         pass
 
 
-class FiltersMapping:
+class FilterProviderBase(FilterProviderProto):
+    """ """
+
+    filters: Mapping[str, Type[Filter]]
+    filter_getters: list[FilterGetter]
+
     def __init__(
         self,
-        *,
-        filters: Mapping[str, Type[Filter]] | None = None,
+        # *,
+        # filters: Mapping[str, Type[Filter]] | None = None,
         # taken
-        filter_getters: Optional[list[FilterGetter]] = None,
+        # filter_getters: Optional[list[FilterGetter]] = None,
     ) -> None:
-        super().__init__()
-        self._filters: Mapping[str, Type[Filter]] = none_fallback(filters, {})
-        self._filter_getters = none_fallback(filter_getters, [])
+        pass
+        # super().__init__()
 
     def append_filter_getter(self, fgetter: FilterGetter):
-        self._filter_getters.append(fgetter)
+        self.filter_getters.append(fgetter)
 
     def get(self, key) -> Optional[Type[FilterFromConfigProto]]:
-        _filter = self._filters.get(key)
+        _filter = self.filters.get(key)
 
         if _filter is not None:
             return _filter
 
-        if len(self._filter_getters) == 0:
+        if len(self.filter_getters) == 0:
             return
 
         _fgs: list[Type[FilterFromConfigProto]] = []
 
-        for fg in self._filter_getters:
+        for fg in self.filter_getters:
             _fgs.append(fg(key))
 
         class _FromConfig(FilterFromConfigProto):
@@ -58,10 +62,3 @@ class FiltersMapping:
                 raise ConfigError(f"Invalid filter: {key}")
 
         return _FromConfig
-
-
-class FilterProviderBase(FilterProviderProto):
-    filters: FiltersMapping = FiltersMapping()
-
-    def get_filters(self) -> FiltersMapping:
-        return self.filters

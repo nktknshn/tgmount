@@ -13,8 +13,8 @@ from tgmount.tgmount.vfs_tree_producer_types import (
 from tgmount.util import measure_time
 
 
-class VfsTreePlainDir(VfsTreeProducerProto):
-    logger = tglog.getLogger(f"VfsTreePlainDir")
+class VfsTreeProducerPlainDir(VfsTreeProducerProto):
+    logger = tglog.getLogger(f"VfsTreeProducerPlainDir")
 
     def __init__(
         self,
@@ -26,6 +26,7 @@ class VfsTreePlainDir(VfsTreeProducerProto):
 
         self._messages = MessagesSet()
         self._message_to_file: dict[str, vfs.FileLike] = {}
+
         self._logger = self.logger.getChild(f"{self._tree_dir.path}")
 
     @classmethod
@@ -37,11 +38,11 @@ class VfsTreePlainDir(VfsTreeProducerProto):
         tree_dir: VfsTreeDir,
     ):
 
-        return VfsTreePlainDir(tree_dir, vfs_config)
+        return VfsTreeProducerPlainDir(tree_dir, vfs_config)
 
     # @measure_time(logger_func=print)
     async def produce(self):
-        self._logger.info(f"Producing...")
+        # self._logger.info(f"Producing...")
 
         self._messages = await self._config.get_messages()
 

@@ -28,6 +28,8 @@ FileFactorySupportedTypes = (
 
 
 class FileFactoryDefault(FileFactoryBase[FileFactorySupportedTypes | T], Generic[T]):
+    """Takes a telegram message and produces vfs.FileLike or vfs.FileContentProto"""
+
     def __init__(
         self,
         files_source: FileContentProviderProto,
