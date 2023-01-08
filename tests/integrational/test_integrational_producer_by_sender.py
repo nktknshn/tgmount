@@ -11,7 +11,7 @@ from tests.integrational.helpers import async_walkdir, create_config, mdict
 from tgmount.tgclient.guards import MessageWithDocument, MessageWithVideo
 from tgmount.tglog import init_logging
 from tgmount.tgmount.producers.producer_by_sender import VfsTreeDirBySender
-from tgmount.util import Timer
+from tgmount.util.timer import Timer
 
 from ..helpers.mocked.mocked_message import MockedSender
 from .fixtures import Context, FixtureFiles, files, mnt_dir

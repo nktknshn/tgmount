@@ -296,7 +296,7 @@ class FileSystemOperations(pyfuse3.Operations, FileSystemOperationsMixin):
 
         if not self._inodes.was_content_read(parent_item.inode):
             await self._read_dir_content(parent_item)
-            self._inodes.set_was_content_read(parent_item.inode)
+            self._inodes.set_content_read(parent_item.inode)
 
         item = self._inodes.get_child_item_by_name(name, parent_inode)
 
@@ -377,7 +377,7 @@ class FileSystemOperations(pyfuse3.Operations, FileSystemOperationsMixin):
         # XXX
         if not self._inodes.was_content_read(dir_item.inode):
             content = await self._read_dir_content(dir_item)
-            self._inodes.set_was_content_read(dir_item.inode)
+            self._inodes.set_content_read(dir_item.inode)
 
         content = content[off:]
 

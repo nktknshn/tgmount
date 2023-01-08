@@ -91,23 +91,19 @@ class VfsTreeDir(VfsTreeDirMixin):
         path: str,
         wrappers=None,
         # subs are the users of the dir
-        subs: list[VfsTreeProducerProto] | None = None,
+        # subs: list[VfsTreeProducerProto] | None = None,
     ) -> None:
         self._parent_tree = tree
         self._path = path
         self._wrappers: list[VfsTreeWrapperProto] = none_fallback(wrappers, [])
         self._dir_content_items: list[vfs.DirContentItem] = []
-        self._subs = none_fallback(subs, [])
+        # self._subs = none_fallback(subs, [])
 
         # self.additional_data: Any = None
 
     async def child_updated(self, child: "VfsTreeDir", events: list[TreeEventType]):
         """Method used by subdirs to notify the dir about its modifications. If this dir contains any wrappers updates are wrapped with `wrap_updates` method."""
         parent = await self.get_parent()
-
-        # print(f"{self.path} child_updated({child.path}, {updates})")
-        # print(self.path)
-        # print(await self._parent_tree.get_parents(child))
 
         for w in self._wrappers:
             events = await w.wrap_events(child, events)
@@ -143,12 +139,12 @@ class VfsTreeDir(VfsTreeDirMixin):
 
         return vfs.path_join(self._path, vfs.path_remove_slash(subpath))
 
-    def add_sub_producer(self, sub: VfsTreeProducerProto):
-        self._subs.append(sub)
+    # def add_sub_producer(self, sub: VfsTreeProducerProto):
+    #     self._subs.append(sub)
 
-    async def produce(self):
-        for s in self._subs:
-            await s.produce()
+    # async def produce(self):
+    #     for s in self._subs:
+    #         await s.produce()
 
     async def get_subdir(self, subpath: str) -> "VfsTreeDir":
         return await self._parent_tree.get_dir(self._globalpath(subpath))
@@ -339,7 +335,7 @@ class VfsTree(Subscribable, VfsTreeProto):
 
         await parent.child_updated(
             parent,
-            [TreeEventRemovedDirs(update_path=parent.path, removed_dirs=[path])],
+            [TreeEventRemovedDirs(removed_dirs=[path])],
         )
 
     async def create_dir(self, path: str) -> VfsTreeDir:
@@ -366,7 +362,7 @@ class VfsTree(Subscribable, VfsTreeProto):
 
         await parent.child_updated(
             parent,
-            [TreeEventNewDirs(update_path=parent.path, new_dirs=[path])],
+            [TreeEventNewDirs(new_dirs=[path])],
         )
 
         return self._dirs[path]

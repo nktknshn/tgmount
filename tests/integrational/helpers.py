@@ -22,7 +22,6 @@ from tgmount.tgmount.producers.producer_by_sender import VfsTreeDirBySender
 
 # import os
 
-from tgmount.util import Timer, none_fallback
 
 Message = telethon.tl.custom.Message
 Document = telethon.types.Document

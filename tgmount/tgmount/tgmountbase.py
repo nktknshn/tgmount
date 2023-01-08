@@ -232,7 +232,11 @@ class TgmountBase:
         fs_update = await self._join_tree_events(updates)
 
         self.logger.info(
-            f"UPDATE: new_files={list(fs_update.new_files.keys())} removed_files={list(fs_update.removed_files)} update_dir_content={list(fs_update.update_dir_content.keys())} new_dir_content={list(fs_update.new_dirs.keys())} removed_dirs={fs_update.removed_dir_contents}"
+            f"UPDATE: new_files={list(fs_update.new_files.keys())}"
+            + f" removed_files={list(fs_update.removed_files)}"
+            # + f" update_dir_content={list(fs_update.update_dir_content.keys())}"
+            + f" new_dir_content={list(fs_update.new_dirs.keys())}"
+            + f" removed_dirs={fs_update.removed_dirs}"
         )
 
         await self._update_fs(fs_update)
@@ -242,13 +246,15 @@ class TgmountBase:
         update = fs.FileSystemOperationsUpdate()
 
         for e in events:
-            path = e.update_path
-
             if isinstance(e, TreeEventRemovedItems):
+                path = e.update_path
+
                 for item in e.removed_items:
                     update.removed_files.append(os.path.join(path, item.name))
 
             elif isinstance(e, TreeEventNewItems):
+                path = e.update_path
+
                 for item in e.new_items:
                     if isinstance(item, vfs.FileLike):
                         update.new_files[os.path.join(path, item.name)] = item
@@ -257,7 +263,7 @@ class TgmountBase:
 
             elif isinstance(e, TreeEventRemovedDirs):
                 for path in e.removed_dirs:
-                    update.removed_dir_contents.append(path)
+                    update.removed_dirs.append(path)
 
             elif isinstance(e, TreeEventNewDirs):
                 for path in e.new_dirs:

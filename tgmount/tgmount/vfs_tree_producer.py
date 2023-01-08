@@ -9,12 +9,6 @@ from .tgmount_types import TgmountResources
 from .types import TgmountRootSource
 from .vfs_tree import VfsTreeDir, VfsTree
 
-""" 
-
-
-
-"""
-
 
 class VfsTreeProducer:
     """Class that using `TgmountResources` and `VfsStructureConfig` produces content into `VfsTreeDir` or `VfsTree`"""
@@ -26,40 +20,6 @@ class VfsTreeProducer:
 
     def __repr__(self) -> str:
         return f"VfsTreeProducer()"
-
-    async def produce_from_config(
-        self,
-        tree_dir: VfsTreeDir | VfsTree,
-        path: str,
-        vfs_config: VfsDirConfig,
-        # ctx: RootConfigContext,
-    ):
-        """Using `VfsStructureConfig` produce content into `tree_dir`"""
-
-        self.logger.debug(f"Produce: {vfs.path_join(tree_dir.path, path)}")
-
-        # create the subdir
-        sub_dir = await tree_dir.create_dir(path)
-
-        # If the directory has any wrapper
-        if vfs_config.vfs_wrappers is not None:
-            for wrapper_cls, wrapper_arg in vfs_config.vfs_wrappers:
-                wrapper = wrapper_cls.from_config(wrapper_arg, sub_dir)
-                sub_dir._wrappers.append(wrapper)
-
-        # If the directory has any producer
-        if (
-            vfs_config.vfs_producer is not None
-            and vfs_config.vfs_producer_config is not None
-        ):
-            producer = await vfs_config.vfs_producer.from_config(
-                self._resources,
-                vfs_config.vfs_producer_config,
-                none_fallback(vfs_config.vfs_producer_arg, {}),
-                sub_dir,
-            )
-
-            await producer.produce()
 
     async def produce(
         self,
@@ -87,3 +47,37 @@ class VfsTreeProducer:
         self.logger.info(
             f"Done producing {tree_dir.path}. {t1.intervals[0].duration:.2f} ms"
         )
+
+    async def produce_from_config(
+        self,
+        tree_dir: VfsTreeDir | VfsTree,
+        path: str,
+        vfs_config: VfsDirConfig,
+        # ctx: RootConfigContext,
+    ):
+        """Using `VfsDirConfig` produce content into `tree_dir`"""
+
+        self.logger.debug(f"Produce: {vfs.path_join(tree_dir.path, path)}")
+
+        # create the subdir
+        sub_dir = await tree_dir.create_dir(path)
+
+        # If the directory has any wrapper
+        if vfs_config.vfs_wrappers is not None:
+            for wrapper_cls, wrapper_arg in vfs_config.vfs_wrappers:
+                wrapper = wrapper_cls.from_config(wrapper_arg, sub_dir)
+                sub_dir._wrappers.append(wrapper)
+
+        # If the directory has any producer
+        if (
+            vfs_config.vfs_producer is not None
+            and vfs_config.vfs_producer_config is not None
+        ):
+            producer = await vfs_config.vfs_producer.from_config(
+                self._resources,
+                vfs_config.vfs_producer_config,
+                none_fallback(vfs_config.vfs_producer_arg, {}),
+                sub_dir,
+            )
+
+            await producer.produce()

@@ -39,13 +39,7 @@ class TgmountConfigReader(RootProducerPropsReader):
         return sources
 
     def walk_dir_props(self, d: TgmountRootSource, *, current_path=[]):
-        # current_path_str = (
-        #     f"/{os.path.join(*ctx.current_path)}" if len(ctx.current_path) > 0 else "/"
-        # )
-
         current_path_str = vfs.path_join(*current_path)
-
-        # self.logger.info(f"walk_config_with_ctx({current_path_str})")
 
         other_keys = set(d.keys()).difference(self.PROPS_KEYS)
 

@@ -75,11 +75,11 @@ class WrapperEmpty(VfsTreeWrapperProto):
 
         if child in self._wrapped_dir_subdirs:
             if is_empty:
-                events = [TreeEventRemovedDirs(self._wrapped_dir.path, [child.path])]
+                events = [TreeEventRemovedDirs([child.path])]
         else:
             if not is_empty:
                 events = [
-                    TreeEventNewDirs(self._wrapped_dir.path, [child.path]),
+                    TreeEventNewDirs([child.path]),
                     *events,
                 ]
                 self._wrapped_dir_subdirs.add(child)

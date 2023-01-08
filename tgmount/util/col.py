@@ -10,6 +10,13 @@ from typing import (
 T = TypeVar("T")
 
 
+def map_keys(
+    mapper: Callable[[str], str],
+    d: dict,
+) -> dict:
+    return {mapper(k): v for k, v in d.items()}
+
+
 def find(pred: Callable[[T], bool], col: Sequence[T]) -> Optional[T]:
     return next(filter(pred, col), None)
 

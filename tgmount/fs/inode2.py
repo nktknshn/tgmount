@@ -60,12 +60,11 @@ class InodesRegistry(Generic[T]):
 
         self._dir_content_read: set[int] = set()
 
-        # self._children_by_inode: Dict[int, Optional[dict[bytes, RegistryItem[T]]]] = {}
-
-    def set_was_content_read(self, inode: int | InodesRegistryItem[T]):
+    def set_content_read(self, inode: int | InodesRegistryItem[T]):
         self._dir_content_read.add(self.get_inode(inode))
 
     def was_content_read(self, inode: int | InodesRegistryItem[T]):
+        """ """
         return self.get_inode(inode) in self._dir_content_read
 
     @property
