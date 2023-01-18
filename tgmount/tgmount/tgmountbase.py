@@ -4,21 +4,21 @@ from typing import Mapping, Optional, Type
 
 from telethon import events
 
-
 from tgmount import fs, main, tgclient, tglog, vfs
 from tgmount.fs.update import FileSystemOperationsUpdate
 from tgmount.tgclient.add_hash import add_hash_to_telegram_message_class
-from tgmount.tgclient.message_source_simple import MessageSourceSimple
-from tgmount.tgclient.telegram_message_source2 import TelegramEventsDispatcher, EntityId
+from tgmount.tgclient.message_source import MessageSource
+from tgmount.tgclient.telegram_message_source import EntityId, TelegramEventsDispatcher
 from tgmount.tgmount.producers.producer_plain import VfsTreeProducerPlainDir
 from tgmount.tgmount.types import Set
 from tgmount.tgmount.vfs_tree_producer import VfsTree, VfsTreeProducer
 from tgmount.util import none_fallback
 from tgmount.vfs.util import MyLock
-from .vfs_tree import VfsTreeDir
 
 from .error import TgmountError
+from .logger import logger as _logger
 from .tgmount_types import TgmountResources
+from .vfs_tree import VfsTreeDir
 from .vfs_tree_types import (
     TreeEventNewDirs,
     TreeEventNewItems,
@@ -43,9 +43,7 @@ class TgmountBase:
         fs.FileSystemOperationsUpdatable
     ] = fs.FileSystemOperationsUpdatable
 
-    # VfsTreeProducer = VfsTreeProducer
-
-    logger = tglog.getLogger("TgmountBase")
+    logger = _logger.getChild("TgmountBase")
 
     def __init__(
         self,
@@ -183,7 +181,7 @@ class TgmountBase:
 
         for k, fetcher in self._resources.fetchers_dict.items():
             self.logger.info(f"Fetching from '{k}'...")
-            source: MessageSourceSimple | None = self._resources.sources.get(k)
+            source: MessageSource | None = self._resources.sources.get(k)
 
             assert source
 

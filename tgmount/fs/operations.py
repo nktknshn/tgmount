@@ -5,11 +5,11 @@ from typing import Any, Optional, TypedDict, overload
 
 import pyfuse3
 
-from tgmount import vfs, tglog
+from tgmount import vfs
 from tgmount.util import none_fallback, measure_time
 from tgmount.vfs.util import MyLock
 from .fh import FileSystemHandles
-from .inode2 import InodesRegistry, RegistryItem, RegistryRoot
+from .inode import InodesRegistry, RegistryItem, RegistryRoot
 from .util import (
     create_directory_attributes,
     create_file_attributes,
@@ -111,12 +111,13 @@ class FileSystemOperationsMixin:
         )
 
 
-measure_time_logger = tglog.getLogger(f"FileSystemOperations()")
+from .logger import logger as _logger
 
 
 class FileSystemOperations(pyfuse3.Operations, FileSystemOperationsMixin):
+
     FsRegistryItem = RegistryItem[FileSystemItem] | RegistryRoot[FileSystemItem]
-    logger = tglog.getLogger(f"FileSystemOperations()")
+    logger = _logger.getChild(f"FileSystemOperations()")
 
     def __init__(
         self,
@@ -418,7 +419,7 @@ class FileSystemOperations(pyfuse3.Operations, FileSystemOperationsMixin):
         self._handles.release_fh(fh)
         self.logger.debug("= releasedir(): ok")
 
-    @measure_time(logger_func=measure_time_logger.debug)
+    @measure_time(logger_func=logger.debug)
     @exception_handler
     async def open(self, inode, flags, ctx):
 
@@ -457,7 +458,7 @@ class FileSystemOperations(pyfuse3.Operations, FileSystemOperationsMixin):
 
         return pyfuse3.FileInfo(fh=fh)
 
-    @measure_time(logger_func=measure_time_logger.debug)
+    @measure_time(logger_func=logger.debug)
     @exception_handler
     async def read(self, fh, off, size):
         self.logger.debug(f"= read(fh={fh},off={off},size={size}).")

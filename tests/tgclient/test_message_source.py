@@ -3,8 +3,8 @@ import pytest_asyncio
 from tgmount.tgclient.message_source_types import (
     MessageSourceSubscribableProto,
 )
-from tgmount.tgclient.message_source_simple import (
-    MessageSourceSimple,
+from tgmount.tgclient.message_source import (
+    MessageSource,
 )
 
 from tgmount.tgmount.types import Set
@@ -38,7 +38,7 @@ class EventsListener:
 
 @pytest.mark.asyncio
 async def test_simple_source():
-    source = MessageSourceSimple[int]()
+    source = MessageSource[int]()
 
     async with EventsListener(source) as listener:
         await source.add_messages([1, 2, 3, 4])
@@ -69,7 +69,7 @@ async def test_simple_source():
 
 @pytest.mark.asyncio
 async def test_simple_source_2():
-    source = MessageSourceSimple[int]()
+    source = MessageSource[int]()
 
     async with EventsListener(source) as listener:
         await source.set_messages(Set({1, 2, 3, 4}))
@@ -79,7 +79,7 @@ async def test_simple_source_2():
 
 @pytest.mark.asyncio
 async def test_simple_source_3():
-    source = MessageSourceSimple[int]()
+    source = MessageSource[int]()
 
     source.add_filter(lambda n: n % 2 == 0)
 
@@ -90,7 +90,7 @@ async def test_simple_source_3():
 
 @pytest.mark.asyncio
 async def test_simple_source_4():
-    source = MessageSourceSimple[int]()
+    source = MessageSource[int]()
 
     source.add_filter(lambda n: n % 2 == 0)
 

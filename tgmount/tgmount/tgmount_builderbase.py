@@ -1,8 +1,8 @@
 import abc
 from typing import Type
 
-from tgmount import cache, config, tgclient, tglog
-from tgmount.tgclient.telegram_message_source2 import (
+from tgmount import cache, config, tgclient
+from tgmount.tgclient.telegram_message_source import (
     TelegramEventsDispatcher,
     TelegramMessagesFetcher,
 )
@@ -20,15 +20,16 @@ from .providers.provider_sources import SourcesProvider
 
 from .tgmount_types import TgmountResources
 from .tgmountbase import TgmountBase
+from .logger import logger as _logger
 
 
 class TgmountBuilderBase(abc.ABC):
     """Construct TgmountBase from a config"""
 
-    logger = tglog.getLogger(f"TgmountBuilderBase()")
+    logger = _logger.getChild(f"TgmountBuilderBase")
 
     TelegramClient: Type[tgclient.client_types.TgmountTelegramClientReaderProto]
-    MessageSource: Type[tgclient.MessageSourceSimple]
+    MessageSource: Type[tgclient.MessageSource]
     FilesSource: Type[tgclient.TelegramFilesSource]
     FileFactory: Type[FileFactoryDefault]
     FilesSourceCaching: Type[cache.FilesSourceCaching]

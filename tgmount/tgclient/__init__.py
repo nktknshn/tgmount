@@ -3,7 +3,7 @@ from .client import TgmountTelegramClient
 from .files_source import TelegramFilesSource
 
 # from .telegram_message_source import TelegramMessageSource
-from .message_source_simple import MessageSourceSimple
+from .message_source import MessageSource
 from .message_source_types import MessageSourceProto, MessageSourceSubscribableProto
 from .search.search import TelegramSearch
 from .types import (
@@ -12,3 +12,4 @@ from .types import (
     InputPhotoFileLocation,
     TypeInputFileLocation,
 )
+from .logger import logger

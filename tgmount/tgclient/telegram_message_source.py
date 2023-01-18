@@ -1,24 +1,13 @@
-from typing import Mapping, Optional
-
 from telethon import events
-from telethon.tl.custom import Message
 
-from tgmount import tglog, config
-from tgmount.tgclient.client_types import (
-    TgmountTelegramClientEventProto,
-    TgmountTelegramClientReaderProto,
-    TgmountTelegramClientGetMessagesProto,
-)
-from tgmount.tgclient.message_source_types import (
-    MessageSourceSubscribableProto,
-    Subscribable,
-    SubscribableProto,
-)
-from tgmount.util import none_fallback
+from tgmount import config, tglog
+from tgmount.tgclient.client_types import TgmountTelegramClientGetMessagesProto
+from tgmount.tgclient.message_source_types import MessageSourceSubscribableProto
 from tgmount.tgmount.types import Set
 
-from .message_source_simple import MessageSourceSimple
-from tgmount.vfs.util import MyLock
+from .message_source import MessageSource
+
+from .logger import logger as _logger
 
 
 class MessagesDisptacher:
@@ -34,7 +23,7 @@ class MessagesDisptacher:
         pass
 
 
-ChatId = str | int
+EntityId = str | int
 
 
 class TelegramEventsDispatcher:
@@ -46,14 +35,14 @@ class TelegramEventsDispatcher:
     Use `resume` method to pass the enqued events to message sources
     """
 
-    logger = tglog.getLogger("TelegramEventsDispatcher")
+    logger = _logger.getChild("TelegramEventsDispatcher")
 
-    def __init__(self, client: TgmountTelegramClientEventProto) -> None:
-        self._client = client
-        self._sources: dict[ChatId, MessageSourceSimple] = {}
+    def __init__(self) -> None:
+        # self._client = client
+        self._sources: dict[EntityId, MessageSource] = {}
 
         self._sources_events_queue: dict[
-            ChatId, list[events.NewMessage.Event | events.MessageDeleted.Event]
+            EntityId, list[events.NewMessage.Event | events.MessageDeleted.Event]
         ] = {}
 
         self._paused = True
@@ -64,30 +53,38 @@ class TelegramEventsDispatcher:
 
     def connect(
         self,
-        chat_id: ChatId,
-        source: MessageSourceSimple,
+        entity_id: EntityId,
+        source: MessageSource,
     ):
-        """events from `chat_id` will be turned into `MessageSourceSimple` methods calls"""
-        self._sources[chat_id] = source
+        """events from `entity_id` will be turned into `MessageSourceSimple` methods calls"""
 
-        self._client.subscribe_new_messages(
-            lambda ev: self._on_new_message(chat_id, ev), chats=chat_id
-        )
+        self.logger.debug(f"connect({entity_id})")
+        self._sources[entity_id] = source
 
-        self._client.subscribe_removed_messages(
-            lambda ev: self._on_delete_message(chat_id, ev), chats=chat_id
-        )
+    async def process_new_message_event(self, chat_id, ev):
+        await self._on_new_message(chat_id, ev)
+
+    async def process_delete_message_event(self, chat_id, ev):
+        await self._on_delete_message(chat_id, ev)
+
+    def _get_total(self):
+        total = {}
+        for k, v in self._sources_events_queue.items():
+            total[k] = len(v)
+        return total
 
     async def _enqueue_event(
         self,
-        chat_id: ChatId,
+        chat_id: EntityId,
         event: events.NewMessage.Event | events.MessageDeleted.Event,
     ):
+        self.logger.info(f"_enqueue_event: {event}. Total events: {self._get_total()}")
+
         q = self._sources_events_queue.get(chat_id, [])
         q.append(event)
         self._sources_events_queue[chat_id] = q
 
-    async def _on_new_message(self, chat_id: ChatId, event: events.NewMessage.Event):
+    async def _on_new_message(self, chat_id: EntityId, event: events.NewMessage.Event):
         self.logger.info(f"New message: {event.message}")
 
         if self.is_paused:
@@ -103,9 +100,9 @@ class TelegramEventsDispatcher:
         await source.add_messages([event.message])
 
     async def _on_delete_message(
-        self, chat_id: ChatId, event: events.MessageDeleted.Event
+        self, chat_id: EntityId, event: events.MessageDeleted.Event
     ):
-        self.logger.info(f"Removed messages:{event.deleted_ids}")
+        self.logger.info(f"Removed messages: {event.deleted_ids} from {chat_id}")
 
         if self.is_paused:
             await self._enqueue_event(chat_id, event)
@@ -114,7 +111,7 @@ class TelegramEventsDispatcher:
         source = self._sources.get(chat_id)
 
         if source is None:
-            self.logger.error(f"_on_new_message: Missing {chat_id}")
+            self.logger.error(f"_on_delete_message: Missing {chat_id}")
             return
 
         _msgs = []
@@ -138,9 +135,11 @@ class TelegramEventsDispatcher:
     async def resume(self):
         """Dispatches the accumulated events to sources"""
         self._paused = False
-        self.logger.info(f"resume")
+        self.logger.info(f"resume(). Total enqued: {self._get_total()}")
+
         for chat_id, q in self._sources_events_queue.items():
-            self.logger.info(f"resume {chat_id}, {len(q)} events")
+            self.logger.debug(f"Resume {chat_id}, {len(q)} events")
+
             for ev in q:
                 if isinstance(ev, events.NewMessage.Event):
                     await self._on_new_message(chat_id, ev)

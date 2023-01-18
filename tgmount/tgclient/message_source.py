@@ -1,6 +1,5 @@
 from typing import Callable, Generic, Iterable, Optional, TypeVar
 
-from tgmount import tglog
 from tgmount.tgmount.types import Set
 from tgmount.util import none_fallback, sets_difference
 
@@ -8,10 +7,12 @@ from .message_source_types import MessageSourceSubscribableProto, Subscribable
 
 M = TypeVar("M")
 
-MessageSourceSimpleFilter = Callable[[M], bool]
+MessageSourceFilter = Callable[[M], bool]
+
+from .logger import logger as _logger
 
 
-class MessageSourceSimple(MessageSourceSubscribableProto, Generic[M]):
+class MessageSource(MessageSourceSubscribableProto, Generic[M]):
     """
 
     Generic storage for a set of messages. It's a proxy between telegram client and its users. It gets updated with methods and can be subscribed for new and for removed messages.
@@ -25,7 +26,7 @@ class MessageSourceSimple(MessageSourceSubscribableProto, Generic[M]):
     `filters` property is a list of predicates that are applied to the incoming sets of messages. To add a filter use `add_filter`
     """
 
-    logger = tglog.getLogger("MessageSourceSimple")
+    logger = _logger.getChild("MessageSourceSimple")
 
     def __repr__(self) -> str:
         return f"MessageSourceSimple({self.tag})"
@@ -36,7 +37,7 @@ class MessageSourceSimple(MessageSourceSubscribableProto, Generic[M]):
         self._logger = self.logger.getChild(f"{self.tag}")
 
         self._messages: Optional[Set[M]] = messages
-        self._filters: list[MessageSourceSimpleFilter[M]] = []
+        self._filters: list[MessageSourceFilter[M]] = []
 
         self.event_new_messages: Subscribable = Subscribable()
         self.event_removed_messages: Subscribable = Subscribable()

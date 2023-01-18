@@ -1,7 +1,7 @@
 from typing import Mapping
 from telethon.tl.custom import Message
 
-from tgmount import vfs, tglog
+from tgmount import vfs
 from tgmount.tgmount.error import TgmountError
 from tgmount.tgmount.types import MessagesSet, Set
 from tgmount.tgmount.vfs_tree import VfsTreeDir
@@ -11,10 +11,11 @@ from tgmount.tgmount.vfs_tree_producer_types import (
     VfsTreeProducerProto,
 )
 from tgmount.util import measure_time
+from .logger import logger as _logger
 
 
 class VfsTreeProducerPlainDir(VfsTreeProducerProto):
-    logger = tglog.getLogger(f"VfsTreeProducerPlainDir")
+    logger = _logger.getChild(f"VfsTreeProducerPlainDir")
 
     def __init__(
         self,

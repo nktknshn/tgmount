@@ -66,11 +66,7 @@ async def test_fs1(mnt_dir, caplog):
         "ev0": ctx.mgr.Event(),
     }
 
-    for ctx in spawn_fs_ops(
-        main1,
-        get_props,
-        mnt_dir=mnt_dir,
-    ):
+    for ctx in spawn_fs_ops(main1, get_props, mnt_dir=mnt_dir, min_tasks=10):
         s = os.stat(ctx.tmpdir)
 
         print(f"ino={s.st_ino}")
@@ -169,6 +165,7 @@ async def test_fs2(mnt_dir, caplog):
             "ev2": ctx.mgr.Event(),
         },
         mnt_dir=mnt_dir,
+        min_tasks=10,
     ):
         for a in os.walk(mnt_dir):
             pass

@@ -1,16 +1,9 @@
-from tgmount import vfs, tglog
-from ..vfs_tree import VfsTreeDir
-from ..vfs_tree_types import (
-    TreeEventRemovedDirs,
-    TreeEventNewDirs,
-    TreeEventType,
-)
-from ..vfs_tree_wrapper_types import VfsTreeWrapperProto
-
-logger = tglog.getLogger("VfsStructureProducer")
-logger.setLevel(tglog.TRACE)
-
 from tgmount import vfs
+
+from ..vfs_tree import VfsTreeDir
+from ..vfs_tree_types import TreeEventNewDirs, TreeEventRemovedDirs, TreeEventType
+from ..vfs_tree_wrapper_types import VfsTreeWrapperProto
+from .logger import logger as _logger
 
 
 async def filter_empty(item: vfs.DirContentItem):
@@ -27,7 +20,7 @@ def remove_empty_dirs_content(
 
 
 class WrapperEmpty(VfsTreeWrapperProto):
-    logger = tglog.getLogger("WrapperEmpty")
+    logger = _logger.getChild("WrapperEmpty")
 
     @classmethod
     def from_config(cls, arg, sub_dir):

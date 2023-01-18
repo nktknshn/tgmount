@@ -281,10 +281,8 @@ async def test_producer_by_sender_performance(
     source1 = ctx.source1
     files = fixtures.files
 
-    # tgmount.fs.FileSystemOperations.logger.setLevel(logging.DEBUG)
-    ctx.debug = logging.INFO
-
-    logging.root.setLevel(logging.INFO)
+    tgmount.fs.logger.setLevel(logging.DEBUG)
+    ctx.debug = logging.DEBUG
 
     async def test_update():
         _iter = iter(senders.keys())

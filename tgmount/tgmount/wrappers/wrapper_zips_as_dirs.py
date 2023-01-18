@@ -1,37 +1,41 @@
 from dataclasses import dataclass, field
 from typing import Callable, Mapping
 from zipfile import BadZipFile
-from tgmount import vfs, tglog, zip as z
+
+from tgmount import vfs
+from tgmount import zip as z
+
 from ..vfs_tree import VfsTreeDir
 from ..vfs_tree_types import (
+    TreeEventNewDirs,
     TreeEventNewItems,
     TreeEventRemovedDirs,
-    TreeEventNewDirs,
     TreeEventRemovedItems,
     TreeEventType,
 )
-
 from ..vfs_tree_wrapper_types import VfsTreeWrapperProto
-
-logger = tglog.getLogger("VfsStructureProducer")
-logger.setLevel(tglog.TRACE)
+from .logger import logger as _logger
 
 
 @dataclass
 class WrapperZipsAsDirsProps:
-    fix_id3v1: bool = True
-    """ Many media players tries to read id3v1 tag which is located in the end of the file. Since zipfile module doesn't support seeking this leads to  """
+    fix_id3v1: bool
+    """ Many media players try to read id3v1 tag which is located in the end of the file. Since `zipfile` module doesn't support seeking this leads to fetching whole file to just start playing it"""
 
-    hide_zip_files: bool = True
-    skip_single_root_subfolder: bool = True
-    skip_single_root_subfolder_exclude_from_root: frozenset[str] = frozenset(
-        {"__MACOSX"}
-    )
-    dir_name_mapper: Callable[[vfs.FileLike], str] = lambda item: item.name
+    hide_zip_files: bool
+    skip_single_root_subfolder: bool
+    skip_single_root_subfolder_exclude_from_root: frozenset[str]
+    dir_name_mapper: Callable[[vfs.FileLike], str]
 
     @staticmethod
     def from_config(config: Mapping):
-        return WrapperZipsAsDirsProps()
+        return WrapperZipsAsDirsProps(
+            hide_zip_files=config.get("hide_zip_files", True),
+            fix_id3v1=config.get("fix_id3v1", True),
+            skip_single_root_subfolder=config.get("skip_single_root_subfolder", True),
+            skip_single_root_subfolder_exclude_from_root=frozenset({"__MACOSX"}),
+            dir_name_mapper=lambda item: item.name,
+        )
 
 
 class WrapperZipsAsDirs(VfsTreeWrapperProto):
@@ -40,22 +44,15 @@ class WrapperZipsAsDirs(VfsTreeWrapperProto):
 
     Turns contained zip files into directories.
 
-
-
     """
 
-    logger = tglog.getLogger(f"WrapperZipsAsDirs")
+    logger = _logger.getChild(f"WrapperZipsAsDirs")
 
     @classmethod
     def from_config(cls, arg: Mapping, sub_dir: VfsTreeDir):
         return WrapperZipsAsDirs(
             sub_dir,
-            WrapperZipsAsDirsProps(
-                fix_id3v1=arg.get(
-                    "fix_id3v1",
-                    True,
-                )
-            ),
+            WrapperZipsAsDirsProps.from_config(arg),
         )
 
     def __init__(
@@ -185,10 +182,6 @@ class WrapperZipsAsDirs(VfsTreeWrapperProto):
                     zip_file_like.content, zip_tree
                 )
             )
-
-        # dc = await self._dir_content_zip_factory.create_dir_content_from_ziptree(
-        #     zip_file_like.content, zip_tree
-        # )
 
         dirlike = self._zip_to_dirlike[zip_file_like.name] = vfs.DirLike(
             zip_dir_name, zip_dir_content, extra=zip_file_like.extra

@@ -3,14 +3,14 @@ import os
 from typing import Iterable, Mapping, TypeVar
 
 from telethon.tl.custom import Message
-from tgmount import tglog
-from tgmount.tgclient.message_source_simple import MessageSourceSimple
+
+from tgmount.tgclient.message_source import MessageSource
 from tgmount.tgclient.message_types import MessageProto
+from tgmount.tgmount.error import TgmountError
 from tgmount.tgmount.producers.producer_plain import VfsTreeProducerPlainDir
 from tgmount.tgmount.root_config_types import RootConfigWalkingContext
 from tgmount.tgmount.tgmount_types import TgmountResources
-from tgmount.tgmount.types import Set, MessagesSet
-from tgmount.tgmount.error import TgmountError
+from tgmount.tgmount.types import MessagesSet, Set
 from tgmount.tgmount.vfs_tree_producer_types import VfsTreeProducerConfig
 from tgmount.util import sanitize_string_for_path
 from tgmount.util.col import sets_difference
@@ -19,6 +19,7 @@ from tgmount.util.timer import Timer
 
 from ..vfs_tree import VfsTreeDir
 from ..vfs_tree_producer import VfsTreeProducer
+from .logger import logger as _logger
 
 TM = TypeVar("TM", bound=Message)
 
@@ -31,11 +32,11 @@ class VfsTreeProducerGrouperBase(abc.ABC):
     defined by `dir_structure`.
     """
 
-    logger = tglog.getLogger("VfsTreeProducerGrouperBase")
+    logger = _logger.getChild("VfsTreeProducerGrouperBase")
 
     DEFAULT_ROOT_CONFIG: Mapping = {"filter": "All"}
     VfsTreeProducer = VfsTreeProducer
-    MessageSource = MessageSourceSimple[MessageProto]
+    MessageSource = MessageSource[MessageProto]
 
     def __init__(
         self,

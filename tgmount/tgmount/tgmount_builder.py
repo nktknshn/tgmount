@@ -36,7 +36,7 @@ class TgmountBuilder(TgmountBuilderBase):
     TelegramClient = tgclient.TgmountTelegramClient
     """ Class used for telegram client """
 
-    MessageSource = tgclient.MessageSourceSimple
+    MessageSource = tgclient.MessageSource
     """ class used for a message source """
 
     MessageSourceProvider = SourcesProvider

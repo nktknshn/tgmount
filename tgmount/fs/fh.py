@@ -1,11 +1,13 @@
 from typing import Dict, Generic, Tuple, Any, Optional, TypeVar
-
+from .logger import logger as _logger
 
 T = TypeVar("T")
 
 
 class FileSystemHandles(Generic[T]):
     """Stores mapping from fh to a tuple of item and handle object"""
+
+    logger = _logger.getChild("FileSystemHandles")
 
     LAST_FH = 10
 
@@ -25,6 +27,8 @@ class FileSystemHandles(Generic[T]):
         return self._fh_by_item.get(item)
 
     def open_fh(self, item: T, data=None):
+        self.logger.info(f"open_fh({item})")
+
         fh = self._new_fh()
         self._fhs[fh] = item, data
         fhs = self._fh_by_item.get(item, [])
@@ -34,6 +38,8 @@ class FileSystemHandles(Generic[T]):
         return fh
 
     def get_by_fh(self, fh: int) -> Tuple[Optional[T], Optional[Any]]:
+        """Given a file handle returns a tuple of item and related data. If no item found returns (None, None)"""
+
         item = self._fhs.get(fh)
 
         if item is None:
@@ -42,6 +48,8 @@ class FileSystemHandles(Generic[T]):
         return item
 
     def release_fh(self, fh: int):
+        self.logger.info(f"release_fh({fh})")
+
         if fh in self._fhs:
             item, handle = self._fhs[fh]
             del self._fhs[fh]

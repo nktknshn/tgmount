@@ -1,7 +1,7 @@
 from collections.abc import Mapping, Sequence
 from typing import Any, Union
 
-from tgmount import tglog, vfs
+from tgmount import vfs
 from tgmount.tgclient.message_source_types import Subscribable
 from tgmount.tgmount.error import TgmountError
 from tgmount.tgmount.vfs_tree_types import (
@@ -14,6 +14,7 @@ from tgmount.tgmount.vfs_tree_types import (
 )
 from tgmount.tgmount.vfs_tree_wrapper_types import VfsTreeWrapperProto
 from tgmount.util import none_fallback
+from .logger import logger as _logger
 
 
 class VfsTreeError(TgmountError):
@@ -251,13 +252,14 @@ class VfsTree(Subscribable, VfsTreeProto):
     Provides interface for accessing dirs and their contents by their global paths.
     """
 
+    logger = _logger.getChild(f"VfsTree")
+
     VfsTreeDir = VfsTreeDir
     VfsTreeDirContent = VfsTreeDirContent
 
     def __init__(self) -> None:
         Subscribable.__init__(self)
 
-        self.logger = tglog.getLogger(f"VfsTree")
         self._dirs: dict[str, VfsTreeDir] = {}
         self._path_dy_dir: dict[VfsTreeDir, str] = {}
         self._subdirs = SubdirsRegistry()

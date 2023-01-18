@@ -63,11 +63,14 @@ class ByTypes(FilterAllMessagesProto):
         )
 
 
-from tgmount import tglog
+from .logger import logger as _logger
+
+logger = _logger.getChild("filters")
 
 
 class OnlyUniqueDocs(FilterAllMessagesProto):
-    logger = tglog.getLogger("OnlyUniqueDocs()")
+    logger = logger.getChild("OnlyUniqueDocs")
+
     PICKERS = {
         "last": lambda ms: ms[-1],
         "first": lambda ms: ms[0],
@@ -107,7 +110,7 @@ class OnlyUniqueDocs(FilterAllMessagesProto):
 
 
 class ByExtension(FilterAllMessagesProto):
-    logger = tglog.getLogger("ByExtension()")
+    logger = logger.getChild("ByExtension")
 
     def __init__(self, ext: str) -> None:
         self.ext = ext

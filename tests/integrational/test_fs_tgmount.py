@@ -4,22 +4,11 @@ import os
 import threading
 from typing import Iterable, Mapping, TypedDict
 
-import aiofiles as af
-import pyfuse3
 import pytest
-import pytest_asyncio
-import telethon
-from telethon.client.updates import events
 import tgmount.config as config
-import tgmount.tgclient as tg
-from tgmount.main.util import read_tgapp_api
 from tgmount import tglog
-from tgmount.tgmount.builder import TgmountBuilder
-from tgmount.util.asyn import print_tasks
 
-from ..helpers.asyncio import task_from_blocking, wait_ev, wait_ev_async
-from ..helpers.fixtures import mnt_dir, tgapp_api, tgclient_second
-from ..helpers.spawn2 import MountContext, spawn_fs_ops
+from ..helpers.spawn2 import spawn_fs_ops
 
 from .helpers import *
 
@@ -43,7 +32,7 @@ async def main_test1(props: Props, on_event):
     async def on_new_message(event):
         print(event)
 
-    init_logging(props["debug"])
+    tglog.init_logging(props["debug"])
 
     test_logger = tglog.getLogger("main_test1")
 

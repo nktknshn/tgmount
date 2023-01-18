@@ -1,16 +1,12 @@
 import os
-from collections.abc import Callable
 from dataclasses import dataclass, field
 
 import pyfuse3
-from tgmount.util.col import map_keys
 
 import tgmount.vfs as vfs
-from tgmount import tglog
-from tgmount.util import measure_time, sets_difference
-from tgmount.vfs.types.dir import DirLike
+from tgmount.util.col import map_keys
 
-from .inode2 import InodesRegistry, RegistryItem
+from .inode import InodesRegistry, RegistryItem
 from .operations import FileSystemOperations
 
 

@@ -1,19 +1,20 @@
-from tgmount import vfs, tglog
+from tgmount import tglog, vfs
 from tgmount.util import none_fallback
 from tgmount.util.timer import Timer
-from .vfs_tree_producer_types import VfsDirConfig
 
+from .logger import logger as _logger
 from .root_config_reader import TgmountConfigReader
 from .root_config_types import RootConfigWalkingContext
 from .tgmount_types import TgmountResources
 from .types import TgmountRootSource
-from .vfs_tree import VfsTreeDir, VfsTree
+from .vfs_tree import VfsTree, VfsTreeDir
+from .vfs_tree_producer_types import VfsDirConfig
 
 
 class VfsTreeProducer:
     """Class that using `TgmountResources` and `VfsStructureConfig` produces content into `VfsTreeDir` or `VfsTree`"""
 
-    logger = tglog.getLogger(f"VfsTreeProducer()")
+    logger = _logger.getChild(f"VfsTreeProducer")
 
     def __init__(self, resources: TgmountResources) -> None:
         self._resources = resources

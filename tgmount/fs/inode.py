@@ -13,6 +13,7 @@ import pyfuse3
 
 from tgmount import tglog
 from .util import bytes_to_str, str_to_bytes
+from .logger import logger as _logger
 
 T = TypeVar("T")
 
@@ -43,10 +44,9 @@ InodesRegistryItem = RegistryRoot[T] | RegistryItem[T]
 
 class InodesRegistry(Generic[T]):
     ROOT_INODE: int = pyfuse3.ROOT_INODE
+    logger = _logger.getChild(f"InodesRegistry")
 
     def __init__(self, root_item: T, last_inode=None):
-
-        self._logger = tglog.getLogger(f"InodesRegistry()")
 
         self._last_inode = (
             last_inode if last_inode is not None else InodesRegistry.ROOT_INODE
@@ -142,7 +142,7 @@ class InodesRegistry(Generic[T]):
         item = self.get_item_by_inode(inode)
 
         if item is None:
-            self._logger.error(
+            self.logger.error(
                 f"remove_item_with_children: item with inode={inode} was not found."
             )
             return None

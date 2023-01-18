@@ -12,7 +12,7 @@ import tgmount.vfs as vfs
 import tgmount.zip as z
 import tgmount.fs as fs
 
-from tgmount.logging import init_logging
+from tgmount.tglog import init_logging
 from tgmount.tgclient.files_source import TelegramFilesSource
 from tgmount.vfs import DirContentSourceMapping
 from tgmount.tgclient import guards
@@ -39,7 +39,7 @@ async def messages_to_files_tree(
                 source.file_content(msg),
             )
             for msg in messages
-            if msg.file.name is not None and guards.is_downloadable(msg)
+            if msg.file.name is not None and guards.MessageDownloadable.guard(msg)
         ]
     )
 
@@ -70,7 +70,7 @@ async def test_fs_tg_test1(mnt_dir, caplog):
     f = await af.open("tests/fixtures/bandcamp1.zip", "rb")
     bc1 = await f.read1(amount)
 
-    for m in spawn_fs_ops(main_test1, {"debug": False}, mnt_dir=mnt_dir):
+    for m in spawn_fs_ops(main_test1, {"debug": False}, mnt_dir=mnt_dir, min_tasks=10):
 
         subfiles = os.listdir(m.path("tmtc/"))
         assert len(subfiles) == 3
@@ -123,52 +123,3 @@ class TackingSource(TelegramFilesSource):
         print(f"offset={offset} limit={limit}")
         print(f"self.total_asked = {self.total_asked}")
         return await super().read(message, offset, limit)
-
-
-# async def main_test2(props, _):
-#     init_logging(props["debug"])
-
-#     client, storage = await get_client_with_source(Source=TackingSource)
-
-#     messages = await client.get_messages_typed(
-#         "tgmounttestingchannel",
-#         limit=3,
-#         reverse=True,
-#         filter=InputMessagesFilterDocument,
-#     )
-
-#     return vfs.root(
-#         z.zips_as_dirs(
-#             vfs.dir_from_tree({"tmtc": await messages_to_files_tree(storage, messages)})
-#         )
-#     )
-
-
-# @pytest.mark.asyncio
-# async def test_fs_tg_test2(mnt_dir, caplog):
-
-#     caplog.set_level(logging.DEBUG)
-
-#     amount = 512 * 1024
-
-#     f0 = await af.open("tests/fixtures/1/Forlate.mp3", "rb")
-
-#     await f0.seek(4376046 // 2)
-#     bs0 = await f0.read(1024 * 256)
-
-#     for m in spawn_vfs_root(main_test2, False, mnt_dir=mnt_dir):
-
-#         with open(
-#             m.path(
-#                 "tmtc/linux_zip_stored1.zip/Forlate.mp3",
-#             ),
-#             "rb",
-#         ) as f:
-#             print(f"pre seek")
-#             f.seek(4376046 // 2)
-#             print(f"pre read")
-#             bs = f.read(1024 * 256)
-
-#             print(f"bs = {len(bs)} bytes")
-
-#             assert bs0 == bs

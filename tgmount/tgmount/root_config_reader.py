@@ -2,7 +2,7 @@ import logging
 import os
 from typing import TypeVar, Generator
 
-from tgmount import config, tglog, vfs
+from tgmount import config, vfs
 from tgmount.util import none_fallback
 from .root_config_reader_props import RootProducerPropsReader
 from .root_config_types import RootConfigWalkingContext
@@ -10,6 +10,7 @@ from .tgmount_types import TgmountResources
 from .types import TgmountRootSource
 from .vfs_tree_producer_types import VfsTreeProducerConfig, VfsDirConfig
 from dataclasses import dataclass
+from .logger import logger as _logger
 
 T = TypeVar("T")
 
@@ -21,7 +22,8 @@ class DirProps:
 
 
 class TgmountConfigReader(RootProducerPropsReader):
-    logger = tglog.getLogger("TgmountConfigReader()")
+    logger = _logger.getChild("TgmountConfigReader")
+
     logger.setLevel(logging.ERROR)
 
     DEFAULT_PRODUCER_NAME = "PlainDir"

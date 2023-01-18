@@ -1,4 +1,4 @@
 from tgmount import tglog
 
-# logger = tglog.getLogger("tgvfs-ops")
+logger = tglog.getLogger("fs")
 # logger_update = tglog.getLogger("tgvfs-ops-update")

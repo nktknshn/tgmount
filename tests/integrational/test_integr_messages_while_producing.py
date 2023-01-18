@@ -5,7 +5,6 @@ import pytest_asyncio
 import tgmount
 from tests.integrational.helpers import concurrently, concurrentlys, create_config
 from tests.integrational.integrational_helpers import ORGRANIZED2
-from tgmount.tgmount.vfs_tree_message_source import SourcesProviderAccumulating
 
 from .fixtures import Fixtures, _Context, fixtures
 from .fixtures import Context, FixtureFiles, files, mnt_dir
@@ -45,8 +44,6 @@ async def test_message_while_producing(
     files = fixtures.files
 
     tgm = await ctx.create_tgmount()
-
-    SourcesProviderAccumulating.logger.setLevel(logging.INFO)
 
     await concurrentlys(
         tgm.create_fs(),

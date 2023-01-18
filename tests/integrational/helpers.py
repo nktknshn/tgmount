@@ -68,7 +68,7 @@ async def concurrently(coro1: Coroutine, coro2: Coroutine):
     done, prending = await asyncio.wait([t1, t2], return_when=asyncio.ALL_COMPLETED)
 
     if len(done) < 2:
-        pytest.fail(f"some of the coros threw an exception: {done.pop().exception()}")
+        pytest.fail(f"Some of the coros threw an exception: {done.pop().exception()}")
 
     [res1, res2] = done
 

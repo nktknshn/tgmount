@@ -106,6 +106,7 @@ class _Context(Context):
             )
 
     async def send_text_messages(self, count: int, source=None):
+        """For every created sender send `count` text messages. By default source1 used as source"""
         source = none_fallback(source, self.source1)
 
         for sender_name, messages in self.senders.items():

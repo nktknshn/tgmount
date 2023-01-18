@@ -128,7 +128,7 @@ class MockedFile(FileProto):
 
 class MockedMessage(MessageProto):
     def __repr__(self) -> str:
-        return f"MockedMessage({self.id}, file={map_none(self.file, lambda f: f.name)}, sender={self.sender}, chat_id={self.chat_id})"
+        return f"MockedMessage({self.id}, file={map_none(self.file, lambda f: f.name)}, sender={self.sender}, chat_id={self.chat_id}, message='{self.message}')"
 
     def __init__(
         self,

@@ -3,7 +3,6 @@ from typing import Iterable, Mapping, Set
 
 import pathvalidate
 import telethon
-from tgmount import tglog
 from tgmount.tgclient.guards import MessageForwarded
 from tgmount.tgmount.error import TgmountError
 from tgmount.tgmount.vfs_tree_producer_types import (

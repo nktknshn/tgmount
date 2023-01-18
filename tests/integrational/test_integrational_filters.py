@@ -1,13 +1,7 @@
-import logging
-import aiofiles
-
 import pytest
-import tgmount
 from tests.helpers.mocked.mocked_storage import StorageEntity
-from tests.integrational.helpers import create_config, mdict
+from tests.integrational.helpers import create_config
 from .fixtures import *
-
-from tgmount.tgmount.filters import ByExtension, OnlyUniqueDocs
 
 
 @pytest.mark.asyncio

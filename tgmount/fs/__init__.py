@@ -2,6 +2,8 @@ from .operations import FileSystemOperations
 from .update import FileSystemOperationsUpdatable, FileSystemOperationsUpdate
 
 from .util import exception_handler
+from .logger import logger
+
 
 # @dataclass
 # class FileSystemItem:

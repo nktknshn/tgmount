@@ -1,3 +1,3 @@
-import logging
+from tgmount import tglog
 
-logger = logging.getLogger("tgclient")
+logger = tglog.getLogger("tgclient")
