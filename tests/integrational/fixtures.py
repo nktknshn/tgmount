@@ -1,6 +1,9 @@
+import os
 from typing import Any
 from attr import dataclass
 import pytest
+
+from tgmount import vfs, zip as z
 from .integrational_test import TgmountIntegrationContext
 from ..helpers.fixtures_common import mnt_dir
 
@@ -20,6 +23,30 @@ def source2(ctx):
     return ctx.storage.get_entity("source2")
 
 
+class FixtureFile:
+    def __init__(self, path: str) -> None:
+        self.path = path
+
+    @property
+    def file_content(self):
+        return vfs.file_content_from_file(self.path)
+
+    async def zip_file(self):
+        return await z.zip_dir_factory.zipfile_factory(self.file_content)
+
+    @property
+    def basename(self):
+        return os.path.basename(self.path)
+
+    @property
+    def extension(self):
+        return os.path.splitext(self.path)[1]
+
+    @property
+    def name(self):
+        return os.path.splitext(self.path)[0]
+
+
 @dataclass
 class FixtureFiles:
     picture0: str
@@ -33,8 +60,8 @@ class FixtureFiles:
     music2: str
     music_long: str
 
-    zip_debrecen: str
-    zip_bandcamp: str
+    zip_debrecen: FixtureFile
+    zip_bandcamp: FixtureFile
 
     video0: str
     video1: str
@@ -52,8 +79,8 @@ def files():
         music1="tests/fixtures/files/music/suffering_hour.mp3",
         music2="tests/fixtures/files/music/dermovyj-raj.mp3",
         music_long="tests/fixtures/files/music/Forlate.mp3",
-        zip_debrecen="tests/fixtures/files/zips/2010_debrecen.zip",
-        zip_bandcamp="tests/fixtures/files/zips/bandcamp1.zip",
+        zip_debrecen=FixtureFile("tests/fixtures/files/zips/2010_debrecen.zip"),
+        zip_bandcamp=FixtureFile("tests/fixtures/files/zips/bandcamp1.zip"),
         video0="tests/fixtures/files/videos/000bbadb-b42d-48ac-816f-11c8756487b5.mp4",
         video1="tests/fixtures/files/videos/video_2022-10-13_15-36-27.mp4",
     )

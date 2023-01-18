@@ -23,7 +23,6 @@ from ..helpers.spawn import spawn_fs_ops
 
 Message = telethon.tl.custom.Message
 Document = telethon.types.Document
-Client = tg.TgmountTelegramClient
 
 InputMessagesFilterDocument = telethon.tl.types.InputMessagesFilterDocument
 
@@ -104,7 +103,7 @@ async def test_fs_tg_test1(mnt_dir, caplog):
         assert bc1 == r2
 
 
-class TackingSource(TelegramFilesSource):
+class TrackingSource(TelegramFilesSource):
     def __init__(
         self, client: tg.TgmountTelegramClient, request_size: int = 128 * 1024
     ) -> None:

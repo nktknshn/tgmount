@@ -18,6 +18,7 @@ from .dir_util import (
     dir_content_read,
     dir_content_extend,
     dir_content_read_dict,
+    dir_is_empty,
 )
 from .file import (
     FileContent,

@@ -43,6 +43,8 @@ async def test_message_while_producing(
 
     tgm = await ctx.create_tgmount()
 
+    await tgm.fetch_messages()
+
     await concurrentlys(
         tgm.create_fs(),
         ctx.client.sender(sender1).send_message(
@@ -52,3 +54,7 @@ async def test_message_while_producing(
             ctx.source2.entity_id, "Message 1 from source 2"
         ),
     )
+
+    await tgm.resume_dispatcher()
+
+    # assert

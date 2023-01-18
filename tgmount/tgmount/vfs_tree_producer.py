@@ -69,7 +69,7 @@ class VfsTreeProducer:
                 wrapper = wrapper_cls.from_config(
                     none_fallback(wrapper_arg, {}), sub_dir
                 )
-                sub_dir._wrappers.append(wrapper)
+                sub_dir.add_wrapper(wrapper)
 
         # If the directory has any producer
         if (

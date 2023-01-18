@@ -1,7 +1,13 @@
 from tgmount import vfs
 
 from ..vfs_tree import VfsTreeDir
-from ..vfs_tree_types import TreeEventNewDirs, TreeEventRemovedDirs, TreeEventType
+from ..vfs_tree_types import (
+    TreeEventNewDirs,
+    TreeEventRemovedDirs,
+    TreeEventType,
+    TreeEventRemovedItems,
+    TreeEventNewItems,
+)
 from ..vfs_tree_wrapper_types import VfsTreeWrapperProto
 from .logger import logger as _logger
 
@@ -20,6 +26,8 @@ def remove_empty_dirs_content(
 
 
 class WrapperEmpty(VfsTreeWrapperProto):
+    """Exclude empty directories from this directory"""
+
     logger = _logger.getChild("WrapperEmpty")
 
     @classmethod
@@ -28,7 +36,7 @@ class WrapperEmpty(VfsTreeWrapperProto):
 
     def __init__(self, wrapped_dir: "VfsTreeDir") -> None:
         self._wrapped_dir = wrapped_dir
-        self._wrapped_dir_subdirs: set["VfsTreeDir"] = set()
+        self._wrapped_nonempty_dir_subdirs: set["VfsTreeDir"] = set()
         self._logger = self.logger.getChild(self._wrapped_dir.path)
 
     async def wrap_dir_content(
@@ -40,36 +48,78 @@ class WrapperEmpty(VfsTreeWrapperProto):
         return set(sd.name for sd in await child.get_subdirs())
 
     async def _is_empty(self, subdir: "VfsTreeDir") -> bool:
-        sds = await subdir.get_subdirs()
-        cs = await subdir.get_dir_content_items()
-
-        return (len(sds) + len(cs)) == 0
+        # sds = await subdir.get_subdirs()
+        cs = await subdir.get_dir_content()
+        return await vfs.dir_is_empty(cs)
+        # return (len(sds) + len(cs)) == 0
 
     async def wrap_events(
         self,
-        child: "VfsTreeDir",
-        events: list[TreeEventType],
+        events: list[TreeEventType[VfsTreeDir]],
     ) -> list[TreeEventType]:
+        """We catch updates for the directory children"""
+        self._logger.debug(f"wrap_events({events})")
 
-        parent = await child.get_parent()
+        _events = []
 
-        # we ignore nested folders
-        if parent != self._wrapped_dir:
-            return events
+        for ev in events:
+            sender = ev.sender
+            sender_parent = await sender.get_parent()
 
-        self._logger.debug(f"from {child} events: {events}")
+            if sender_parent == self._wrapped_dir:
+                # for subfolder of the wrapped folder
+                is_empty = await self._is_empty(sender)
 
-        is_empty = await self._is_empty(child)
+                if sender in self._wrapped_nonempty_dir_subdirs:
+                    # if the folder used to be not empty and visible
+                    if is_empty:
+                        # remove it
+                        _events.append(
+                            TreeEventRemovedDirs(
+                                sender=self._wrapped_dir,
+                                update_path=self._wrapped_dir.path,
+                                removed_dirs=[sender.path],
+                            )
+                        )
+                        self._wrapped_nonempty_dir_subdirs.discard(sender)
+                    else:
+                        # otherwrise just pass the events further
+                        _events.append(ev)
+                else:
+                    if not is_empty:
+                        # if the folder has not been visible yet and now it is
+                        #  not empty, then show it to the file system
+                        _events.extend(
+                            [
+                                TreeEventNewDirs(
+                                    sender=self._wrapped_dir,
+                                    update_path=self._wrapped_dir.path,
+                                    new_dirs=[sender.path],
+                                ),
+                                ev,
+                            ]
+                        )
+                        self._wrapped_nonempty_dir_subdirs.add(sender)
 
-        if child in self._wrapped_dir_subdirs:
-            if is_empty:
-                events = [TreeEventRemovedDirs([child.path])]
-        else:
-            if not is_empty:
-                events = [
-                    TreeEventNewDirs([child.path]),
-                    *events,
-                ]
-                self._wrapped_dir_subdirs.add(child)
+            elif sender == self._wrapped_dir:
+                # catch new subfolder event
+                if isinstance(ev, TreeEventNewDirs):
+                    _e = TreeEventNewDirs(
+                        sender=sender,
+                        update_path=ev.update_path,
+                        new_dirs=[],
+                    )
 
-        return events
+                    # show only not empty subfolders
+                    for dpath in ev.new_dirs:
+                        d = await self._wrapped_dir.tree.get_dir(dpath)
+
+                        if not await self._is_empty(d):
+                            _e.new_dirs.append(dpath)
+                            self._wrapped_nonempty_dir_subdirs.add(d)
+                else:
+                    _events.append(ev)
+            else:
+                _events.append(ev)
+
+        return _events

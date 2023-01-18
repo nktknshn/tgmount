@@ -1,18 +1,13 @@
 import asyncio
 import copy
 import os
-import threading
-from typing import Any, AsyncGenerator, Coroutine, Mapping, TypedDict
+from typing import AsyncGenerator, Coroutine, Mapping
 
 import aiofiles
 import aiofiles.os
 import pytest
 
 from tgmount import vfs
-
-# Message = telethon.tl.custom.Message
-# Document = telethon.types.Document
-# Client = tg.TgmountTelegramClient
 
 
 async def concurrentlys(*coros: Coroutine):
@@ -40,7 +35,7 @@ async def concurrently(coro1: Coroutine, coro2: Coroutine):
     return res1.result(), res2.result()
 
 
-async_listdir = aiofiles.os.listdir
+async_listdir = aiofiles.os.listdir  # type:ignore
 
 
 async def async_walkdir(
@@ -50,7 +45,7 @@ async def async_walkdir(
     subdirs: list[str] = []
     subfiles: list[str] = []
 
-    for subitem in await aiofiles.os.listdir(path):
+    for subitem in await aiofiles.os.listdir(path):  # type:ignore
         subitem_path = os.path.join(path, subitem)
 
         if await aiofiles.os.path.isdir(subitem_path):
@@ -64,15 +59,6 @@ async def async_walkdir(
         dir_iter = async_walkdir(subdir)
         async for res in dir_iter:
             yield res
-
-
-# class MyTgmountBuilder(TgmountBuilder):
-#     def __init__(self, client_kwargs={}) -> None:
-#         super().__init__()
-#         self._client_kwargs = client_kwargs
-
-#     async def create_client(self, cfg: config.Config):
-#         return await super().create_client(cfg, **self._client_kwargs)
 
 
 class mdict:

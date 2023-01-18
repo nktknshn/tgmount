@@ -141,3 +141,7 @@ async def dir_content_read_dict(
     content: DirContentProto,
 ) -> Mapping[str, DirContentItem]:
     return {item.name: item for item in await dir_content_read(content)}
+
+
+async def dir_is_empty(content: DirContentProto) -> bool:
+    return len(await dir_content_read_dict(content)) == 0

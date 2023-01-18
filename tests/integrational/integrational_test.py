@@ -1,13 +1,12 @@
 import asyncio
 import logging
 from collections.abc import Awaitable, Callable
-from typing import Any, AsyncGenerator, Iterable, Mapping, TypedDict
+from typing import Any, AsyncGenerator, Iterable, Mapping
 
 import aiofiles
 from tests.integrational.integrational_configs import create_config
 
 import tgmount.config as config
-import tgmount.tgclient as tg
 from tests.helpers.mocked.mocked_storage import EntityId, MockedTelegramStorage
 from tests.helpers.mount import handle_mount
 from tgmount import tglog, vfs
@@ -20,6 +19,8 @@ from tgmount.util import none_fallback
 from ..helpers.fixtures_common import mnt_dir
 from ..helpers.mocked.mocked_client import MockedClientReader, MockedClientWriter
 from .helpers import async_listdir, async_walkdir
+
+from ..logger import logger as _logger
 
 
 class MockedVfsTreeProducer(VfsTreeProducer):
@@ -53,9 +54,7 @@ async def main_function(
     storage: MockedTelegramStorage,
 ):
 
-    # tglog.init_logging(debug_level=debug)
-
-    test_logger = tglog.getLogger("main_test1")
+    test_logger = _logger.getChild("intergrational")
     test_logger.setLevel(debug)
 
     # tglog.getLogger("FileSystemOperations()").setLevel(logging.ERROR)
@@ -76,9 +75,10 @@ async def main_function(
     test_logger.info("Creating FS...")
     await tgm.create_fs()
 
-    test_logger.info("Returng FS")
-
+    test_logger.info("Unpausing events dispatcher")
     await tgm.events_dispatcher.resume()
+
+    test_logger.info("Mounting FS")
 
     await mount_ops(tgm.fs, mount_dir=mnt_dir, min_tasks=10)
 

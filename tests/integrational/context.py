@@ -1,15 +1,11 @@
-from typing import Any
-from attr import dataclass
-import pytest
-from .integrational_test import TgmountIntegrationContext as Context
-from ..helpers.fixtures_common import mnt_dir
+from .integrational_test import TgmountIntegrationContext
 from ..helpers.mocked.mocked_storage import MockedSender, StorageEntity
 from tgmount.util import none_fallback
 from tgmount.tgmount.producers.producer_by_sender import VfsTreeDirBySender
 from .fixtures import FixtureFiles, Fixtures
 
 
-class Context(Context):
+class Context(TgmountIntegrationContext):
     expected_dirs: dict
     senders: dict[str, list]
     source1: StorageEntity
@@ -72,6 +68,6 @@ class Context(Context):
                 msg = await source.document(
                     text=f"Message with zip number {msg_idx} from {sender_name}",
                     sender=sender,
-                    file=files.zip_debrecen,
+                    file=files.zip_debrecen.path,
                 )
                 messages.append(msg)

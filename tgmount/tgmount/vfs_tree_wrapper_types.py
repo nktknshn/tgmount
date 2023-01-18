@@ -23,7 +23,5 @@ class VfsTreeWrapperProto:
         ...
 
     @abstractmethod
-    async def wrap_events(
-        self, child: Union["VfsTreeDir", "VfsTree"], events: list["TreeEventType"]
-    ) -> list["TreeEventType"]:
+    async def wrap_events(self, events: list["TreeEventType"]) -> list["TreeEventType"]:
         ...

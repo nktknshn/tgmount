@@ -26,6 +26,9 @@ class FileLike:
     def guard(item: Any) -> TypeGuard["FileLike"]:
         return isinstance(item, FileLike)
 
+    def __repr__(self) -> str:
+        return f"FileLike({self.name}, {self.content})"
+
 
 T = TypeVar("T")
 

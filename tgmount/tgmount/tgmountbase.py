@@ -121,9 +121,7 @@ class TgmountBase:
         async with self._update_lock:
             _events = []
 
-            async def append_events(
-                sender, events: list[TreeEventType], child: VfsTreeDir
-            ):
+            async def append_events(sender, events: list[TreeEventType]):
                 if events is None:
                     pass
 
@@ -149,9 +147,7 @@ class TgmountBase:
         async with self._update_lock:
             _tree_events = []
 
-            async def _append_events(
-                sender, events: list[TreeEventType], child: VfsTreeDir
-            ):
+            async def _append_events(sender, events: list[TreeEventType]):
                 if events is None:
                     pass
 
@@ -209,6 +205,9 @@ class TgmountBase:
         self.logger.info(f"Producing VfsTree.")
         await self._producer.produce(self._vfs_tree, self._root_config)
 
+    async def resume_dispatcher(self):
+        await self.events_dispatcher.resume()
+
     async def create_fs(self):
         """Produce VfsTree and create `FileSystemOperations`"""
 
@@ -239,19 +238,19 @@ class TgmountBase:
 
         await self._update_fs(fs_update)
 
-    async def _join_tree_events(self, events: list[TreeEventType]):
+    async def _join_tree_events(self, events: list[TreeEventType[VfsTreeDir]]):
 
         update = fs.FileSystemOperationsUpdate()
 
         for e in events:
             if isinstance(e, TreeEventRemovedItems):
-                path = e.update_path
+                path = e.sender.path
 
                 for item in e.removed_items:
                     update.removed_files.append(os.path.join(path, item.name))
 
             elif isinstance(e, TreeEventNewItems):
-                path = e.update_path
+                path = e.sender.path
 
                 for item in e.new_items:
                     if isinstance(item, vfs.FileLike):
@@ -302,3 +301,18 @@ class TgmountBase:
             min_tasks=min_tasks,
             debug=debug_fuse,
         )
+
+
+class TgmountBaseMounter:
+    def __init__(self) -> None:
+        pass
+
+    def mount(
+        self,
+        tgm: TgmountBase,
+        *,
+        mount_dir: Optional[str] = None,
+        debug_fuse=False,
+        min_tasks=10,
+    ):
+        pass

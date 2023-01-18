@@ -71,9 +71,7 @@ class WrapperZipsAsDirs(VfsTreeWrapperProto):
 
         self._props = props
 
-    async def wrap_events(
-        self, events_sender: "VfsTreeDir", events: list[TreeEventType]
-    ) -> list[TreeEventType]:
+    async def wrap_events(self, events: list[TreeEventType]) -> list[TreeEventType]:
         """
 
         Catch changes in the wrapped directory
@@ -84,15 +82,18 @@ class WrapperZipsAsDirs(VfsTreeWrapperProto):
         """
 
         # we only handle the wrapped dir ignoring nested dirs
-        if events_sender != self._wrapped_dir:
-            return events
 
         modified_events = []
 
         for e in events:
+            if e.sender != self._wrapped_dir:
+                return events
+
             # when items appear
             if isinstance(e, TreeEventNewItems):
-                _e = TreeEventNewItems(e.update_path, [])
+                _e = TreeEventNewItems(
+                    sender=e.sender, update_path=e.update_path, new_items=[]
+                )
 
                 for item in e.new_items:
                     await self._process_event_new_item(e, _e, item)
@@ -101,7 +102,9 @@ class WrapperZipsAsDirs(VfsTreeWrapperProto):
 
             # when items disappear
             elif isinstance(e, TreeEventRemovedItems):
-                _e = TreeEventRemovedItems(e.update_path, [])
+                _e = TreeEventRemovedItems(
+                    sender=e.sender, update_path=e.update_path, removed_items=[]
+                )
 
                 for item in e.removed_items:
                     if isinstance(item, vfs.FileLike) and item in self._zip_to_dirlike:
