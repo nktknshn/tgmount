@@ -4,7 +4,7 @@ from tgmount.fs import FileSystemOperations
 
 from tgmount import vfs
 
-from ..helpers.fixtures import fs_tree1
+from ..helpers.fixtures_fs import fs_tree1
 
 
 @pytest.mark.asyncio

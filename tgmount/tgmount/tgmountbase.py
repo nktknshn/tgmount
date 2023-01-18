@@ -173,7 +173,7 @@ class TgmountBase:
 
     async def fetch_messages(self):
         """Fetch initial messages from message_sources"""
-        assert self._resources.fetchers_dict
+        # assert self._resources.fetchers_dict
 
         self.logger.info(
             f"Fetching initial messages from {len(self._resources.fetchers_dict)} with fetchers ({list(self._resources.fetchers_dict.keys())})..."

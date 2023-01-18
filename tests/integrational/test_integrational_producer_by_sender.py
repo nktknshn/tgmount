@@ -4,17 +4,16 @@ from typing import Any
 import aiofiles
 import pytest
 import pytest_asyncio
-from tests.integrational.integrational_helpers import ORGRANIZED2
+
 import tgmount
 from tests.helpers.mocked.mocked_storage import StorageEntity
-from tests.integrational.helpers import async_walkdir, create_config, mdict
-from tgmount.tgclient.guards import MessageWithDocument, MessageWithVideo
-from tgmount.tglog import init_logging
+from tests.integrational.integrational_configs import ORGRANIZED2, create_config
+from tgmount.tgclient.guards import MessageWithVideo
 from tgmount.tgmount.producers.producer_by_sender import VfsTreeDirBySender
 from tgmount.util.timer import Timer
 
 from ..helpers.mocked.mocked_message import MockedSender
-from .fixtures import Context, FixtureFiles, files, mnt_dir
+from .fixtures import *
 
 BY_SENDER_STRUCTURE = {
     "all": {"producer": "PlainDir"},
@@ -52,7 +51,7 @@ class Fixtures:
     caplog: Any
 
 
-class _Context(Context):
+class _Context(TgmountIntegrationContext):
     expected_dirs: dict
     senders: dict[str, list]
     source1: StorageEntity

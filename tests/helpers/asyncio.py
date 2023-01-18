@@ -1,3 +1,4 @@
+import aiofiles
 import asyncio
 import threading
 from typing import Optional
@@ -30,3 +31,8 @@ async def wait_ev_async(
         task_from_blocking(wait_ev(ev)),
         timeout=timeout,
     )
+
+
+async def read_bytes(path: str):
+    async with aiofiles.open(path, "rb") as f:
+        return await f.read()

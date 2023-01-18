@@ -2,17 +2,19 @@ import logging
 import aiofiles
 
 import pytest
+from tests.integrational.integrational_configs import create_config
 import tgmount
 from tests.helpers.mocked.mocked_storage import StorageEntity
-from tests.integrational.helpers import create_config, mdict
+from tests.integrational.helpers import mdict
 from .fixtures import *
+
 
 from tgmount.tgmount.filters import ByExtension, OnlyUniqueDocs
 
 
 @pytest.mark.asyncio
 async def test_recursive_filter_1(
-    ctx: Context, source1: StorageEntity, source2: StorageEntity
+    ctx: TgmountIntegrationContext, source1: StorageEntity, source2: StorageEntity
 ):
     """recursive filter doesn't produce files in the folder it was declared in"""
     config = create_config(
@@ -41,7 +43,7 @@ async def test_recursive_filter_1(
 
 @pytest.mark.asyncio
 async def test_recursive_filter_2(
-    ctx: Context, source1: StorageEntity, source2: StorageEntity
+    ctx: TgmountIntegrationContext, source1: StorageEntity, source2: StorageEntity
 ):
     """recursive filter produce files in the folder it was declared in if producer specified"""
     config = create_config(
@@ -68,7 +70,7 @@ async def test_recursive_filter_2(
 
 @pytest.mark.asyncio
 async def test_recursive_filter_3(
-    ctx: Context, source1: StorageEntity, source2: StorageEntity
+    ctx: TgmountIntegrationContext, source1: StorageEntity, source2: StorageEntity
 ):
     """filter 'All' doesn't cancel recursive filter"""
     config = create_config(
@@ -110,7 +112,7 @@ async def test_recursive_filter_3(
 
 @pytest.mark.asyncio
 async def test_recursive_filter_4(
-    ctx: Context,
+    ctx: TgmountIntegrationContext,
     source1: StorageEntity,
     source2: StorageEntity,
     files: FixtureFiles,
@@ -172,7 +174,7 @@ async def test_recursive_filter_4(
 
 @pytest.mark.asyncio
 async def test_recursive_filter_5(
-    ctx: Context,
+    ctx: TgmountIntegrationContext,
     source1: StorageEntity,
     source2: StorageEntity,
     files: FixtureFiles,
@@ -293,7 +295,7 @@ async def test_recursive_filter_5(
 
 @pytest.mark.asyncio
 async def test_filters_1(
-    ctx: Context,
+    ctx: TgmountIntegrationContext,
     source1: StorageEntity,
     source2: StorageEntity,
     files: FixtureFiles,

@@ -2,20 +2,12 @@ import logging
 
 import pytest
 
-from tests.integrational.helpers import concurrently, create_config
-from tests.integrational.integrational_helpers import ORGRANIZED2
+from tests.integrational.helpers import concurrently
+from tests.integrational.integrational_configs import ORGRANIZED2, create_config
 from tgmount.util.timer import Timer
 from tgmount.fs import FileSystemOperations
-from .fixtures import (
-    Context,
-    FixtureFiles,
-    Fixtures,
-    _Context,
-    files,
-    fixtures,
-    mnt_dir,
-)
-
+from .fixtures import *
+from .context import Context
 import tgmount
 
 BY_SENDER_STRUCTURE = {
@@ -36,7 +28,7 @@ async def test_producer_by_sender_update_dups(
     fixtures: Fixtures,
 ):
     """Tests updates of the tree"""
-    ctx = _Context.from_fixtures(fixtures)
+    ctx = Context.from_fixtures(fixtures)
 
     config = create_config(
         message_sources={"source1": "source1", "source2": "source2"},

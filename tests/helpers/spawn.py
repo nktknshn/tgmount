@@ -16,21 +16,22 @@ from typing import (
     TypedDict,
     TypeVar,
 )
+from tgmount import tglog
 
-import pytest
-import pytest_asyncio
+
 import tgmount.fs as fs
+from tgmount.fs import logger
 from tgmount.main.util import mount_ops
 
 from .mount import cleanup, umount, wait_for_mount
 from .asyncio import wait_ev, task_from_blocking
+from ..logger import logger as _logger
 
 Props = Mapping
 
 
 P = TypeVar("P", bound=Props)
 
-# MountFsFunction = Callable[[Props, str], Coroutine[None, Any, Any]]
 
 OnEventCallback = Callable[[], Awaitable[None]]
 OnEventCallbackSet = Callable[[threading.Event, OnEventCallback], None]
@@ -42,8 +43,7 @@ MainFunction = Callable[
 
 GetProps = Callable[["MountContext[P]"], P]
 
-logger = multiprocessing.log_to_stderr()
-logger.setLevel(logging.INFO)
+logger = _logger.getChild("spawn")
 
 
 @dataclass
@@ -146,7 +146,7 @@ def __spawn_mount_process(
     mnt_dir: str,
     min_tasks: int,
 ):
-    print("spawn_process()")
+    logger.debug("spawn_process()")
 
     mp = multiprocessing.get_context("fork")
 

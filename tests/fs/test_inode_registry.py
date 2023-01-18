@@ -1,5 +1,5 @@
 from typing import Optional, TypeVar
-from tgmount.fs.inode2 import InodesRegistry, RegistryItem, RegistryRoot
+from tgmount.fs.inode import InodesRegistry, RegistryItem, RegistryRoot
 from tgmount.vfs.util import nappb
 
 T = TypeVar("T")

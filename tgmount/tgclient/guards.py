@@ -68,6 +68,8 @@ class MessageDownloadable(
     TryGetFromGuard["MessageDownloadable"],
     Protocol,
 ):
+    file: FileProto
+
     @staticmethod
     def guard(msg: Any) -> TypeGuard["MessageDownloadable"]:
         return TelegramMessage.guard(msg) and (

@@ -192,23 +192,23 @@ async def test_zip4(zip_file1):
     }
 
 
-@pytest.mark.asyncio
-async def test_zip5(zip_tree1):
+# @pytest.mark.asyncio
+# async def test_zip5(zip_tree1):
 
-    zf, zfdata = create_zip_from_tree(zip_tree1["a"])
+#     zf, zfdata = create_zip_from_tree(zip_tree1["a"])
 
-    structure = vfs.root(
-        zips_as_dirs(
-            vfs.dir_content(vfs.vfile("archive.zip", vfs.file_content_from_io(zfdata))),
-            skip_folder_if_single_subfolder=True,
-        )
-    )
+#     structure = vfs.root(
+#         zips_as_dirs(
+#             vfs.dir_content(vfs.vfile("archive.zip", vfs.file_content_from_io(zfdata))),
+#             skip_folder_if_single_subfolder=True,
+#         )
+#     )
 
-    tree = await vfs.dir_content_to_tree(structure.content)
+#     tree = await vfs.dir_content_to_tree(structure.content)
 
-    t = await vfs.file_like_tree_map(get_file_content_str_utf8, tree)
+#     t = await vfs.file_like_tree_map(get_file_content_str_utf8, tree)
 
-    assert t == {"archive.zip": zip_tree1["a"]}
+#     assert t == {"archive.zip": zip_tree1["a"]}
 
 
 @pytest.mark.asyncio

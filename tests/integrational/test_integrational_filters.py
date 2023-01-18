@@ -1,12 +1,12 @@
 import pytest
 from tests.helpers.mocked.mocked_storage import StorageEntity
-from tests.integrational.helpers import create_config
+from tests.integrational.integrational_configs import create_config
 from .fixtures import *
 
 
 @pytest.mark.asyncio
 async def test_filters_1(
-    ctx: Context,
+    ctx: TgmountIntegrationContext,
     source1: StorageEntity,
     source2: StorageEntity,
     files: FixtureFiles,

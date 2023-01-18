@@ -1,14 +1,19 @@
 import aiofiles
 
 import pytest
+from tests.helpers.asyncio import read_bytes
+from tests.integrational.integrational_configs import create_config
+from tests.integrational.integrational_test import TgmountIntegrationContext
 import tgmount
 from tests.helpers.mocked.mocked_storage import StorageEntity
-from tests.integrational.helpers import create_config, mdict
+from tests.integrational.helpers import mdict
 from .fixtures import *
 
 
 @pytest.mark.asyncio
-async def test_fails_empty_root(caplog, ctx, source1: StorageEntity):
+async def test_fails_empty_root(
+    caplog, ctx: TgmountIntegrationContext, source1: StorageEntity
+):
     async def test():
         pass
 
@@ -148,7 +153,10 @@ async def test_filtered(caplog, ctx, source1: StorageEntity):
 
 @pytest.mark.asyncio
 async def test_two_sources_1(
-    caplog, ctx: Context, source1: StorageEntity, source2: StorageEntity
+    caplog,
+    ctx: TgmountIntegrationContext,
+    source1: StorageEntity,
+    source2: StorageEntity,
 ):
     """Different sources can be used"""
     config = create_config(
@@ -173,7 +181,9 @@ async def test_two_sources_1(
 
 @pytest.mark.asyncio
 async def test_two_sources_2(
-    caplog, ctx: Context, source1: StorageEntity, source2: StorageEntity
+    ctx: TgmountIntegrationContext,
+    source1: StorageEntity,
+    source2: StorageEntity,
 ):
     """Different sources can be used inside a structure"""
     config = create_config(
@@ -216,7 +226,9 @@ async def test_two_sources_2(
 
 @pytest.mark.asyncio
 async def test_two_sources_3(
-    caplog, ctx: Context, source1: StorageEntity, source2: StorageEntity
+    ctx: TgmountIntegrationContext,
+    source1: StorageEntity,
+    source2: StorageEntity,
 ):
     """Recursive filter could be overwritten"""
     config = create_config(

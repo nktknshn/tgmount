@@ -4,6 +4,7 @@ from collections.abc import Awaitable, Callable
 from typing import Any, AsyncGenerator, Iterable, Mapping, TypedDict
 
 import aiofiles
+from tests.integrational.integrational_configs import create_config
 
 import tgmount.config as config
 import tgmount.tgclient as tg
@@ -16,9 +17,9 @@ from tgmount.tgmount import TgmountBase, VfsTreeProducer
 from tgmount.tgmount.tgmount_builder import TgmountBuilder
 from tgmount.util import none_fallback
 
-from ..helpers.fixtures import mnt_dir
+from ..helpers.fixtures_common import mnt_dir
 from ..helpers.mocked.mocked_client import MockedClientReader, MockedClientWriter
-from .helpers import async_listdir, async_walkdir, create_config
+from .helpers import async_listdir, async_walkdir
 
 
 class MockedVfsTreeProducer(VfsTreeProducer):
@@ -200,7 +201,7 @@ class TgmountIntegrationContext:
     async def listdir_recursive(self, path: str) -> set[str]:
         res = []
 
-        for dirpath, dirnames, filenames in await async_walkdir(path):
+        for dirpath, dirnames, filenames in await async_walkdir(path):  # type: ignore
             res.append(dirpath)
             res.extend([vfs.path_join(str(dirpath), str(fn)) for fn in filenames])
 
@@ -278,8 +279,3 @@ class TgmountIntegrationContext:
         tgm = await builder.create_tgmount(self._get_config(cfg_or_root))
 
         return tgm
-
-
-async def read_bytes(path: str):
-    async with aiofiles.open(path, "rb") as f:
-        return await f.read()

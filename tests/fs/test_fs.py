@@ -1,11 +1,10 @@
+import logging
 import os
 
-from typing import TypedDict
-from tgmount import vfs, fs
-
-from ..helpers.fixtures import fs_tree1, mnt_dir
-from ..helpers.spawn import spawn_fs_ops
+from ..helpers.fixtures_fs import fs_tree1
+from ..helpers.fixtures_common import mnt_dir
 from ..helpers.mountfs import mount_fs_tree_main
+from ..helpers.spawn import spawn_fs_ops
 
 
 def test_fs1(fs_tree1, mnt_dir):
@@ -13,12 +12,10 @@ def test_fs1(fs_tree1, mnt_dir):
 
     for ctx in spawn_fs_ops(
         mount_fs_tree_main,
-        {"debug": True, "fs_tree": fs_tree1},
+        {"debug": logging.INFO, "fs_tree": fs_tree1},
         mnt_dir=mnt_dir,
+        min_tasks=10,
     ):
-        s = os.stat(ctx.tmpdir)
-
-        print(f"ino={s.st_ino}")
 
         assert os.listdir(ctx.path(".")) == ["dir1", "dir2", "dir3"]
         assert os.listdir(ctx.path("dir1")) == ["file1.txt", "file2.txt"]

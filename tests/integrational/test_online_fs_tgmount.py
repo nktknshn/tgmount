@@ -1,18 +1,29 @@
 import asyncio
 import logging
-import os
 import threading
-from typing import Iterable, Mapping, TypedDict
+from typing import TypedDict
 
 import pytest
+
 import tgmount.config as config
+from tests.integrational.integrational_configs import create_config
 from tgmount import tglog
+from tgmount.tgmount.tgmount_builder import TgmountBuilder
 
-from ..helpers.spawn2 import spawn_fs_ops
+from ..helpers.spawn import spawn_fs_ops
+from .fixtures import *
+from ..helpers.fixtures_tgclient import tgclient_second
+from .helpers import async_listdir
 
-from .helpers import *
+TESTING_CHANNEL = "tgmounttestingchannel"
 
-# import os
+Props = TypedDict(
+    "Props",
+    debug=int,
+    ev0=threading.Event,
+    ev1=threading.Event,
+    cfg=config.Config,
+)
 
 
 class MyTgmountBuilder(TgmountBuilder):
@@ -58,8 +69,12 @@ async def main_test1(props: Props, on_event):
 
     # tgm.client.on(events.NewMessage(chats=TESTING_CHANNEL))(on_new_message)
 
+    await tgm.fetch_messages()
+
     test_logger.debug("Creating FS...")
+
     await tgm.create_fs()
+    await tgm.events_dispatcher.resume()
 
     test_logger.debug("Returng FS")
 
@@ -67,41 +82,65 @@ async def main_test1(props: Props, on_event):
 
 
 @pytest.mark.asyncio
-async def test_fs_tg_test1(mnt_dir, caplog, tgclient_second: Client):
+async def test_fs_tg_test1(mnt_dir, caplog, tgclient_second):
 
-    client = Client(tgclient_second)
+    client = tgclient_second
     # caplog.set_level(logging.DEBUG)
 
     for ctx in spawn_fs_ops(
         main_test1,
         props=lambda ctx: {
-            "debug": False,
+            "debug": logging.CRITICAL,
             "ev0": ctx.mgr.Event(),
             "ev1": ctx.mgr.Event(),
-            "cfg": create_config(),
+            "cfg": create_config(
+                message_sources={
+                    "tmtc": TESTING_CHANNEL,
+                },
+                root={
+                    "tmtc": {
+                        "source": {"source": "tmtc", "recursive": True},
+                        "all": {"filter": "All"},
+                        # "wrappers": "ExcludeEmptyDirs",
+                        # "texts": {"filter": "MessageWithText"},
+                    },
+                },
+            ),
         },
         mnt_dir=mnt_dir,
+        min_tasks=10,
     ):
 
         subfiles = await async_listdir(ctx.path("tmtc/all/"))
         len1 = len(subfiles)
         # await print_tasks()
         # ctx.props["ev0"].set()
-        print("Sending message 1")
-        msg0 = await client.send_message(message="asdsad")
-        print(f"Done Sending message 1: {msg0.id}")
+        # print("Sending message 1")
+
+        msg0 = await client.send_message(TESTING_CHANNEL, message="asdsad")
+
+        # print(f"Done Sending message 1: {msg0.id}")
+
         assert len1 > 0
-        print("Sending message 2")
-        msg1 = await client.send_message(file="tests/fixtures/small_zip.zip")
+        # print("Sending message 2")
+
+        msg1 = await client.send_message(
+            TESTING_CHANNEL, file="tests/fixtures/small_zip.zip"
+        )
         # ctx.props["ev1"].set()
-        print(f"Done Sending message 2: {msg1.id}")
-        msg2 = await client.send_message(file="tests/fixtures/small_zip.zip")
-        print(f"Done Sending message 3: {msg2.id}")
+        # print(f"Done Sending message 2: {msg1.id}")
+        msg2 = await client.send_message(
+            TESTING_CHANNEL, file="tests/fixtures/small_zip.zip"
+        )
+        # print(f"Done Sending message 3: {msg2.id}")
         await asyncio.sleep(1)
         subfiles = await async_listdir(ctx.path("tmtc/all/"))
+
         assert len(subfiles) == len1 + 3
-        await client.delete_messages([msg0.id, msg1.id, msg2.id])
-        print(f"Removed messages")
+
+        await client.delete_messages(TESTING_CHANNEL, [msg0.id, msg1.id, msg2.id])
+
+        # print(f"Removed messages")
         await asyncio.sleep(1)
         subfiles = await async_listdir(ctx.path("tmtc/all/"))
         assert len(subfiles) == len1

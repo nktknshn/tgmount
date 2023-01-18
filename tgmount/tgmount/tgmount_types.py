@@ -24,7 +24,8 @@ class TgmountResources:
     vfs_wrappers: ProviderVfsWrappersBase
     classifier: ClassifierBase
 
-    fetchers_dict: Mapping | None = None
+    fetchers_dict: Mapping
+    #  | None = None
     """ Dictionary of initial messages fetchers """
 
     def set_sources(self, sources: SourcesProviderProto):

@@ -17,7 +17,7 @@ from tgmount.tgclient.files_source import TelegramFilesSource
 from tgmount.vfs import DirContentSourceMapping
 from tgmount.tgclient import guards
 
-from ..helpers.fixtures import mnt_dir
+from ..helpers.fixtures_common import mnt_dir
 from ..helpers.tgclient import get_client_with_source
 from ..helpers.spawn import spawn_fs_ops
 
@@ -48,7 +48,7 @@ async def main_test1(props, _):
     init_logging(props["debug"])
 
     client, storage = await get_client_with_source()
-    messages = await client.get_messages_typed(
+    messages = await client.get_messages(
         "tgmounttestingchannel",
         limit=3,
         reverse=True,

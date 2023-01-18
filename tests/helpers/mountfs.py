@@ -11,7 +11,7 @@ from typing import (
 )
 
 from tgmount import fs, vfs
-from tgmount.logging import init_logging
+from tgmount.tglog import init_logging
 
 
 MountFsTreeProps = TypedDict(

@@ -45,6 +45,7 @@ InodesRegistryItem = RegistryRoot[T] | RegistryItem[T]
 class InodesRegistry(Generic[T]):
     ROOT_INODE: int = pyfuse3.ROOT_INODE
     logger = _logger.getChild(f"InodesRegistry")
+    # logger.setLevel(logging.DEBUG)
 
     def __init__(self, root_item: T, last_inode=None):
 

@@ -66,7 +66,7 @@ InodesTree = TypedDict(
 
 class FileSystemOperationsMixin:
     def get_inodes_tree(
-        self: "FileSystemOperations", inode=InodesRegistry.ROOT_INODE
+        self: "FileSystemOperations", inode=InodesRegistry.ROOT_INODE  # type: ignore
     ) -> InodesTree:
 
         item = self.inodes.get_item_by_inode(inode)
@@ -117,7 +117,7 @@ from .logger import logger as _logger
 class FileSystemOperations(pyfuse3.Operations, FileSystemOperationsMixin):
 
     FsRegistryItem = RegistryItem[FileSystemItem] | RegistryRoot[FileSystemItem]
-    logger = _logger.getChild(f"FileSystemOperations()")
+    logger = _logger.getChild(f"FileSystemOperations")
 
     def __init__(
         self,

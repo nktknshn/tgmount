@@ -2,13 +2,11 @@ import logging
 
 import pytest
 import pytest_asyncio
-import tgmount
-from tests.integrational.helpers import concurrently, concurrentlys, create_config
-from tests.integrational.integrational_helpers import ORGRANIZED2
+from tests.integrational.helpers import concurrentlys
+from tests.integrational.integrational_configs import ORGRANIZED2, create_config
 
-from .fixtures import Fixtures, _Context, fixtures
-from .fixtures import Context, FixtureFiles, files, mnt_dir
-from tgmount.util.col import get_first_key
+from .fixtures import *
+from .context import Context
 
 
 @pytest.mark.asyncio
@@ -16,7 +14,7 @@ async def test_message_while_producing(
     fixtures: Fixtures,
 ):
     """Tests updates of the tree"""
-    ctx = _Context.from_fixtures(fixtures)
+    ctx = Context.from_fixtures(fixtures)
 
     config = create_config(
         message_sources={"source1": "source1", "source2": "source2"},
