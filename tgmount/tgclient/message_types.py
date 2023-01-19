@@ -103,6 +103,7 @@ class PhotoProto(Protocol):
 class MessageProto(Protocol):
     id: MessageId
     chat_id: ChatId
+    from_id: int | None
     text: str | None
     file: FileProto | None
     document: DocumentProto | None

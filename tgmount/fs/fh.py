@@ -9,7 +9,7 @@ class FileSystemHandles(Generic[T]):
     """Stores mapping from fh to a tuple of item and handle object"""
 
     logger = _logger.getChild("FileSystemHandles")
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.CRITICAL)
 
     LAST_FH = 10
 
@@ -29,7 +29,7 @@ class FileSystemHandles(Generic[T]):
         return self._fh_by_item.get(item)
 
     def open_fh(self, item: T, data=None):
-        self.logger.info(f"open_fh({item})")
+        self.logger.debug(f"open_fh({item})")
 
         fh = self._new_fh()
         self._fhs[fh] = item, data
@@ -50,7 +50,7 @@ class FileSystemHandles(Generic[T]):
         return item
 
     def release_fh(self, fh: int):
-        self.logger.info(f"release_fh({fh})")
+        self.logger.debug(f"release_fh({fh})")
 
         if fh in self._fhs:
             item, handle = self._fhs[fh]

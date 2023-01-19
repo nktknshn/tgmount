@@ -2,7 +2,7 @@ import abc
 from typing import Type
 
 from tgmount import cache, config, tgclient
-from tgmount.tgclient.telegram_message_source import (
+from tgmount.tgclient.events_disptacher import (
     TelegramEventsDispatcher,
     TelegramMessagesFetcher,
 )
@@ -179,6 +179,3 @@ class TgmountBuilderBase(abc.ABC):
             tgm.events_dispatcher.connect(msc.entity, ms)
 
         return tgm
-
-
-""" Takes config structure and returns ready for use TgmountBase """

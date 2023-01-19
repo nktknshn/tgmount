@@ -9,11 +9,10 @@ from tgmount import fs, main, tgclient, tglog, vfs
 from tgmount.fs.update import FileSystemOperationsUpdate
 from tgmount.tgclient.add_hash import add_hash_to_telegram_message_class
 from tgmount.tgclient.message_source import MessageSource
-from tgmount.tgclient.telegram_message_source import EntityId, TelegramEventsDispatcher
+from tgmount.tgclient.events_disptacher import EntityId, TelegramEventsDispatcher
 from tgmount.tgmount.producers.producer_plain import VfsTreeProducerPlainDir
-from tgmount.tgmount.types import Set
 from tgmount.tgmount.vfs_tree_producer import VfsTree, VfsTreeProducer
-from tgmount.util import none_fallback
+from tgmount.util import measure_time, none_fallback
 from tgmount.vfs.util import MyLock
 
 from .error import TgmountError
@@ -28,7 +27,7 @@ from .vfs_tree_types import (
     TreeEventType,
 )
 
-add_hash_to_telegram_message_class()
+# add_hash_to_telegram_message_class()
 
 VfsTreeProducerPlainDir.logger.setLevel(logging.CRITICAL)
 
@@ -120,6 +119,7 @@ class TgmountBase:
         - Unlock here
     """
 
+    @measure_time(logger_func=logger.info)
     async def on_new_message(self, entity_id: EntityId, event: events.NewMessage.Event):
         self.logger.info(f"on_new_message({event})")
 
@@ -144,6 +144,7 @@ class TgmountBase:
 
         self.logger.info(f"on_new_message() done")
 
+    @measure_time(logger_func=logger.info)
     async def on_delete_message(
         self, entity_id: EntityId, event: events.MessageDeleted.Event
     ):
@@ -172,6 +173,7 @@ class TgmountBase:
 
         self.logger.info(f"on_delete_message() done")
 
+    @measure_time(logger_func=logger.info)
     async def on_edited_message(
         self, entity_id: EntityId, event: events.MessageEdited.Event
     ):
@@ -188,7 +190,7 @@ class TgmountBase:
 
             self._vfs_tree.subscribe(_append_events)
 
-            await self.events_dispatcher.process_delete_message_event(entity_id, event)
+            await self.events_dispatcher.process_edited_message_event(entity_id, event)
 
             self._vfs_tree.unsubscribe(_append_events)
 
@@ -218,7 +220,7 @@ class TgmountBase:
 
             self.logger.info(f"Fetched {len(initial_messages)} messages.")
 
-            await source.set_messages(Set(initial_messages), notify=False)
+            await source.set_messages(initial_messages, notify=False)
 
         self.logger.info(f"Done fetching.")
 

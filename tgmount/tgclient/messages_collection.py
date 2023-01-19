@@ -1,0 +1,117 @@
+from abc import abstractmethod
+import logging
+from typing import (
+    Any,
+    Generic,
+    Iterable,
+    OrderedDict,
+    Protocol,
+    TypeGuard,
+    TypeVar,
+    Union,
+)
+
+from tgmount.util.col import sets_difference
+from .logger import logger as _logger
+
+
+class WithId(Protocol):
+    id: int
+
+
+class Hashable(Protocol):
+    @abstractmethod
+    def __hash__(self) -> int:
+        pass
+
+
+M = TypeVar("M", bound=WithId)
+
+
+class MessagesCollection(Generic[M]):
+    logger = _logger.getChild("MessagesCollection")
+    logger.setLevel(logging.CRITICAL)
+
+    @staticmethod
+    def from_iterable(it: Iterable[M]):
+        col = MessagesCollection()
+        col.add_messages(it)
+        return col
+
+    def __init__(self) -> None:
+        self._messages: OrderedDict[int, M] = OrderedDict()
+
+    def _item_hash(self, m: M):
+        return m.id
+
+    def add_message(self, m: M) -> M | None:
+        h = self._item_hash(m)
+
+        if h in self._messages:
+            self.logger.warn(f"{m} is already in the collection")
+            return
+
+        self._messages[h] = m
+        return m
+
+    def add_messages(self, ms: Iterable[M]):
+        res = []
+        for m in ms:
+            if self.add_message(m) is not None:
+                res.append(m)
+        return res
+
+    def remove_ids(self, ids: Iterable[int]) -> list[M]:
+        res = []
+        for i in ids:
+            try:
+                removed = self._messages.pop(i)
+            except KeyError:
+                self.logger.warn(f"KeyError: {i} is not in the collection")
+            else:
+                res.append(removed)
+        return res
+
+    def remove_messages(self, ms: Iterable[M]) -> list[M]:
+        res = []
+        for m in ms:
+            h = self._item_hash(m)
+            try:
+                del self._messages[h]
+            except KeyError:
+                self.logger.warn(f"KeyError: {m} is not in the collection")
+            else:
+                res.append(m)
+        return res
+
+    def get_difference(self, ms: Iterable[M]):
+        removed = []
+        new = []
+        common = []
+
+        ms_dict = {m.id: m for m in ms}
+
+        removed, new, common = sets_difference(
+            set(self._messages.keys()), set(ms_dict.keys())
+        )
+
+        return (
+            [self._messages[i] for i in removed],
+            [ms_dict[i] for i in new],
+            [self._messages[i] for i in common],
+        )
+
+    def get_messages_iter(self):
+        return self._messages.values()
+
+    def get_messages_list(self):
+        return list(self._messages.values())
+
+    def get_by_ids(self, ids: list[int]):
+        return [self._messages[i] for i in ids]
+
+    def __len__(self):
+        return len(self._messages)
+
+    def __iter__(self):
+        return iter(self._messages.values())

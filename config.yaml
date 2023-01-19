@@ -138,28 +138,28 @@ root:
     source: { source: relocationguidebig, recursive: True }
     <<: *ogranized
     by-sender: *by-sender
-  # ru_python_beginners:
-  #   source: { source: ru_python_beginners, recursive: True }
-  #   <<: *ogranized
-  #   by-sender: *by-sender
-  # ru_python:
-  #   source: { source: ru_python, recursive: True }
-  #   <<: *ogranized
-  #   by-sender: *by-sender
-  # ts_cool:
-  #   source: { source: ts_cool, recursive: True }
-  #   <<: *ogranized
-  #   by-sender: *by-sender
-  # NappingCat_Chat:
-  #   source: { source: NappingCat, recursive: True }
-  #   <<: *ogranized
-  #   by-sender: *by-sender
-  # tmtc:
-  #   source: { source: tmtc, recursive: True }
-  #   <<: *ogranized
-  #   by-sender:
-  #     <<: *by-sender
-  # my-mount:
-  #   source: { source: my-mount, recursive: True }
-  #   wrappers: ExcludeEmptyDirs
-  #   <<: *ogranized
+  ru_python_beginners:
+    source: { source: ru_python_beginners, recursive: True }
+    <<: *ogranized
+    by-sender: *by-sender
+  ru_python:
+    source: { source: ru_python, recursive: True }
+    <<: *ogranized
+    by-sender: *by-sender
+  ts_cool:
+    source: { source: ts_cool, recursive: True }
+    <<: *ogranized
+    by-sender: *by-sender
+  NappingCat_Chat:
+    source: { source: NappingCat, recursive: True }
+    <<: *ogranized
+    by-sender: *by-sender
+  tmtc:
+    source: { source: tmtc, recursive: True }
+    <<: *ogranized
+    by-sender:
+      <<: *by-sender
+  my-mount:
+    source: { source: my-mount, recursive: True }
+    wrappers: ExcludeEmptyDirs
+    <<: *ogranized

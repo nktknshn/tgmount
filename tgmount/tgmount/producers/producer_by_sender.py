@@ -53,7 +53,7 @@ def get_get_key(*, use_get_sender=True):
             return f"{sender_id}_{key}"
         else:
             # sender = MockedSender(id=id, username=str(id))
-            return str(id)
+            return str(sender_id)
 
     return get_key
 
@@ -93,7 +93,6 @@ class VfsTreeDirBySender(VfsTreeProducerGrouperBase, VfsTreeProducerProto):
         )
 
     async def group_messages(self, messages: Iterable[MessageProto]) -> GroupedMessages:
-        self._logger.info(f"Grouping...")
 
         by_user, less, nones = await group_by_sender(
             messages, minimum=1, use_get_sender=self.use_get_sender
@@ -103,7 +102,5 @@ class VfsTreeDirBySender(VfsTreeProducerGrouperBase, VfsTreeProducerProto):
 
         for sname, sender_messages in by_user.items():
             res[sname] = sender_messages
-
-        self._logger.info(f"Done...")
 
         return res, []

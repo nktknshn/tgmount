@@ -79,4 +79,4 @@ class FileFactoryProto(Protocol[T]):
     ):
         msgs = [self.try_get(m, treat_as=treat_as) for m in messages]
 
-        return frozenset(filter(is_not_none, msgs))
+        return list(filter(is_not_none, msgs))

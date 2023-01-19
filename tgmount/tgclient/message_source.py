@@ -1,12 +1,13 @@
-from typing import Callable, Generic, Iterable, Optional, TypeVar
+from typing import Callable, Generic, Iterable, Optional, OrderedDict, TypeVar
+from tgmount.tgclient.message_types import MessageProto
+from tgmount.tgclient.messages_collection import MessagesCollection, WithId
 
 from tgmount.util import none_fallback, sets_difference
 
 from .logger import logger as _logger
 from .message_source_types import MessageSourceSubscribableProto, Subscribable
-from .types import Set
 
-M = TypeVar("M")
+M = TypeVar("M", bound=WithId)
 
 MessageSourceFilter = Callable[[M], bool]
 
@@ -25,17 +26,22 @@ class MessageSource(MessageSourceSubscribableProto, Generic[M]):
     `filters` property is a list of predicates that are applied to the incoming sets of messages. To add a filter use `add_filter`
     """
 
-    logger = _logger.getChild("MessageSourceSimple")
+    logger = _logger.getChild("MessageSource")
 
     def __repr__(self) -> str:
-        return f"MessageSourceSimple({self.tag})"
+        return f"MessageSource({self.tag})"
 
-    def __init__(self, messages=None, tag=None) -> None:
+    def __init__(
+        self, messages: Iterable[MessageProto] | None = None, tag=None
+    ) -> None:
         self._tag = none_fallback(tag, "NoTag")
 
         self._logger = self.logger.getChild(f"{self.tag}")
 
-        self._messages: Optional[Set[M]] = messages
+        self._messages: MessagesCollection[M] | None = (
+            MessagesCollection.from_iterable(messages) if messages is not None else None
+        )
+
         self._filters: list[MessageSourceFilter[M]] = []
 
         self.event_new_messages: Subscribable = Subscribable()
@@ -65,85 +71,92 @@ class MessageSource(MessageSourceSubscribableProto, Generic[M]):
 
         return res
 
-    async def update_messages(self, messages: Iterable[M]):
+    async def edit_messages(self, messages: Iterable[M]):
 
         if self._messages is None:
             # self._messages = Set()
             return
 
-        _set = Set(await self._filter_messages(messages))
+        _set = await self._filter_messages(messages)
 
-        _old_messages = []
-        _updated_messages = []
+        # _old_messages = []
+        # _updated_messages = []
 
-        for m in _set:
-            if m in self._messages:
-                _old_messages.append(m)
-                _updated_messages.append(m)
+        # for m in _set:
+        #     if m in self._messages:
+        #         _old_messages.append(m)
+        #         _updated_messages.append(m)
 
     async def add_messages(self, messages: Iterable[M]):
 
         if self._messages is None:
-            self._messages = Set()
+            self._messages = MessagesCollection()
 
-        _set = Set(await self._filter_messages(messages))
+        _filtered = await self._filter_messages(messages)
 
-        self._logger.debug(f"add_messages({len(_set)})")
+        self._logger.debug(f"add_messages({len(_filtered)})")
 
-        if len(_set) == 0:
+        if len(_filtered) == 0:
             return
 
-        diff = _set.difference(self._messages)
+        # diff = _filtered.difference(self._messages)
+        diff = self._messages.add_messages(_filtered)
 
         if len(diff) == 0:
             return
 
-        self._messages |= diff
-
         await self.event_new_messages.notify(diff)
 
-    async def remove_messages(self, messages: Iterable[M]):
+    async def remove_messages(self, removed_messages: list[M]):
         if self._messages is None:
-            self._messages = Set()
+            self._messages = MessagesCollection()
 
-        _set = Set(messages)
+        self._logger.debug(f"remove_messages({len(removed_messages)})")
 
-        self._logger.debug(f"remove_messages({len(_set)})")
-
-        inter = self._messages.intersection(_set)
-
-        self._messages -= inter
+        inter = self._messages.remove_messages(removed_messages)
 
         await self.event_removed_messages.notify(inter)
 
-    async def get_messages(self) -> Set[M]:
+    async def remove_messages_ids(self, removed_messages: list[int]):
+        if self._messages is None:
+            self._messages = MessagesCollection()
+
+        self._logger.debug(f"remove_messages({len(removed_messages)})")
+
+        inter = self._messages.remove_ids(removed_messages)
+
+        await self.event_removed_messages.notify(inter)
+
+    async def get_messages(self) -> list[M]:
         self._logger.debug(f"get_messages()")
 
         if self._messages is None:
             self._logger.error(f"Messages are not initiated yet")
-            return Set()
+            return []
 
-        return self._messages
+        return self._messages.get_messages_list()
 
-    async def set_messages(self, messages: Set[M], notify=True):
+    async def set_messages(self, messages: list[M], notify=True):
         """Sets the source messages. `notify` sets if the subscribers should be notified about the update"""
 
-        _set = Set(await self._filter_messages(messages))
+        filtered = await self._filter_messages(messages)
 
-        self._logger.debug(f"set_messages({len(_set)}, notify={notify})")
+        self._logger.debug(f"set_messages({len(filtered)}, notify={notify})")
 
         if self._messages is None:
-            self._messages = _set
+            self._messages = MessagesCollection.from_iterable(filtered)
             if not notify:
                 return
 
-            await self.event_new_messages.notify(_set)
+            await self.event_new_messages.notify(filtered)
             return
 
-        removed, new, common = sets_difference(self._messages, _set)  # type: ignore
+        removed, new, common = self._messages.get_difference(filtered)  # type: ignore
+
+        self._logger.debug(f"removed({removed}, new={new}, common={common})")
 
         if len(removed) > 0 or len(new) > 0:
-            self._messages = messages
+            self._messages = MessagesCollection.from_iterable(messages)
 
             if not notify:
                 return

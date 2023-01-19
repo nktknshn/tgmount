@@ -5,6 +5,7 @@ from telethon.tl.custom import Message
 
 from tgmount.tgclient import guards
 from tgmount.tgclient.guards import MessageDownloadable
+from tgmount.tgclient.message_types import MessageProto
 from tgmount.util import col, func
 from tgmount.util.guards import compose_try_gets
 from .filters_types import (
@@ -17,7 +18,6 @@ from .filters_types import (
     Filter,
     ParseFilter,
 )
-from .types import Set
 
 T = TypeVar("T")
 
@@ -143,7 +143,7 @@ class Not(FilterAllMessagesProto):
         return Not(parse_filter(_filter))
 
     async def filter(self, messages: Iterable[Message]) -> list[Message]:
-        _ms = Set(messages)
+        _ms = list(messages)
 
         for f in self.filters:
             _ms = await f.filter(_ms)
@@ -179,7 +179,7 @@ class And(FilterAllMessagesProto):
     ):
         return And(filters=parse_filter(gs))
 
-    async def filter(self, messages: Iterable[Message]):
+    async def filter(self, messages: Iterable[MessageProto]):
 
         if len(self.filters) == 0:
             return messages

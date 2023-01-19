@@ -2,9 +2,9 @@ from abc import abstractmethod
 from typing import TypeVar, Protocol, Optional, Iterable, Callable
 
 from telethon.tl.custom import Message
+from tgmount.tgclient.message_types import MessageProto
 
 from tgmount.tgmount.file_factory import FileFactoryBase, ClassifierBase
-from tgmount.tgmount.types import Set
 
 T = TypeVar("T")
 FilterConfigValue = str | dict[str, dict] | list[str | dict[str, dict]]
@@ -35,7 +35,7 @@ class FilterAllMessagesProto(Protocol):
         pass
 
     @abstractmethod
-    async def filter(self, messages: Iterable[Message]) -> list[Message]:
+    async def filter(self, messages: Iterable[MessageProto]) -> list[MessageProto]:
         ...
 
     @staticmethod

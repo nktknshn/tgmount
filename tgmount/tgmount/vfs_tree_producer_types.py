@@ -7,7 +7,7 @@ from tgmount.tgclient import MessageSourceSubscribableProto
 from tgmount.tgclient.message_types import MessageProto
 from tgmount.tgmount.file_factory import FileFactoryProto
 from tgmount.tgmount.filters_types import Filter
-from tgmount.tgmount.types import MessagesSet, Set
+
 from tgmount.tgmount.vfs_tree_wrapper_types import VfsTreeWrapperProto
 
 
@@ -50,7 +50,7 @@ class VfsTreeProducerConfig:
         self.filters = filters
         self.treat_as_prop = treat_as_prop
 
-        self._messages: MessagesSet | None = None
+        self._messages: list[MessageProto] | None = None
 
     # async def on_update(self, source, messages):
     #     self._messages = await self._apply_all_filters(messages)
@@ -58,29 +58,33 @@ class VfsTreeProducerConfig:
     async def produce_file(self, m: MessageProto):
         return self.factory.file(m, treat_as=self.treat_as_prop)
 
-    async def apply_filters(self, messages: Iterable[MessageProto]) -> MessagesSet:
+    async def apply_filters(
+        self, messages: Iterable[MessageProto]
+    ) -> list[MessageProto]:
+
+        messages = list(messages)
         for f in self.filters:
             messages = await f.filter(messages)
 
-        return frozenset(messages)
+        return messages
 
-    async def _apply_all_filters(self, input_messages: MessagesSet):
+    async def _apply_all_filters(self, input_messages: list[MessageProto]):
         # supported = await self.filter_supported(input_messages)
         filtered = await self.apply_filters(input_messages)
         return filtered
 
     async def filter_supported(
         self, input_messages: Iterable[MessageProto]
-    ) -> MessagesSet:
+    ) -> list[MessageProto]:
         print(f"filter_supported")
         return self.factory.filter_supported(input_messages)
 
-    async def get_messages(self) -> MessagesSet:
+    async def get_messages(self) -> list[MessageProto]:
         """Get messages list from message_source, make set and apply filters"""
         messages = await self.message_source.get_messages()
 
         if self._messages is None:
-            self._messages = await self._apply_all_filters(Set(messages))
+            self._messages = await self._apply_all_filters(messages)
 
         return self._messages
 

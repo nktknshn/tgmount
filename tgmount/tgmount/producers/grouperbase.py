@@ -10,7 +10,6 @@ from tgmount.tgmount.error import TgmountError
 from tgmount.tgmount.producers.producer_plain import VfsTreeProducerPlainDir
 from tgmount.tgmount.root_config_types import RootConfigWalkingContext
 from tgmount.tgmount.tgmount_types import TgmountResources
-from tgmount.tgmount.types import MessagesSet, Set
 from tgmount.tgmount.vfs_tree_producer_types import VfsTreeProducerConfig
 from tgmount.util import sanitize_string_for_path
 from tgmount.util.col import sets_difference
@@ -65,15 +64,17 @@ class VfsTreeProducerGrouperBase(abc.ABC):
     async def group_messages(self, messages: Iterable[Message]) -> GroupedMessages:
         ...
 
-    async def _group_messages(self, messages: Iterable[Message]) -> GroupedMessages:
+    async def _group_messages(
+        self, messages: Iterable[Message]
+    ) -> GroupedMessages[Message]:
         group, root = await self.group_messages(messages)
         return {self.sanitize(k): v for k, v in group.items()}, root
 
     @property
-    def _current_dirs(self) -> Set[str]:
+    def _current_dirs(self) -> frozenset[str]:
         return frozenset(self._source_by_name.keys())
 
-    async def _add_dir(self, dir_name: str, dir_messages: MessagesSet):
+    async def _add_dir(self, dir_name: str, dir_messages: list[MessageProto]):
 
         dir_source = self.MessageSource(
             messages=dir_messages, tag=f"{os.path.join(self._dir.path, dir_name)}"
@@ -95,7 +96,7 @@ class VfsTreeProducerGrouperBase(abc.ABC):
     async def _update_new_message(self, source, messages: Iterable[Message]):
         self._logger.info(f"update_new_messages({list(map(lambda m: m.id, messages))})")
 
-        messages = await self._config.apply_filters(frozenset(messages))
+        messages = await self._config.apply_filters(messages)
 
         self._logger.debug(f"after filtering left {len(messages)} messages")
 
@@ -107,10 +108,10 @@ class VfsTreeProducerGrouperBase(abc.ABC):
 
         self._logger.debug(f"new_dirs={new_dirs} common_dirs={common_dirs}")
 
-        await self._source_root.set_messages(Set(root))
+        await self._source_root.set_messages(root)
 
         for d in new_dirs:
-            await self._add_dir(d, Set(grouped[d]))
+            await self._add_dir(d, grouped[d])
 
         for d in common_dirs:
             self._logger.debug(f"updating {d}")
@@ -119,7 +120,7 @@ class VfsTreeProducerGrouperBase(abc.ABC):
             if _source is None:
                 raise TgmountError(f"Missing source for dir {d}")
 
-            await _source.add_messages(Set(grouped[d]))
+            await _source.add_messages(grouped[d])
 
     async def _update_removed_messages(self, source, removed_messages: list[Message]):
         self._logger.info(
@@ -128,18 +129,18 @@ class VfsTreeProducerGrouperBase(abc.ABC):
 
         grouped, root = await self._group_messages(removed_messages)
 
-        await self._source_root.set_messages(Set(root))
+        await self._source_root.set_messages(root)
 
         for dir_name, dir_messages in grouped.items():
-            src = self._source_by_name.get(dir_name)
+            dir_src = self._source_by_name.get(dir_name)
 
-            if src is None:
+            if dir_src is None:
                 self._logger.error(f"Missing source for dir {dir_name}")
                 continue
 
-            await src.remove_messages(dir_messages)
+            await dir_src.remove_messages(dir_messages)
 
-            _msgs = await src.get_messages()
+            _msgs = await dir_src.get_messages()
 
             if len(_msgs) == 0:
                 await self._dir.remove_subdir(dir_name)
@@ -156,11 +157,11 @@ class VfsTreeProducerGrouperBase(abc.ABC):
 
         t1.start("subdirs")
         for dir_name, dir_messages in grouped.items():
-            await self._add_dir(dir_name, Set(dir_messages))
+            await self._add_dir(dir_name, dir_messages)
 
         t1.start("root")
 
-        await self._source_root.set_messages(Set(root))
+        await self._source_root.set_messages(root)
 
         await VfsTreeProducerPlainDir(
             self._dir,

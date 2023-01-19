@@ -55,7 +55,9 @@ def get_first_pair(d: Mapping):
 Set = frozenset
 
 
-def sets_difference(left: Set[T], right: Set[T]) -> tuple[Set[T], Set[T], Set[T]]:
+def sets_difference(
+    left: Set[T] | set[T], right: Set[T] | set[T]
+) -> tuple[Set[T], Set[T], Set[T]]:
     unique_left = left - right
     unique_right = right - left
     common = right.intersection(left)

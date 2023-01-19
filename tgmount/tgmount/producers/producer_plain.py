@@ -1,9 +1,11 @@
-from typing import Mapping
+from typing import Mapping, TypeVar
 from telethon.tl.custom import Message
 
 from tgmount import vfs
 from tgmount.tgmount.error import TgmountError
-from tgmount.tgmount.types import MessagesSet, Set
+from tgmount.tgclient.messages_collection import MessagesCollection
+
+# from tgmount.tgmount.types import MessagesSet, Set
 from tgmount.tgmount.vfs_tree import VfsTreeDir
 from tgmount.tgmount.vfs_tree_producer_types import (
     VfsTreeProducerConfig,
@@ -12,6 +14,8 @@ from tgmount.tgmount.vfs_tree_producer_types import (
 )
 from tgmount.util import measure_time
 from .logger import logger as _logger
+
+M = TypeVar("M")
 
 
 class VfsTreeProducerPlainDir(VfsTreeProducerProto):
@@ -25,8 +29,8 @@ class VfsTreeProducerPlainDir(VfsTreeProducerProto):
         self._config = config
         self._tree_dir = tree_dir
 
-        self._messages = MessagesSet()
-        self._message_to_file: dict[str, vfs.FileLike] = {}
+        # self._messages = MessagesCollection()
+        self._message_to_file: dict[int, vfs.FileLike] = {}
 
         self._logger = self.logger.getChild(f"{self._tree_dir.path}")
 
@@ -44,12 +48,12 @@ class VfsTreeProducerPlainDir(VfsTreeProducerProto):
     # @measure_time(logger_func=print)
     async def produce(self):
 
-        self._messages = await self._config.get_messages()
+        _messages = MessagesCollection.from_iterable(await self._config.get_messages())
 
-        self._logger.info(f"Producing from {len(self._messages)} messages...")
+        self._logger.info(f"Producing from {len(_messages)} messages...")
 
         self._message_to_file = {
-            m: await self._config.produce_file(m) for m in self._messages
+            m.id: await self._config.produce_file(m) for m in _messages
         }
 
         if len(self._message_to_file) > 0:
@@ -69,10 +73,10 @@ class VfsTreeProducerPlainDir(VfsTreeProducerProto):
             self.update_removed_messages
         )
 
-    async def update_edited_messages(self, source, edited_messages: Set[Message]):
+    async def update_edited_messages(self, source, edited_messages: list[Message]):
         pass
 
-    async def update_new_messages(self, source, new_messages: Set[Message]):
+    async def update_new_messages(self, source, new_messages: list[Message]):
 
         self._logger.info(
             f"update_new_messages({list(map(lambda m: m.id, new_messages))})"
@@ -81,7 +85,7 @@ class VfsTreeProducerPlainDir(VfsTreeProducerProto):
         if len(new_messages) == 0:
             return
 
-        new_messages_set = await self._config.apply_filters(Set(new_messages))
+        new_messages_set = await self._config.apply_filters(new_messages)
 
         new_files: list[vfs.FileLike] = [
             await self._config.produce_file(m) for m in new_messages_set
@@ -89,22 +93,22 @@ class VfsTreeProducerPlainDir(VfsTreeProducerProto):
 
         self._message_to_file.update(
             {
-                **{m: f for m, f in zip(new_messages_set, new_files)},
+                **{m.id: f for m, f in zip(new_messages_set, new_files)},
             }
         )
 
         if len(new_files):
             await self._tree_dir.put_content(new_files)
 
-    async def update_removed_messages(self, source, removed_messages: Set[Message]):
+    async def update_removed_messages(self, source, removed_messages: list[Message]):
         self._logger.info(
             f"update_removed_messages({list(map(lambda m: m.id, removed_messages))})"
         )
 
         removed_files = [
-            self._message_to_file[m]
+            self._message_to_file[m.id]
             for m in removed_messages
-            if m in self._message_to_file
+            if m.id in self._message_to_file
         ]
 
         for f in removed_files:
