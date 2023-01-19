@@ -58,7 +58,7 @@ class VfsTreeProducer:
     ):
         """Using `VfsDirConfig` produce content into `tree_dir`"""
 
-        self.logger.debug(f"Produce: {vfs.path_join(tree_dir.path, path)}")
+        self.logger.info(f"Produce: {vfs.path_join(tree_dir.path, path)}")
 
         # create the subdir
         sub_dir = await tree_dir.create_dir(path)

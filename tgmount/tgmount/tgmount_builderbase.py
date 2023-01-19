@@ -171,6 +171,10 @@ class TgmountBuilderBase(abc.ABC):
                 lambda ev, eid=msc.entity: tgm.on_delete_message(eid, ev),
                 chats=msc.entity,
             )
+            self.client.subscribe_edited_message(
+                lambda ev, eid=msc.entity: tgm.on_edited_message(eid, ev),
+                chats=msc.entity,
+            )
 
             tgm.events_dispatcher.connect(msc.entity, ms)
 

@@ -1,15 +1,14 @@
 from typing import Callable, Generic, Iterable, Optional, TypeVar
 
-from tgmount.tgmount.types import Set
 from tgmount.util import none_fallback, sets_difference
 
+from .logger import logger as _logger
 from .message_source_types import MessageSourceSubscribableProto, Subscribable
+from .types import Set
 
 M = TypeVar("M")
 
 MessageSourceFilter = Callable[[M], bool]
-
-from .logger import logger as _logger
 
 
 class MessageSource(MessageSourceSubscribableProto, Generic[M]):
@@ -41,6 +40,7 @@ class MessageSource(MessageSourceSubscribableProto, Generic[M]):
 
         self.event_new_messages: Subscribable = Subscribable()
         self.event_removed_messages: Subscribable = Subscribable()
+        self.event_edited_messages: Subscribable = Subscribable()
 
     @property
     def tag(self):
@@ -50,7 +50,7 @@ class MessageSource(MessageSourceSubscribableProto, Generic[M]):
     def filters(self):
         return self._filters
 
-    def add_filter(self, filt):
+    def add_filter(self, filt: MessageSourceFilter[M]):
         self._filters.append(filt)
 
     async def _filter_messages(self, messages: Iterable[M]) -> list[M]:
@@ -64,6 +64,22 @@ class MessageSource(MessageSourceSubscribableProto, Generic[M]):
                 res.append(m)
 
         return res
+
+    async def update_messages(self, messages: Iterable[M]):
+
+        if self._messages is None:
+            # self._messages = Set()
+            return
+
+        _set = Set(await self._filter_messages(messages))
+
+        _old_messages = []
+        _updated_messages = []
+
+        for m in _set:
+            if m in self._messages:
+                _old_messages.append(m)
+                _updated_messages.append(m)
 
     async def add_messages(self, messages: Iterable[M]):
 
@@ -85,11 +101,6 @@ class MessageSource(MessageSourceSubscribableProto, Generic[M]):
         self._messages |= diff
 
         await self.event_new_messages.notify(diff)
-
-    # async def remove_messages_by_func(
-    #     self, select_removed: Callable[[Iterable[M]], Iterable[M]]
-    # ):
-    #     msgs = await self.get_messages()
 
     async def remove_messages(self, messages: Iterable[M]):
         if self._messages is None:
@@ -115,7 +126,7 @@ class MessageSource(MessageSourceSubscribableProto, Generic[M]):
         return self._messages
 
     async def set_messages(self, messages: Set[M], notify=True):
-        """Sets the source messages. `notify` controls if the subscribers should be notified about the update"""
+        """Sets the source messages. `notify` sets if the subscribers should be notified about the update"""
 
         _set = Set(await self._filter_messages(messages))
 

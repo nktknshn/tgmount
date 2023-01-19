@@ -20,7 +20,7 @@ from .logger import logger as _logger
 @dataclass
 class WrapperZipsAsDirsProps:
     fix_id3v1: bool
-    """ Many media players try to read id3v1 tag which is located in the end of the file. Since `zipfile` module doesn't support seeking this leads to fetching whole file to just start playing it"""
+    """ Many media players try to read id3v1 tag which is located in the end of a media file. Since `zipfile` module doesn't support seeking this leads to fetching whole file just to start playing"""
 
     hide_zip_files: bool
     skip_single_root_subfolder: bool
@@ -29,12 +29,16 @@ class WrapperZipsAsDirsProps:
 
     @staticmethod
     def from_config(config: Mapping):
+        hide_zip_files = config.get("hide_zip_files", True)
+
         return WrapperZipsAsDirsProps(
-            hide_zip_files=config.get("hide_zip_files", True),
+            hide_zip_files=hide_zip_files,
             fix_id3v1=config.get("fix_id3v1", True),
             skip_single_root_subfolder=config.get("skip_single_root_subfolder", True),
             skip_single_root_subfolder_exclude_from_root=frozenset({"__MACOSX"}),
-            dir_name_mapper=lambda item: item.name,
+            dir_name_mapper=lambda item: item.name
+            if hide_zip_files
+            else f"{item.name}_unzipped",
         )
 
 
@@ -83,7 +87,7 @@ class WrapperZipsAsDirs(VfsTreeWrapperProto):
 
         # we only handle the wrapped dir ignoring nested dirs
 
-        modified_events = []
+        _events = []
 
         for e in events:
             if e.sender != self._wrapped_dir:
@@ -98,7 +102,7 @@ class WrapperZipsAsDirs(VfsTreeWrapperProto):
                 for item in e.new_items:
                     await self._process_event_new_item(e, _e, item)
 
-                modified_events.append(_e)
+                _events.append(_e)
 
             # when items disappear
             elif isinstance(e, TreeEventRemovedItems):
@@ -107,18 +111,25 @@ class WrapperZipsAsDirs(VfsTreeWrapperProto):
                 )
 
                 for item in e.removed_items:
-                    if isinstance(item, vfs.FileLike) and item in self._zip_to_dirlike:
-                        _item = self._zip_to_dirlike[item]
+                    if (
+                        isinstance(item, vfs.FileLike)
+                        and item.name in self._zip_to_dirlike
+                    ):
+                        _item = self._zip_to_dirlike[item.name]
                         _e.removed_items.append(_item)
+
+                        if not self._props.hide_zip_files:
+                            _e.removed_items.append(item)
+
                         await self._remove_zip_file(item)
                     else:
                         _e.removed_items.append(item)
 
-                modified_events.append(_e)
+                _events.append(_e)
             else:
-                modified_events.append(e)
+                _events.append(e)
 
-        return modified_events
+        return _events
 
     async def _process_event_new_item(
         self,
@@ -165,8 +176,8 @@ class WrapperZipsAsDirs(VfsTreeWrapperProto):
             and len(zip_tree_root_items) == 1
         ):
             # handle skip_single_root_subfolder props
-            # if there is a source message info in the extra
             if isinstance(zip_file_like.extra, tuple):
+                # if there is a source message info in the extra
                 message_id = zip_file_like.extra[0]
                 zip_dir_name = f"{message_id}_{zip_tree_root_items_names[0]}"
             else:
@@ -179,7 +190,7 @@ class WrapperZipsAsDirs(VfsTreeWrapperProto):
                 )
             )
         else:
-            zip_dir_name = zip_file_like.name
+            zip_dir_name = self._props.dir_name_mapper(zip_file_like)
             zip_dir_content = (
                 await self._dir_content_zip_factory.create_dir_content_from_ziptree(
                     zip_file_like.content, zip_tree
@@ -207,6 +218,8 @@ class WrapperZipsAsDirs(VfsTreeWrapperProto):
         for item in await vfs.dir_content_read(dir_content):
             if item.name in self._zip_to_dirlike:
                 items.append(self._zip_to_dirlike[item.name])
+                if not self._props.hide_zip_files:
+                    items.append(item)
             else:
                 items.append(item)
 

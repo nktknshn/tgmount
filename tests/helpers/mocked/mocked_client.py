@@ -11,6 +11,7 @@ import tgmount.tgclient as tg
 from telethon import events, hints
 from tgmount.tgclient.client_types import (
     IterDownloadProto,
+    ListenerEditedMessage,
     ListenerNewMessages,
     ListenerRemovedMessages,
     TgmountTelegramClientReaderProto,
@@ -48,6 +49,9 @@ class MockedClientReader(TgmountTelegramClientReaderProto):
 
     def subscribe_removed_messages(self, listener: ListenerRemovedMessages, chats):
         self._storage.subscribe_removed_messages(listener=listener, chats=chats)
+
+    def subscribe_edited_message(self, listener: ListenerEditedMessage, chats):
+        self._storage.subscribe_edited_message(listener=listener, chats=chats)
 
     async def get_messages(self, entity, **kwargs) -> TotalListTyped[MockedMessage]:
         await asyncio.sleep(0.1)

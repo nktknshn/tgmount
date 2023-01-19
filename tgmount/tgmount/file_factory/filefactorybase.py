@@ -58,6 +58,7 @@ class FileFactoryBase(FileFactoryProto[T], abc.ABC):
         file_getter: Optional[FileGetter[C]] = None,
     ):
         class_name = klass.__name__
+        cls._supported = {**cls._supported}
         cls._supported[class_name] = FileFactoryItem(
             klass=klass,
             filename=filename,

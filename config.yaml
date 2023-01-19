@@ -79,7 +79,7 @@ by-sender: &by-sender
   filter: All
   producer:
     BySender:
-      use_get_sender: false
+      use_get_sender: true
       dir_structure:
         <<: *ogranized
 message_sources:

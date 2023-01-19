@@ -9,6 +9,7 @@ TypeInputFileLocation = telethon.types.TypeInputFileLocation
 InputDocumentFileLocation = telethon.types.InputDocumentFileLocation
 InputPhotoFileLocation = telethon.types.InputPhotoFileLocation
 
+Set = list
 
 TT = TypeVar("TT")
 

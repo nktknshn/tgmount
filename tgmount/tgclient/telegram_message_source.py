@@ -24,6 +24,9 @@ class MessagesDisptacher:
 
 
 EntityId = str | int
+EventType = (
+    events.NewMessage.Event | events.MessageDeleted.Event | events.MessageEdited.Event
+)
 
 
 class TelegramEventsDispatcher:
@@ -41,9 +44,7 @@ class TelegramEventsDispatcher:
         # self._client = client
         self._sources: dict[EntityId, MessageSource] = {}
 
-        self._sources_events_queue: dict[
-            EntityId, list[events.NewMessage.Event | events.MessageDeleted.Event]
-        ] = {}
+        self._sources_events_queue: dict[EntityId, list[EventType]] = {}
 
         self._paused = True
 
@@ -67,6 +68,9 @@ class TelegramEventsDispatcher:
     async def process_delete_message_event(self, chat_id, ev):
         await self._on_delete_message(chat_id, ev)
 
+    async def process_edited_message_event(self, chat_id, ev):
+        await self._on_edited_message(chat_id, ev)
+
     def _get_total(self):
         total = {}
         for k, v in self._sources_events_queue.items():
@@ -76,13 +80,30 @@ class TelegramEventsDispatcher:
     async def _enqueue_event(
         self,
         chat_id: EntityId,
-        event: events.NewMessage.Event | events.MessageDeleted.Event,
+        event: EventType,
     ):
         self.logger.info(f"_enqueue_event: {event}. Total events: {self._get_total()}")
 
         q = self._sources_events_queue.get(chat_id, [])
         q.append(event)
         self._sources_events_queue[chat_id] = q
+
+    async def _on_edited_message(
+        self, chat_id: EntityId, event: events.MessageEdited.Event
+    ):
+        self.logger.info(f"Edited message: {event.message}")
+
+        if self.is_paused:
+            await self._enqueue_event(chat_id, event)
+            return
+
+        source = self._sources.get(chat_id)
+
+        if source is None:
+            self.logger.error(f"_on_edited_message: Missing {chat_id}")
+            return
+
+        await source.update_messages([event.message])
 
     async def _on_new_message(self, chat_id: EntityId, event: events.NewMessage.Event):
         self.logger.info(f"New message: {event.message}")
@@ -161,36 +182,3 @@ class TelegramMessagesFetcher:
             self.cfg.entity,
             limit=self.cfg.limit,
         )
-
-
-# class TelegramMessageSource:
-#     """ """
-
-#     logger = tglog.getLogger("TelegramMessageSource")
-#     # logger.setLevel(logging.ERROR)
-
-#     def __init__(
-#         self,
-#         client: TgmountTelegramClientReaderProto,
-#         chat_id: str | int,
-#         limit: Optional[int],
-#         receive_updates=True,
-#     ) -> None:
-#         self._client = client
-#         self._chat_id = chat_id
-#         self._limit = limit
-
-#         self.receive_updates = receive_updates
-
-#         super().__init__()
-
-#         self._logger = self.logger.getChild(f"{self._chat_id}")
-
-#     async def fetch_from_client(self):
-#         self._logger.info(
-#             f"Fetching {none_fallback(self._limit, 'all')} messages from {self._chat_id}"
-#         )
-
-#         messages = await self._client.get_messages(self._chat_id, limit=self._limit)
-
-#         return messages

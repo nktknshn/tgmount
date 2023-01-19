@@ -57,7 +57,6 @@ class WrapperEmpty(VfsTreeWrapperProto):
         self,
         events: list[TreeEventType[VfsTreeDir]],
     ) -> list[TreeEventType]:
-        """We catch updates for the directory children"""
         self._logger.debug(f"wrap_events({events})")
 
         _events = []

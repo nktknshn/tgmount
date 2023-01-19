@@ -33,7 +33,7 @@ class FileFactoryDefault(FileFactoryBase[FileFactorySupportedTypes | T], Generic
     def __init__(
         self,
         files_source: FileContentProviderProto,
-        extra_files_source: Mapping[str, FileContentProviderProto] | None = None,
+        # extra_files_source: Mapping[str, FileContentProviderProto] | None = None,
     ) -> None:
         super().__init__()
         self._files_source = files_source

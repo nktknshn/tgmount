@@ -278,7 +278,7 @@ def from_guard(g: Callable[[Any], bool]) -> Type[Filter]:
 
 
 def from_context_classifier(klass_name: str) -> Type[FilterFromConfigProto]:
-    """If `file_factory` supports mounting message of `filter_name` type returns filter for that type, otherwise returns `None`"""
+    """If `classifier` supports message of `filter_name` type returns filter for that type, otherwise returns `None`"""
 
     def from_config(
         d, ctx: FilterFromConfigContext, parse_filter: ParseFilter

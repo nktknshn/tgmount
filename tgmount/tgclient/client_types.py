@@ -8,6 +8,7 @@ from .types import InputDocumentFileLocation, InputPhotoFileLocation, TotalListT
 
 ListenerNewMessages = Callable[[events.NewMessage.Event], Awaitable[None]]
 ListenerRemovedMessages = Callable[[events.MessageDeleted.Event], Awaitable[None]]
+ListenerEditedMessage = Callable[[events.MessageEdited.Event], Awaitable[None]]
 
 
 class TgmountTelegramClientEventProto(Protocol):
@@ -17,6 +18,10 @@ class TgmountTelegramClientEventProto(Protocol):
 
     @abstractmethod
     def subscribe_removed_messages(self, listener: ListenerRemovedMessages, chats):
+        pass
+
+    @abstractmethod
+    def subscribe_edited_message(self, listener: ListenerRemovedMessages, chats):
         pass
 
 

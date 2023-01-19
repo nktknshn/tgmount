@@ -55,6 +55,9 @@ class FileSystemOperationsUpdatable(FileSystemOperations):
 
     async def update(self, update: FileSystemOperationsUpdate):
 
+        for f in update.new_files:
+            self.logger.info(f"New file: {f}")
+
         for path, filelike in update.new_files.items():
             parent_path = os.path.dirname(path)
             parent_item = self.inodes.get_by_path(parent_path)

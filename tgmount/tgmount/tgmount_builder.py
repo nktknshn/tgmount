@@ -1,5 +1,5 @@
 from tgmount import cache, tgclient, vfs
-from tgmount.tgclient.guards import MessageWithText
+from tgmount.tgclient.guards import MessageWithReactions, MessageWithText
 from tgmount.tgmount.file_factory.classifier import ClassifierDefault
 
 from .tgmount_builderbase import TgmountBuilderBase
@@ -20,6 +20,17 @@ class MyFileFactoryDefault(FileFactoryDefault[MessageWithText]):
 
 MyFileFactoryDefault.register(
     klass=MessageWithText,
+    filename=MessageWithText.filename,
+    file_content=lambda m: vfs.text_content(m.text),
+)
+
+
+def reactions_file_name():
+    pass
+
+
+MyFileFactoryDefault.register(
+    klass=MessageWithReactions,
     filename=MessageWithText.filename,
     file_content=lambda m: vfs.text_content(m.text),
 )

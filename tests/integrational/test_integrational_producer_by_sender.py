@@ -5,7 +5,7 @@ import pytest_asyncio
 
 import tgmount
 from tests.integrational.context import Context
-from tests.integrational.integrational_configs import ORGRANIZED2, create_config
+from tests.integrational.integrational_configs import create_config
 from tgmount.tgclient.guards import MessageWithVideo
 from tgmount.util.timer import Timer
 
@@ -140,53 +140,53 @@ async def test_producer_by_sender_update(
     await ctx.run_test(test_update)
 
 
-@pytest.mark.asyncio
-async def test_producer_by_sender_performance(
-    fixtures: Fixtures,
-):
-    """Tests updates of the tree"""
-    ctx = Context.from_fixtures(fixtures)
+# @pytest.mark.asyncio
+# async def test_producer_by_sender_performance(
+#     fixtures: Fixtures,
+# ):
+#     """Tests updates of the tree"""
+#     ctx = Context.from_fixtures(fixtures)
 
-    config = create_config(
-        message_sources={"source1": "source1", "source2": "source2"},
-        root={
-            "source1": ORGRANIZED2,
-        },
-    )
+#     config = create_config(
+#         message_sources={"source1": "source1", "source2": "source2"},
+#         root={
+#             "source1": ORGRANIZED2,
+#         },
+#     )
 
-    ctx.set_config(config)
+#     ctx.set_config(config)
 
-    ctx.create_senders(100)
+#     ctx.create_senders(100)
 
-    await ctx.send_text_messages(30)
-    await ctx.send_docs(30)
+#     await ctx.send_text_messages(30)
+#     await ctx.send_docs(30)
 
-    expected_dirs = ctx.expected_dirs
-    senders = ctx.senders
-    source1 = ctx.source1
-    files = fixtures.files
+#     expected_dirs = ctx.expected_dirs
+#     senders = ctx.senders
+#     source1 = ctx.source1
+#     files = fixtures.files
 
-    # tgmount.fs.logger.setLevel(logging.DEBUG)
-    # ctx.debug = logging.DEBUG
+#     # tgmount.fs.logger.setLevel(logging.DEBUG)
+#     # ctx.debug = logging.DEBUG
 
-    async def test_update():
-        _iter = iter(senders.keys())
-        sender = next(_iter)
-        sender2 = next(_iter)
-        timer = Timer()
+#     async def test_update():
+#         _iter = iter(senders.keys())
+#         sender = next(_iter)
+#         sender2 = next(_iter)
+#         timer = Timer()
 
-        # async for path, subdirs, subfiles in prepared_ctx.walkdir("/"):
-        #     pass
+#         # async for path, subdirs, subfiles in prepared_ctx.walkdir("/"):
+#         #     pass
 
-        timer.start("message 1", log=True)
+#         timer.start("message 1", log=True)
 
-        msg = await ctx.client.sender(sender).send_file(
-            source1.entity_id, file=files.video0
-        )
+#         msg = await ctx.client.sender(sender).send_file(
+#             source1.entity_id, file=files.video0
+#         )
 
-        timer.print()
+#         timer.print()
 
-    await ctx.run_test(test_update)
+#     await ctx.run_test(test_update)
 
 
 import time

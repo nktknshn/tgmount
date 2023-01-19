@@ -43,7 +43,6 @@ class VfsTreeProducerPlainDir(VfsTreeProducerProto):
 
     # @measure_time(logger_func=print)
     async def produce(self):
-        # self._logger.info(f"Producing...")
 
         self._messages = await self._config.get_messages()
 
@@ -54,9 +53,10 @@ class VfsTreeProducerPlainDir(VfsTreeProducerProto):
         }
 
         if len(self._message_to_file) > 0:
-            await self._tree_dir.put_content(list(self._message_to_file.values()))
+            await self._tree_dir.put_content(
+                list(self._message_to_file.values()),
+            )
 
-        # self._config.message_source.subscribe(self.update)
         self._config.message_source.event_new_messages.subscribe(
             self.update_new_messages
         )
@@ -64,6 +64,13 @@ class VfsTreeProducerPlainDir(VfsTreeProducerProto):
         self._config.message_source.event_removed_messages.subscribe(
             self.update_removed_messages
         )
+
+        self._config.message_source.event_edited_messages.subscribe(
+            self.update_removed_messages
+        )
+
+    async def update_edited_messages(self, source, edited_messages: Set[Message]):
+        pass
 
     async def update_new_messages(self, source, new_messages: Set[Message]):
 

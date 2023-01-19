@@ -6,7 +6,7 @@ from telethon import events
 from telethon.tl.custom import Message
 
 
-from tgmount.tgmount.types import Set
+from .types import Set
 
 T = TypeVar("T")
 Arg = TypeVar("Arg")
@@ -44,6 +44,7 @@ class MessageSourceSubscribableProto(MessageSourceProto, Protocol):
 
     event_new_messages: SubscribableProto[Set[Message]]
     event_removed_messages: SubscribableProto[Set[Message]]
+    event_edited_messages: SubscribableProto[list[tuple[Message, Message]]]
 
     @abstractmethod
     async def get_messages(self) -> Set[Message]:

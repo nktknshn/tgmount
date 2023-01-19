@@ -44,6 +44,7 @@ class ContextFilter(logging.Filter):
 
 def init_logging(debug_level: int = 0):
     # print(f"init_logging: {debug}", file=sys.stderr)
+    logging.getLogger("asyncio").setLevel(logging.ERROR)
 
     f = ContextFilter()
     # %(process)d %(threadName)s

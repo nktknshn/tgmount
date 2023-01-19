@@ -3,6 +3,7 @@ import os
 from typing import Mapping, Optional, Type
 
 from telethon import events
+from tests import tgmount
 
 from tgmount import fs, main, tgclient, tglog, vfs
 from tgmount.fs.update import FileSystemOperationsUpdate
@@ -30,6 +31,10 @@ from .vfs_tree_types import (
 add_hash_to_telegram_message_class()
 
 VfsTreeProducerPlainDir.logger.setLevel(logging.CRITICAL)
+
+from tgmount import tgmount
+
+tgmount.producers.logger.setLevel(logging.DEBUG)
 
 
 class TgmountBase:
@@ -63,7 +68,7 @@ class TgmountBase:
         self._vfs_tree: VfsTree
         self._producer: VfsTreeProducer
         self._events_dispatcher: TelegramEventsDispatcher
-        self._update_lock = MyLock("TgmountBase2._update_lock", self.logger)
+        self._update_lock = MyLock("TgmountBase._update_lock", self.logger)
 
     @property
     def vfs_tree(self) -> VfsTree:
@@ -167,12 +172,40 @@ class TgmountBase:
 
         self.logger.info(f"on_delete_message() done")
 
+    async def on_edited_message(
+        self, entity_id: EntityId, event: events.MessageEdited.Event
+    ):
+        self.logger.info(f"on_edited_message({event})")
+
+        async with self._update_lock:
+            _tree_events = []
+
+            async def _append_events(sender, events: list[TreeEventType]):
+                if events is None:
+                    pass
+
+                _tree_events.extend(events)
+
+            self._vfs_tree.subscribe(_append_events)
+
+            await self.events_dispatcher.process_delete_message_event(entity_id, event)
+
+            self._vfs_tree.unsubscribe(_append_events)
+
+            if len(_tree_events) > 0:
+                self.logger.info(
+                    f"Dispatching {len(_tree_events)} events to subscribers"
+                )
+                await self._on_vfs_tree_update(None, None, _tree_events)
+
+        self.logger.info(f"on_delete_message() done")
+
     async def fetch_messages(self):
         """Fetch initial messages from message_sources"""
         # assert self._resources.fetchers_dict
 
         self.logger.info(
-            f"Fetching initial messages from {len(self._resources.fetchers_dict)} with fetchers ({list(self._resources.fetchers_dict.keys())})..."
+            f"Fetching initial messages from ({list(self._resources.fetchers_dict.keys())})..."
         )
 
         for k, fetcher in self._resources.fetchers_dict.items():

@@ -1,6 +1,7 @@
 from typing import TypedDict
 from tgmount.tgclient.client_types import (
     IterDownloadProto,
+    ListenerEditedMessage,
     ListenerNewMessages,
     ListenerRemovedMessages,
 )
@@ -367,6 +368,9 @@ class MockedTelegramStorage:
         subs = self._subscriber_per_entity_removed.get(chats, [])
         subs.append(listener)
         self._subscriber_per_entity_removed[chats] = subs
+
+    def subscribe_edited_message(self, listener: ListenerEditedMessage, chats):
+        pass
 
     # async def create_message(
     #     self, entity: str, message=None, file=None, force_document=False

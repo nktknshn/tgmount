@@ -7,13 +7,14 @@ from tgmount.tgmount.vfs_tree_producer_types import (
     VfsTreeProducerProto,
 )
 from tgmount.util import func, measure_time
-from tgmount.tglog import tgmount_logger
 
 from .grouperbase import GroupedMessages, VfsTreeProducerGrouperBase
 
 TM = TypeVar("TM", bound=MessageProto)
 
 Sender = Any
+
+from .logger import logger as _logger
 
 
 class MockedSender(SenderProto):
@@ -23,33 +24,36 @@ class MockedSender(SenderProto):
 
 
 def get_get_key(*, use_get_sender=True):
-    @measure_time(logger_func=tgmount_logger.info, threshold=10)
+    """Retuns a async function that gets from a message a key for grouping"""
+
+    @measure_time(logger_func=_logger.getChild("VfsTreeDirBySender").info, threshold=3)
     async def get_key(m: TM) -> str | None:
 
         if m.from_id is None:
             return
 
+        sender_id = telethon.utils.get_peer_id(m.from_id)
+
         if use_get_sender:
             sender = await m.get_sender()
-        else:
-            id = telethon.utils.get_peer_id(m.from_id)
-            sender = MockedSender(id=id, username=str(id))
-
-        key = None
-
-        if sender is None:
-            return None
-
-        if sender.username is not None:
-            key = sender.username
-
-        if key is None:
-            key = telethon.utils.get_display_name(sender)
-
-        if key == "":
             key = None
 
-        return key
+            if sender is None:
+                return None
+
+            if sender.username is not None:
+                key = sender.username
+
+            if key is None:
+                key = telethon.utils.get_display_name(sender)
+
+            if key == "":
+                key = None
+
+            return f"{sender_id}_{key}"
+        else:
+            # sender = MockedSender(id=id, username=str(id))
+            return str(id)
 
     return get_key
 
@@ -89,16 +93,17 @@ class VfsTreeDirBySender(VfsTreeProducerGrouperBase, VfsTreeProducerProto):
         )
 
     async def group_messages(self, messages: Iterable[MessageProto]) -> GroupedMessages:
+        self._logger.info(f"Grouping...")
+
         by_user, less, nones = await group_by_sender(
             messages, minimum=1, use_get_sender=self.use_get_sender
         )
+
         res = {}
 
-        for sname, ms in by_user.items():
-            sender = await ms[0].get_sender()
-            if sender is None:
-                continue
-            _sname = f"{sender.id}_{sname}"
-            res[_sname] = ms
+        for sname, sender_messages in by_user.items():
+            res[sname] = sender_messages
+
+        self._logger.info(f"Done...")
 
         return res, []

@@ -11,6 +11,7 @@ from .auth import TelegramAuthen
 
 from .search.search import TelegramSearch
 from .client_types import (
+    ListenerEditedMessage,
     TgmountTelegramClientEventProto,
     ListenerNewMessages,
     ListenerRemovedMessages,
@@ -91,3 +92,6 @@ class TgmountTelegramClient(
 
     def subscribe_removed_messages(self, listener: ListenerRemovedMessages, chats=None):
         self.add_event_handler(listener, events.MessageDeleted(chats=chats))
+
+    def subscribe_edited_message(self, listener: ListenerEditedMessage, chats=None):
+        self.add_event_handler(listener, events.MessageEdited(chats=chats))

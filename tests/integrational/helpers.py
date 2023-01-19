@@ -87,11 +87,11 @@ class mdict:
             self._current_dict = self._current_dict[key]
         return self
 
-    def update(self, d: dict, *, at: str | None = None):
+    def update(self, update: dict, *, at: str | None = None):
         if at is not None:
             self.enter(at)
 
-        self._current_dict.update(copy.deepcopy(d))
+        self._current_dict.update(copy.deepcopy(update))
         return self
 
     def go(self):

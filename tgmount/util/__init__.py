@@ -54,6 +54,7 @@ def measure_time(*, logger_func, threshold=None):
             res = await func(*args, **kwargs)
             duration = time.time_ns() - started
             duration = duration / 1000 / 1000
+
             if threshold is not None and duration < threshold:
                 return res
 

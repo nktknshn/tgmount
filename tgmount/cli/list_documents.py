@@ -8,7 +8,10 @@ from tgmount import tgclient
 from tgmount import util
 from tgmount.tgclient import TgmountTelegramClient
 from tgmount.tgclient.guards import MessageDownloadable
+from tgmount.tgmount.file_factory.classifier import ClassifierDefault
+from tgmount.tgmount.file_factory.classifierbase import ClassifierBase
 from tgmount.tgmount.filters import OnlyUniqueDocs
+from tgmount.tgmount.tgmount_builder import MyFileFactoryDefault
 
 
 async def list_documents(
@@ -23,11 +26,13 @@ async def list_documents(
     print_all_matching_types=False,
     only_unique_docs=False,
 ):
-    factory = FileFactoryDefault(
-        files_source=tgclient.TelegramFilesSource(client), extra_files_source={}
+    factory = MyFileFactoryDefault(
+        files_source=tgclient.TelegramFilesSource(client),
     )
 
-    messages = await client.get_messages_typed(
+    classifier = ClassifierDefault()
+
+    messages = await client.get_messages(
         entity=entity,
         limit=limit,
         reverse=reverse,
@@ -39,14 +44,16 @@ async def list_documents(
         )
 
     for m in messages:
+        classes = classifier.classify_str(m)
+
         if factory.supports(m):
             if only_unsupported:
                 continue
 
             types_str = (
-                ",".join(factory.message_types(m))
+                ",".join(classes)
                 if print_all_matching_types
-                else factory.message_type(m)
+                else factory.get_cls(m).__name__
             )
 
             original_fname = (
