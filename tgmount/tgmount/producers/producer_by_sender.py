@@ -1,7 +1,8 @@
-from typing import Any, Iterable, Mapping, TypeVar
+from typing import Iterable, Mapping
 
 import telethon
-from tgmount.tgclient.message_types import MessageProto, SenderProto
+
+from tgmount.tgclient.message_types import MessageProto
 from tgmount.tgmount.vfs_tree_producer_types import (
     VfsTreeProducerConfig,
     VfsTreeProducerProto,
@@ -10,24 +11,15 @@ from tgmount.util import func, measure_time
 
 from .grouperbase import GroupedMessages, VfsTreeProducerGrouperBase
 
-TM = TypeVar("TM", bound=MessageProto)
-
-Sender = Any
 
 from .logger import logger as _logger
-
-
-class MockedSender(SenderProto):
-    def __init__(self, id: int, username: str) -> None:
-        self.id: int = id
-        self.username = username
 
 
 def get_get_key(*, use_get_sender=True):
     """Retuns a async function that gets from a message a key for grouping"""
 
     @measure_time(logger_func=_logger.getChild("VfsTreeDirBySender").info, threshold=3)
-    async def get_key(m: TM) -> str | None:
+    async def get_key(m: MessageProto) -> str | None:
 
         if m.from_id is None:
             return
@@ -59,8 +51,8 @@ def get_get_key(*, use_get_sender=True):
 
 
 async def group_by_sender(
-    messages: Iterable[TM], minimum=1, use_get_sender=False
-) -> tuple[Mapping[str, list[TM]], list[TM], list[TM],]:
+    messages: Iterable[MessageProto], minimum=1, use_get_sender=False
+) -> tuple[Mapping[str, list[MessageProto]], list[MessageProto], list[MessageProto],]:
 
     return await func.group_by_func_async(
         get_get_key(use_get_sender=use_get_sender),

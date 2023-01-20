@@ -12,6 +12,7 @@ from typing import (
 import pyfuse3
 
 from tgmount import tglog
+from tgmount.util import none_fallback
 from .util import bytes_to_str, str_to_bytes
 from .logger import logger as _logger
 
@@ -189,9 +190,10 @@ class InodesRegistry(Generic[T]):
         name: bytes,
         data: T,
         parent_inode: int | RegistryItem[T] = ROOT_INODE,
+        inode: int | None = None,
     ) -> RegistryItem[T]:
 
-        inode = self._new_inode()
+        inode = none_fallback(inode, self._new_inode())
 
         item = self._inodes[inode] = RegistryItem(
             inode, name, data, self.get_inode(parent_inode)

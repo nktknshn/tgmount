@@ -1,24 +1,27 @@
 from typing import Mapping, TypeVar
+
 from telethon.tl.custom import Message
 
 from tgmount import vfs
-from tgmount.tgmount.error import TgmountError
+from tgmount.tgclient.message_types import MessageProto
 from tgmount.tgclient.messages_collection import MessagesCollection
 
-# from tgmount.tgmount.types import MessagesSet, Set
 from tgmount.tgmount.vfs_tree import VfsTreeDir
 from tgmount.tgmount.vfs_tree_producer_types import (
     VfsTreeProducerConfig,
-    VfsDirConfig,
     VfsTreeProducerProto,
 )
 from tgmount.util import measure_time
+from tgmount.util.col import sets_difference
+
 from .logger import logger as _logger
 
 M = TypeVar("M")
 
 
 class VfsTreeProducerPlainDir(VfsTreeProducerProto):
+    """Produces a directory with a list of files"""
+
     logger = _logger.getChild(f"VfsTreeProducerPlainDir")
 
     def __init__(
@@ -29,7 +32,6 @@ class VfsTreeProducerPlainDir(VfsTreeProducerProto):
         self._config = config
         self._tree_dir = tree_dir
 
-        # self._messages = MessagesCollection()
         self._message_to_file: dict[int, vfs.FileLike] = {}
 
         self._logger = self.logger.getChild(f"{self._tree_dir.path}")
@@ -73,8 +75,59 @@ class VfsTreeProducerPlainDir(VfsTreeProducerProto):
             self.update_removed_messages
         )
 
-    async def update_edited_messages(self, source, edited_messages: list[Message]):
-        pass
+    async def update_edited_messages(
+        self,
+        source,
+        old_messages: list[MessageProto],
+        edited_messages: list[MessageProto],
+    ):
+        """ """
+        self._logger.info(
+            f"update_edited_messages({list(map(lambda m: m.id, old_messages))})"
+        )
+
+        if len(old_messages) == 0:
+            return
+
+        old_messages_dict = {m.id: m for m in old_messages}
+        edited_messages_dict = {m.id: m for m in edited_messages}
+
+        filtered_edited_messages = await self._config.apply_filters(edited_messages)
+
+        removed_ids, new_ids, common_ids = sets_difference(
+            set(m.id for m in old_messages), set(m.id for m in filtered_edited_messages)
+        )
+
+        new_messages = [edited_messages_dict[i] for i in new_ids]
+        updated_messages = [edited_messages_dict[i] for i in common_ids]
+
+        removed_files = [self._message_to_file[i] for i in removed_ids]
+
+        new_files: list[vfs.FileLike] = [
+            await self._config.produce_file(m) for m in new_messages
+        ]
+
+        updated_files: list[vfs.FileLike] = [
+            await self._config.produce_file(m) for m in updated_messages
+        ]
+
+        self._message_to_file.update(
+            {
+                **{m.id: f for m, f in zip(new_messages, new_files)},
+                **{m.id: f for m, f in zip(updated_messages, updated_files)},
+            }
+        )
+
+        # update should handle situations:
+        #   - file renamed
+        #   - changed content/size
+        #   - modification time
+
+        for f in removed_files:
+            await self._tree_dir.remove_content(f)
+
+        if len(new_files):
+            await self._tree_dir.put_content(new_files)
 
     async def update_new_messages(self, source, new_messages: list[Message]):
 

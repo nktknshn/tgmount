@@ -1,5 +1,5 @@
-from abc import abstractmethod
 import logging
+from abc import abstractmethod
 from typing import (
     Any,
     Generic,
@@ -12,17 +12,12 @@ from typing import (
 )
 
 from tgmount.util.col import sets_difference
+
 from .logger import logger as _logger
 
 
 class WithId(Protocol):
     id: int
-
-
-class Hashable(Protocol):
-    @abstractmethod
-    def __hash__(self) -> int:
-        pass
 
 
 M = TypeVar("M", bound=WithId)
@@ -31,6 +26,10 @@ M = TypeVar("M", bound=WithId)
 class MessagesCollection(Generic[M]):
     logger = _logger.getChild("MessagesCollection")
     logger.setLevel(logging.CRITICAL)
+
+    @staticmethod
+    def aa():
+        pass
 
     @staticmethod
     def from_iterable(it: Iterable[M]):
@@ -44,20 +43,20 @@ class MessagesCollection(Generic[M]):
     def _item_hash(self, m: M):
         return m.id
 
-    def add_message(self, m: M) -> M | None:
+    def add_message(self, m: M, overwright=False) -> M | None:
         h = self._item_hash(m)
 
-        if h in self._messages:
+        if not overwright and h in self._messages:
             self.logger.warn(f"{m} is already in the collection")
             return
 
         self._messages[h] = m
         return m
 
-    def add_messages(self, ms: Iterable[M]):
+    def add_messages(self, ms: Iterable[M], overwright=False):
         res = []
         for m in ms:
-            if self.add_message(m) is not None:
+            if self.add_message(m, overwright=overwright) is not None:
                 res.append(m)
         return res
 
@@ -108,7 +107,10 @@ class MessagesCollection(Generic[M]):
         return list(self._messages.values())
 
     def get_by_ids(self, ids: list[int]):
-        return [self._messages[i] for i in ids]
+        try:
+            return [self._messages[i] for i in ids]
+        except KeyError:
+            return None
 
     def __len__(self):
         return len(self._messages)

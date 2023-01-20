@@ -52,9 +52,6 @@ class VfsTreeProducerConfig:
 
         self._messages: list[MessageProto] | None = None
 
-    # async def on_update(self, source, messages):
-    #     self._messages = await self._apply_all_filters(messages)
-
     async def produce_file(self, m: MessageProto):
         return self.factory.file(m, treat_as=self.treat_as_prop)
 
@@ -63,21 +60,15 @@ class VfsTreeProducerConfig:
     ) -> list[MessageProto]:
 
         messages = list(messages)
+
         for f in self.filters:
             messages = await f.filter(messages)
 
         return messages
 
     async def _apply_all_filters(self, input_messages: list[MessageProto]):
-        # supported = await self.filter_supported(input_messages)
         filtered = await self.apply_filters(input_messages)
         return filtered
-
-    async def filter_supported(
-        self, input_messages: Iterable[MessageProto]
-    ) -> list[MessageProto]:
-        print(f"filter_supported")
-        return self.factory.filter_supported(input_messages)
 
     async def get_messages(self) -> list[MessageProto]:
         """Get messages list from message_source, make set and apply filters"""

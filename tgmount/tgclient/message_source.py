@@ -31,9 +31,7 @@ class MessageSource(MessageSourceSubscribableProto, Generic[M]):
     def __repr__(self) -> str:
         return f"MessageSource({self.tag})"
 
-    def __init__(
-        self, messages: Iterable[MessageProto] | None = None, tag=None
-    ) -> None:
+    def __init__(self, messages: Iterable[M] | None = None, tag=None) -> None:
         self._tag = none_fallback(tag, "NoTag")
 
         self._logger = self.logger.getChild(f"{self.tag}")
@@ -74,18 +72,21 @@ class MessageSource(MessageSourceSubscribableProto, Generic[M]):
     async def edit_messages(self, messages: Iterable[M]):
 
         if self._messages is None:
-            # self._messages = Set()
             return
 
-        _set = await self._filter_messages(messages)
+        filtered = await self._filter_messages(messages)
 
-        # _old_messages = []
-        # _updated_messages = []
+        old_messages = self._messages.get_by_ids([m.id for m in filtered])
 
-        # for m in _set:
-        #     if m in self._messages:
-        #         _old_messages.append(m)
-        #         _updated_messages.append(m)
+        if old_messages is None:
+            self._logger.error(
+                f"edit_messages({messages}) Some of the edited messages has not been found in the message source"
+            )
+            return
+
+        self._messages.add_messages(filtered, overwright=True)
+
+        await self.event_edited_messages.notify(old_messages, filtered)
 
     async def add_messages(self, messages: Iterable[M]):
 
@@ -99,7 +100,6 @@ class MessageSource(MessageSourceSubscribableProto, Generic[M]):
         if len(_filtered) == 0:
             return
 
-        # diff = _filtered.difference(self._messages)
         diff = self._messages.add_messages(_filtered)
 
         if len(diff) == 0:

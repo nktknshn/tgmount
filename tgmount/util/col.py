@@ -63,3 +63,13 @@ def sets_difference(
     common = right.intersection(left)
 
     return unique_left, unique_right, common
+
+
+def difference(
+    left: list[T], right: list[T], func: Callable[[T], int]
+) -> tuple[Set[T], Set[T], Set[T]]:
+    unique_left = left - right
+    unique_right = right - left
+    common = right.intersection(left)
+
+    return unique_left, unique_right, common

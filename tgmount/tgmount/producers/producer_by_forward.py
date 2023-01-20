@@ -1,24 +1,17 @@
-import abc
-from typing import Iterable, Mapping, Set
+from typing import Iterable, Mapping
 
-import pathvalidate
 import telethon
 from tgmount.tgclient.guards import MessageForwarded
-from tgmount.tgmount.error import TgmountError
 from tgmount.tgmount.vfs_tree_producer_types import (
     VfsTreeProducerConfig,
-    VfsDirConfig,
     VfsTreeProducerProto,
 )
-from tgmount.util import none_fallback
-from tgmount.util.col import sets_difference
-from tgmount.util.tg import get_entity_type_str
 
 from .grouperbase import GroupedMessages, VfsTreeProducerGrouperBase
 
 
 async def group_by_forward(
-    forwarded_messages: Iterable["MessageForwarded"],
+    forwarded_messages: Iterable[MessageForwarded],
 ) -> Mapping[str, list[MessageForwarded]]:
     fws = {}
 

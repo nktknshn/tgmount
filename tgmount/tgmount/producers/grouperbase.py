@@ -2,15 +2,15 @@ import abc
 import os
 from typing import Iterable, Mapping, TypeVar
 
-from telethon.tl.custom import Message
-
 from tgmount.tgclient.message_source import MessageSource
 from tgmount.tgclient.message_types import MessageProto
-from tgmount.tgmount.error import TgmountError
-from tgmount.tgmount.producers.producer_plain import VfsTreeProducerPlainDir
-from tgmount.tgmount.root_config_types import RootConfigWalkingContext
-from tgmount.tgmount.tgmount_types import TgmountResources
-from tgmount.tgmount.vfs_tree_producer_types import VfsTreeProducerConfig
+
+from ..error import TgmountError
+from ..producers.producer_plain import VfsTreeProducerPlainDir
+from ..root_config_types import RootConfigWalkingContext
+from ..tgmount_types import TgmountResources
+from ..vfs_tree_producer_types import VfsTreeProducerConfig
+
 from tgmount.util import sanitize_string_for_path
 from tgmount.util.col import sets_difference
 from tgmount.util.func import map_values
@@ -20,9 +20,8 @@ from ..vfs_tree import VfsTreeDir
 from ..vfs_tree_producer import VfsTreeProducer
 from .logger import logger as _logger
 
-TM = TypeVar("TM", bound=Message)
-
-GroupedMessages = tuple[Mapping[str, list[TM]], list[TM]]
+M = TypeVar("M", bound=MessageProto)
+GroupedMessages = tuple[Mapping[str, list[M]], list[M]]
 
 
 class VfsTreeProducerGrouperBase(abc.ABC):
@@ -61,12 +60,10 @@ class VfsTreeProducerGrouperBase(abc.ABC):
         return sanitize_string_for_path(dirname)
 
     @abc.abstractmethod
-    async def group_messages(self, messages: Iterable[Message]) -> GroupedMessages:
+    async def group_messages(self, messages: Iterable[M]) -> GroupedMessages[M]:
         ...
 
-    async def _group_messages(
-        self, messages: Iterable[Message]
-    ) -> GroupedMessages[Message]:
+    async def _group_messages(self, messages: Iterable[M]) -> GroupedMessages[M]:
         group, root = await self.group_messages(messages)
         return {self.sanitize(k): v for k, v in group.items()}, root
 
@@ -93,7 +90,7 @@ class VfsTreeProducerGrouperBase(abc.ABC):
             ),
         )
 
-    async def _update_new_message(self, source, messages: Iterable[Message]):
+    async def _update_new_message(self, source, messages: Iterable[MessageProto]):
         self._logger.info(f"update_new_messages({list(map(lambda m: m.id, messages))})")
 
         messages = await self._config.apply_filters(messages)
@@ -122,7 +119,9 @@ class VfsTreeProducerGrouperBase(abc.ABC):
 
             await _source.add_messages(grouped[d])
 
-    async def _update_removed_messages(self, source, removed_messages: list[Message]):
+    async def _update_removed_messages(
+        self, source, removed_messages: list[MessageProto]
+    ):
         self._logger.info(
             f"update_removed_messages({list(map(lambda m: m.id, removed_messages))})"
         )

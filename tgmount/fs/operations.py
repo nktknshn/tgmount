@@ -4,7 +4,7 @@ from dataclasses import dataclass, replace
 from typing import Any, Optional, TypedDict, overload
 
 import pyfuse3
-
+from datetime import datetime
 from tgmount import vfs
 from tgmount.util import none_fallback, measure_time
 from tgmount.vfs.util import MyLock
@@ -201,6 +201,49 @@ class FileSystemOperations(pyfuse3.Operations, FileSystemOperationsMixin):
                 size=item.content.size,
                 stamp=int(item.creation_time.timestamp() * 1e9),
             )
+
+    def update_subitem(
+        self, path: str, new_item: vfs.DirContentItem, parent_inode: int
+    ):
+
+        self.logger.debug(
+            f"update_subitem: {new_item.name}, parent_inode={parent_inode} ({self.inodes.get_item_path(parent_inode)})"
+        )
+
+        # old_fs_item = self.inodes.get_child_item_by_name(new_item.name, parent_inode)
+        old_fs_item = self.inodes.get_by_path(path)
+
+        if old_fs_item is None:
+            self.logger.debug(f"update_subitem: {path} is not in inodes. Adding.")
+
+            self.add_subitem(new_item, parent_inode)
+            return
+
+        self.logger.debug(f"update_subitem: old={old_fs_item}")
+
+        if self._bytes_to_str(old_fs_item.name) != new_item.name:
+            self.logger.debug(f"update_subitem: item renamed")
+            pyfuse3.invalidate_entry_async(parent_inode, old_fs_item.name)
+
+        pyfuse3.invalidate_inode(old_fs_item.inode)
+
+        fs_item = self.create_FileSystemItem(
+            new_item,
+            self._create_attributes_for_item(new_item, inode=0),
+        )
+
+        item = self.inodes.add_item_to_inodes(
+            name=self._str_to_bytes(new_item.name),
+            data=fs_item,
+            parent_inode=parent_inode,
+            inode=old_fs_item.inode,
+        )
+
+        item.data.attrs.st_ino = item.inode
+        item.data.attrs.st_ctime_ns = old_fs_item.data.attrs.st_ctime_ns
+        item.data.attrs.st_mtime_ns = int(datetime.now().timestamp() * 1e9)
+
+        return item
 
     def add_subitem(self, vfs_item: vfs.DirContentItem, parent_inode: int):
 

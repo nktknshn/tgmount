@@ -93,3 +93,78 @@ async def test_fs1(mnt_dir, caplog):
         # await asyncio.sleep(1)
 
         assert os.listdir(ctx.path("subf")) == ["ccc"]
+
+
+@pytest.mark.asyncio
+async def test_fs_rename(mnt_dir, caplog):
+    get_props = lambda ctx: {
+        "debug": logging.DEBUG,
+        "ev0": ctx.mgr.Event(),
+    }
+
+    root1 = vfs.root(
+        vfs.dir_content_from_source(
+            {
+                "subf": {
+                    "aaa": vfs.text_content("aaaaaaa"),
+                    "bbb": vfs.text_content("bbbbbbb"),
+                }
+            }
+        )
+    )
+
+    async def main1(
+        props: Main1Props,
+        on_event: OnEventCallbackSet,
+    ):
+        init_logging(props["debug"])
+
+        fs1 = fs.FileSystemOperationsUpdatable(root1)
+
+        async def update():
+            await fs1.update(
+                fs.FileSystemOperationsUpdate(
+                    update_items={
+                        "/subf/aaa": vfs.FileLike("aaa", vfs.text_content("!!!")),
+                        "/subf/bbb": vfs.FileLike("ccc", vfs.text_content("###")),
+                    }
+                )
+            )
+
+        on_event(props["ev0"], update)
+
+        return fs1
+
+    for ctx in spawn_fs_ops(main1, get_props, mnt_dir=mnt_dir, min_tasks=10):
+
+        assert os.listdir(ctx.path("subf")) == ["aaa", "bbb"]
+        assert ctx.props
+
+        with open(ctx.path("subf/aaa"), "r") as f:
+            assert f.read() == "aaaaaaa"
+
+        assert os.stat(ctx.path("subf/aaa")).st_size == 7
+
+        ctx.props["ev0"].set()
+
+        await asyncio.sleep(0.1)
+
+        assert os.listdir(ctx.path("subf")) == ["aaa", "ccc"]
+
+        assert os.stat(ctx.path("subf/aaa")).st_size == 3
+
+        with open(ctx.path("subf/aaa"), "r") as f:
+            assert f.read() == "!!!"
+
+        with pytest.raises(FileNotFoundError):
+            assert os.stat(ctx.path("subf/bbb")).st_size == 3
+
+        assert os.stat(ctx.path("subf/ccc")).st_size == 3
+
+        with open(ctx.path("subf/ccc"), "r") as f:
+            assert f.read() == "###"
+
+        assert (
+            os.stat(ctx.path("subf/aaa")).st_ctime_ns
+            < os.stat(ctx.path("subf/aaa")).st_mtime_ns
+        )

@@ -22,13 +22,15 @@ class FileSystemOperationsUpdate:
     """ Add a list of vfs.FileLike at paths """
 
     new_dirs: dict[str, vfs.DirLike | vfs.DirContentProto] = field(default_factory=dict)
-    """ Add a new directories. Keys are the paths of those directories, values are either `vfs.DirContent` or `vfs.DirLike`. If the value is `vfs.DirContent`, `vfs.DirLike` with a name sourced from the path is constructed, otherwise `vfs.DirLike` with its own name will be used and the directory name from the path will be ignored. """
+    """ Add new directories. Keys are paths of those directories, values are either `vfs.DirContent` or `vfs.DirLike`. If the value is `vfs.DirContent`, then directory name will be `basename(path)`, otherwise `vfs.DirLike` with its own name will be used and the directory name from the path will be ignored. """
 
     removed_dirs: list[str] = field(default_factory=list)
     """ List of directories to remove from FS """
 
     removed_files: list[str] = field(default_factory=list)
     """ List of files to remove from FS """
+
+    update_items: dict[str, vfs.DirContentItem] = field(default_factory=dict)
 
     # update_dir_content: dict[str, vfs.DirContentProto] = field(default_factory=dict)
     # """ Mapping of directories to update there  """
@@ -40,11 +42,12 @@ class FileSystemOperationsUpdate:
             new_dirs=map_keys(_prepend, self.new_dirs),
             removed_files=list(map(_prepend, self.removed_files)),
             removed_dirs=list(map(_prepend, self.removed_dirs)),
+            update_items=map_keys(_prepend, self.update_items),
             # update_dir_content=map_keys(_prepend, self.update_dir_content),
         )
 
     def __repr__(self) -> str:
-        return f"FileSystemOperationsUpdate(new_files={list(self.new_files.keys())}, new_dirs={list(self.new_dirs.keys())}, removed_files={self.removed_files}, removed_dir_contents={self.removed_dirs})"
+        return f"FileSystemOperationsUpdate(new_files={list(self.new_files.keys())}, new_dirs={list(self.new_dirs.keys())}, removed_files={self.removed_files}, removed_dir_contents={self.removed_dirs}, update_items={self.update_items})"
 
 
 class FileSystemOperationsUpdatable(FileSystemOperations):
@@ -57,6 +60,21 @@ class FileSystemOperationsUpdatable(FileSystemOperations):
 
         for f in update.new_files:
             self.logger.info(f"New file: {f}")
+
+        for path, filelike in update.update_items.items():
+            parent_path = os.path.dirname(path)
+            parent_item = self.inodes.get_by_path(parent_path)
+
+            if parent_item is None:
+                self.logger.debug(
+                    f"on_update: new_files: {parent_path} is not in inodes"
+                )
+                continue
+
+            if not self.inodes.was_content_read(parent_item):
+                continue
+
+            self.update_subitem(path, filelike, parent_item.inode)
 
         for path, filelike in update.new_files.items():
             parent_path = os.path.dirname(path)
