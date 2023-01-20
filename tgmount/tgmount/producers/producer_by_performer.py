@@ -1,6 +1,7 @@
 from typing import Iterable, Mapping, cast
 
 from tgmount.tgclient.guards import MessageWithMusic
+from tgmount.tgclient.message_types import MessageProto
 from tgmount.tgmount.producers.grouperbase import (
     GroupedMessages,
     VfsTreeProducerGrouperBase,
@@ -55,7 +56,7 @@ class VfsTreeGroupByPerformer(VfsTreeProducerGrouperBase, VfsTreeProducerProto):
         )
 
     async def group_messages(
-        self, messages: Iterable[MessageWithMusic]
+        self, messages: Iterable[MessageProto]
     ) -> GroupedMessages[MessageWithMusic]:
 
         by_performer, no_performer = group_by_performer(

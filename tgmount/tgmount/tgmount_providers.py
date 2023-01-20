@@ -3,6 +3,7 @@ from typing import Any, Mapping, Type
 from tgmount.cache import CacheFactoryMemory
 from tgmount.tgmount.producers.producer_by_performer import VfsTreeGroupByPerformer
 from tgmount.tgmount.producers.producer_by_forward import VfsTreeGroupByForward
+from tgmount.tgmount.producers.producer_by_reaction import VfsTreeGroupByReactions
 from tgmount.tgmount.producers.producer_by_sender import VfsTreeDirBySender
 from tgmount.tgmount.producers.producer_plain import VfsTreeProducerPlainDir
 from tgmount.tgmount.vfs_tree_producer_types import VfsTreeProducerProto
@@ -11,6 +12,7 @@ from .filters import (
     All,
     And,
     ByExtension,
+    ByReaction,
     First,
     Last,
     Not,
@@ -45,6 +47,7 @@ class ProducersProvider(ProducersProviderBase):
         "BySender": VfsTreeDirBySender,
         "ByForward": VfsTreeGroupByForward,
         "ByPerformer": VfsTreeGroupByPerformer,
+        "ByReactions": VfsTreeGroupByReactions,
     }
 
 
@@ -60,6 +63,7 @@ class FilterProvider(FilterProviderBase):
         "Union": Union,
         "Seq": Seq,
         "And": And,
+        "ByReaction": ByReaction,
     }
 
     filter_getters = [

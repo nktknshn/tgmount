@@ -10,10 +10,12 @@ from tgmount.tgmount.vfs_tree_types import (
     TreeEventRemovedDirs,
     TreeEventRemovedItems,
     TreeEventType,
+    TreeEventUpdatedItems,
     VfsTreeProto,
 )
 from tgmount.tgmount.vfs_tree_wrapper_types import VfsTreeWrapperProto
 from tgmount.util import none_fallback
+from tgmount.util.col import map_keys
 from .logger import logger as _logger
 
 
@@ -56,14 +58,27 @@ class VfsTreeDirContent(vfs.DirContentProto):
 
 
 class VfsTreeDirMixin:
+    async def _update_content(
+        self: "VfsTreeDir",  # type: ignore
+        content: Mapping[str, vfs.DirContentItem],
+    ):
+        result = []
+
+        for item in self._dir_content_items:
+            if item.name in content:
+                result.append(content[item.name])
+            else:
+                result.append(item)
+
+        self._dir_content_items = result
+
     async def _put_content(
         self: "VfsTreeDir",  # type: ignore
         content: Sequence[vfs.DirContentItem],
-        # path: str = "/",
         *,
-        overwright=False,
+        replace=False,
     ):
-        if overwright:
+        if replace:
             self._dir_content_items = list(content)
         else:
             self._dir_content_items.extend(content)
@@ -172,19 +187,26 @@ class VfsTreeDir(VfsTreeDirMixin):
     async def put_dir(self, d: "VfsTreeDir") -> "VfsTreeDir":
         return await self._parent_tree.put_dir(d)
 
+    async def update_content(
+        self,
+        content: Mapping[str, vfs.DirContentItem],
+        subpath: str = "/",
+    ):
+        await self._parent_tree.update_content(content, self._globalpath(subpath))
+
     async def put_content(
         self,
         content: Sequence[vfs.DirContentItem] | vfs.DirContentItem,
         subpath: str = "/",
         *,
-        overwright=False,
+        replace=False,
     ):
 
         if not isinstance(content, Sequence):
             content = [content]
 
         await self._parent_tree.put_content(
-            content, self._globalpath(subpath), overwright=overwright
+            content, self._globalpath(subpath), replace=replace
         )
 
     async def remove_subdir(self, subpath: str):
@@ -316,15 +338,37 @@ class VfsTree(Subscribable, VfsTreeProto):
         content: Sequence[vfs.DirContentItem],
         path: str = "/",
         *,
-        overwright=False,
+        replace=False,
     ):
         """Put a sequence of `vfs.DirContentItem` at `path`."""
         sd = await self.get_dir(path)
 
-        await sd._put_content(content, overwright=overwright)
+        await sd._put_content(content, replace=replace)
 
         await sd.child_updated(
             [TreeEventNewItems(sender=sd, update_path=path, new_items=list(content))],
+        )
+
+    async def update_content(
+        self,
+        content: Mapping[str, vfs.DirContentItem],
+        path: str = "/",
+    ):
+        """Put a sequence of `vfs.DirContentItem` at `path`."""
+        sd = await self.get_dir(path)
+
+        await sd._update_content(content)
+
+        await sd.child_updated(
+            [
+                TreeEventUpdatedItems(
+                    sender=sd,
+                    update_path=path,
+                    updated_items=map_keys(
+                        lambda name: vfs.path_join(path, name), content
+                    ),
+                )
+            ],
         )
 
     async def remove_dir(self, path: str):

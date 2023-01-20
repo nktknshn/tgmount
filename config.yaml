@@ -63,7 +63,17 @@ ogranized: &ogranized
   forwareded-video:
     filter:
       And: [MessageForwarded, MessageWithVideo]
-      
+  by-reactions: 
+    producer: ByReactions      
+  likes: 
+    filter: 
+      - ByReaction: 
+          reaction: 👍
+  top-likes: 
+    filter: 
+      - ByReaction: 
+          reaction: 👍
+          minimum: 5
   unpacked:
     filter: MessageWithZip
     # it's recommended to use cache with ZipsAsDirs. otherwise it is slow
@@ -130,26 +140,22 @@ root:
   #   source: { source: armenia, recursive: True }
   #   <<: *ogranized
   #   by-sender: *by-sender
-  kz:
-    source: { source: kz, recursive: True }
-    <<: *ogranized
-    by-sender: *by-sender
-  relocationguidebig:
-    source: { source: relocationguidebig, recursive: True }
-    <<: *ogranized
-    by-sender: *by-sender
-  ru_python_beginners:
-    source: { source: ru_python_beginners, recursive: True }
-    <<: *ogranized
-    by-sender: *by-sender
-  ru_python:
-    source: { source: ru_python, recursive: True }
-    <<: *ogranized
-    by-sender: *by-sender
-  ts_cool:
-    source: { source: ts_cool, recursive: True }
-    <<: *ogranized
-    by-sender: *by-sender
+  # kz:
+  #   source: { source: kz, recursive: True }
+  #   <<: *ogranized
+  #   by-sender: *by-sender
+  # relocationguidebig:
+  #   source: { source: relocationguidebig, recursive: True }
+  #   <<: *ogranized
+  #   by-sender: *by-sender
+  # ru_python_beginners:
+  #   source: { source: ru_python_beginners, recursive: True }
+  #   <<: *ogranized
+  #   by-sender: *by-sender
+  # ru_python:
+  #   source: { source: ru_python, recursive: True }
+  #   <<: *ogranized
+  #   by-sender: *by-sender
   NappingCat_Chat:
     source: { source: NappingCat, recursive: True }
     <<: *ogranized

@@ -91,6 +91,7 @@ async def main():
             debug_fuse=args.debug_fuse,
             min_tasks=args.min_tasks,
             run_server=args.run_server,
+            subfolder=args.subfolder,
         )
 
     elif args.command == "stats":

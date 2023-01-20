@@ -101,6 +101,12 @@ class MockedClientWriter(TgmountTelegramClientWriterProto):
             # force_document=force_document,
         )
 
+    async def edit_message(
+        self, old_message: MockedMessage, new_message: MockedMessage
+    ) -> MockedMessage:
+        self.logger.info(f"edit_message({old_message}, {new_message})")
+        return await self._storage.edit_message(old_message, new_message)
+
     async def send_file(
         self,
         entity: EntityId,

@@ -12,8 +12,8 @@ T = TypeVar("T")
 
 def map_keys(
     mapper: Callable[[str], str],
-    d: dict,
-) -> dict:
+    d: Mapping[str, T],
+) -> Mapping[str, T]:
     return {mapper(k): v for k, v in d.items()}
 
 

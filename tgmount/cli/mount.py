@@ -21,6 +21,7 @@ async def mount(
     mount_dir: Optional[str] = None,
     debug_fuse=False,
     run_server=False,
+    subfolder: str | None = None,
     min_tasks=10,
 ):
     validator = ConfigValidator()
@@ -47,6 +48,12 @@ async def mount(
         cfg.client = replace(
             cfg.client, api_id=api_credentials[0], api_hash=api_credentials[1]
         )
+
+    # if subfolder is not None:
+    #     subfolder_root = cfg.root.content.get(subfolder)
+
+    #     if subfolder_root is None:
+    #         raise TgmountError(f"Invalid subfolder")
 
     tgm = await builder.create_tgmount(cfg)
 
@@ -94,5 +101,7 @@ def add_mount_arguments(command_mount: ArgumentParser):
     command_mount.add_argument(
         "--server", default=False, action="store_true", dest="run_server"
     )
-
+    command_mount.add_argument(
+        "--subfolder", type=str, required=False, dest="subfolder"
+    )
     command_mount.add_argument("--min-tasks", default=10, type=int, dest="min_tasks")

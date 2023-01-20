@@ -119,6 +119,16 @@ class VfsTreeProducerGrouperBase(abc.ABC):
 
             await _source.add_messages(grouped[d])
 
+    async def _update_edited_messages(
+        self,
+        source,
+        old_messages: list[MessageProto],
+        removed_messages: list[MessageProto],
+    ):
+        self._logger.info(
+            f"_update_edited_messages({list(map(lambda m: m.id, old_messages))})"
+        )
+
     async def _update_removed_messages(
         self, source, removed_messages: list[MessageProto]
     ):
@@ -175,6 +185,10 @@ class VfsTreeProducerGrouperBase(abc.ABC):
 
         self._config.message_source.event_removed_messages.subscribe(
             self._update_removed_messages
+        )
+
+        self._config.message_source.event_edited_messages.subscribe(
+            self._update_edited_messages
         )
 
         self._logger.debug(f"Producing took: {t1.total:.2f} ms.")

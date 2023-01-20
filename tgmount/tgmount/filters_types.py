@@ -10,7 +10,7 @@ T = TypeVar("T")
 FilterConfigValue = str | dict[str, dict] | list[str | dict[str, dict]]
 
 
-class FilterFromConfigContext(Protocol):
+class FilterContext(Protocol):
     file_factory: FileFactoryBase
     classifier: ClassifierBase
 

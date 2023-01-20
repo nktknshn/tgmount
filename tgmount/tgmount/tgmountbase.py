@@ -25,6 +25,7 @@ from .vfs_tree_types import (
     TreeEventRemovedDirs,
     TreeEventRemovedItems,
     TreeEventType,
+    TreeEventUpdatedItems,
 )
 
 # add_hash_to_telegram_message_class()
@@ -296,6 +297,10 @@ class TgmountBase:
             elif isinstance(e, TreeEventRemovedDirs):
                 for path in e.removed_dirs:
                     update.removed_dirs.append(path)
+
+            elif isinstance(e, TreeEventUpdatedItems):
+                for path, item in e.updated_items.items():
+                    update.update_items[path] = item
 
             elif isinstance(e, TreeEventNewDirs):
                 for path in e.new_dirs:

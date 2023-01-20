@@ -31,8 +31,17 @@ class VoiceProto(Protocol):
     pass
 
 
+class ReactionEmojiProto(Protocol):
+    emoticon: str
+
+
+class ReactionCountProto(Protocol):
+    reaction: ReactionEmojiProto
+    count: int
+
+
 class ReactionsProto(Protocol):
-    pass
+    results: list[ReactionCountProto]
 
 
 class SenderProto(Protocol):

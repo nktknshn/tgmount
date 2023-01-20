@@ -72,7 +72,7 @@ class VfsTreeProducerPlainDir(VfsTreeProducerProto):
         )
 
         self._config.message_source.event_edited_messages.subscribe(
-            self.update_removed_messages
+            self.update_edited_messages
         )
 
     async def update_edited_messages(
@@ -89,16 +89,22 @@ class VfsTreeProducerPlainDir(VfsTreeProducerProto):
         if len(old_messages) == 0:
             return
 
-        old_messages_dict = {m.id: m for m in old_messages}
+        old_messages_dict = {
+            m.id: m for m in old_messages if m.id in self._message_to_file.keys()
+        }
         edited_messages_dict = {m.id: m for m in edited_messages}
 
         filtered_edited_messages = await self._config.apply_filters(edited_messages)
 
         removed_ids, new_ids, common_ids = sets_difference(
-            set(m.id for m in old_messages), set(m.id for m in filtered_edited_messages)
+            set(old_messages_dict.keys()),
+            set(m.id for m in filtered_edited_messages),
         )
 
         new_messages = [edited_messages_dict[i] for i in new_ids]
+
+        old_updated_messages = [old_messages_dict[i] for i in common_ids]
+        old_updated_files = [self._message_to_file[i] for i in common_ids]
         updated_messages = [edited_messages_dict[i] for i in common_ids]
 
         removed_files = [self._message_to_file[i] for i in removed_ids]
@@ -111,6 +117,11 @@ class VfsTreeProducerPlainDir(VfsTreeProducerProto):
             await self._config.produce_file(m) for m in updated_messages
         ]
 
+        update_content_dict = {
+            old_file.name: new_file
+            for old_file, new_file in zip(old_updated_files, updated_files)
+        }
+
         self._message_to_file.update(
             {
                 **{m.id: f for m, f in zip(new_messages, new_files)},
@@ -118,16 +129,14 @@ class VfsTreeProducerPlainDir(VfsTreeProducerProto):
             }
         )
 
-        # update should handle situations:
-        #   - file renamed
-        #   - changed content/size
-        #   - modification time
-
         for f in removed_files:
             await self._tree_dir.remove_content(f)
 
         if len(new_files):
             await self._tree_dir.put_content(new_files)
+
+        if len(updated_files):
+            await self._tree_dir.update_content(update_content_dict)
 
     async def update_new_messages(self, source, new_messages: list[Message]):
 

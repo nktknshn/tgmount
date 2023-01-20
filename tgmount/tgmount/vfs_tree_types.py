@@ -1,6 +1,6 @@
 from abc import abstractclassmethod, abstractmethod
 from dataclasses import dataclass
-from typing import Generic, Protocol, TypeVar, Union
+from typing import Generic, Mapping, Protocol, TypeVar, Union
 
 from tgmount import vfs
 
@@ -30,6 +30,15 @@ class TreeEventNewItems(Generic[T]):
 
 
 @dataclass
+class TreeEventUpdatedItems(Generic[T]):
+    """Triggered by `VfsTree.update_content`"""
+
+    sender: T
+    update_path: str
+    updated_items: Mapping[str, vfs.DirContentItem]
+
+
+@dataclass
 class TreeEventRemovedDirs(Generic[T]):
     """Triggered by `VfsTree.remove_dir`"""
 
@@ -52,4 +61,5 @@ TreeEventType = (
     | TreeEventNewItems[T]
     | TreeEventRemovedDirs[T]
     | TreeEventNewDirs[T]
+    | TreeEventUpdatedItems[T]
 )

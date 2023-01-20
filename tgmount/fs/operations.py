@@ -225,7 +225,12 @@ class FileSystemOperations(pyfuse3.Operations, FileSystemOperationsMixin):
             self.logger.debug(f"update_subitem: item renamed")
             pyfuse3.invalidate_entry_async(parent_inode, old_fs_item.name)
 
-        pyfuse3.invalidate_inode(old_fs_item.inode)
+        try:
+            pyfuse3.invalidate_inode(old_fs_item.inode)
+        except FileNotFoundError as e:
+            self.logger.error(
+                f"Error invalidating inode {old_fs_item.inode} ({old_fs_item.data.structure_item.name}). {e.strerror}"
+            )
 
         fs_item = self.create_FileSystemItem(
             new_item,

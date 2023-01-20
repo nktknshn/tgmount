@@ -96,7 +96,7 @@ async def test_fs1(mnt_dir, caplog):
 
 
 @pytest.mark.asyncio
-async def test_fs_rename(mnt_dir, caplog):
+async def test_fs_rename_filelikes(mnt_dir, caplog):
     get_props = lambda ctx: {
         "debug": logging.DEBUG,
         "ev0": ctx.mgr.Event(),

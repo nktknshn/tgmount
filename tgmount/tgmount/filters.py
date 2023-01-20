@@ -1,16 +1,23 @@
 from abc import abstractmethod
-from typing import Any, Iterable, Optional, Protocol, Type, TypeVar, Callable
+from typing import Any, Iterable, Mapping, Optional, Protocol, Type, TypeVar, Callable
 
 from telethon.tl.custom import Message
 
+from tgmount.tgmount.error import TgmountError
+
+
+from .logger import logger as _logger
+
+logger = _logger.getChild("filters")
+
 from tgmount.tgclient import guards
-from tgmount.tgclient.guards import MessageDownloadable
+from tgmount.tgclient.guards import MessageDownloadable, MessageWithReactions
 from tgmount.tgclient.message_types import MessageProto
 from tgmount.util import col, func
 from tgmount.util.guards import compose_try_gets
 from .filters_types import (
     FilterConfigValue,
-    FilterFromConfigContext,
+    FilterContext,
     InstanceFromConfigProto,
     FilterFromConfigProto,
     FilterAllMessagesProto,
@@ -24,18 +31,57 @@ T = TypeVar("T")
 
 def from_function(
     func: Callable[
-        [Any, FilterFromConfigContext, "ParseFilter"],
+        [Any, FilterContext, "ParseFilter"],
         Optional["FilterAllMessagesProto"],
     ]
 ) -> Type["FilterFromConfigProto"]:
     class FilterFromConfig(FilterFromConfigProto):
         @staticmethod
         def from_config(
-            d: Any, ctx: FilterFromConfigContext, parse_filter: ParseFilter
+            d: Any, ctx: FilterContext, parse_filter: ParseFilter
         ) -> Optional[Filter]:
             return func(d, ctx, parse_filter)
 
     return FilterFromConfig
+
+
+class ByReaction(FilterAllMessagesProto):
+    def __init__(self, reaction: str, *, minimum=1) -> None:
+        self.reaction = reaction
+        self.minimum = minimum
+
+    @staticmethod
+    def from_config(
+        props: Mapping,
+        ctx: FilterContext,
+        parse_filter: ParseFilter,
+    ):
+        reaction = props.get("reaction")
+        if reaction is None:
+            raise TgmountError(f"Missing reaction")
+
+        return ByReaction(
+            reaction=reaction,
+            minimum=props.get("minimum", 1),
+        )
+
+    async def filter(self, messages: Iterable[MessageProto]):
+
+        reactions_messages = filter(MessageWithReactions.guard, messages)
+
+        result = []
+
+        for m in reactions_messages:
+            for r in m.reactions.results:
+                if r.reaction.emoticon != self.reaction:
+                    continue
+
+                if r.count < self.minimum:
+                    continue
+
+                result.append(m)
+
+        return result
 
 
 class ByTypes(FilterAllMessagesProto):
@@ -50,9 +96,7 @@ class ByTypes(FilterAllMessagesProto):
         self._filter_types = filter_types
 
     @staticmethod
-    def from_config(
-        gs: list[str], ctx: FilterFromConfigContext, parse_filter: ParseFilter
-    ):
+    def from_config(gs: list[str], ctx: FilterContext, parse_filter: ParseFilter):
         return ByTypes(
             filter_types=[ctx.file_factory.try_get_dict[g] for g in gs],
         )
@@ -61,11 +105,6 @@ class ByTypes(FilterAllMessagesProto):
         return list(
             filter(compose_try_gets(*self._filter_types), messages),
         )
-
-
-from .logger import logger as _logger
-
-logger = _logger.getChild("filters")
 
 
 class OnlyUniqueDocs(FilterAllMessagesProto):
@@ -77,9 +116,7 @@ class OnlyUniqueDocs(FilterAllMessagesProto):
     }
 
     @staticmethod
-    def from_config(
-        d: Optional[dict], ctx: FilterFromConfigContext, parse_filter: ParseFilter
-    ):
+    def from_config(d: Optional[dict], ctx: FilterContext, parse_filter: ParseFilter):
         if d is not None:
             return OnlyUniqueDocs(picker=OnlyUniqueDocs.PICKERS[d["picker"]])
         else:
@@ -116,7 +153,7 @@ class ByExtension(FilterAllMessagesProto):
         self.ext = ext
 
     @staticmethod
-    def from_config(ext: str, ctx: FilterFromConfigContext, parse_filter: ParseFilter):
+    def from_config(ext: str, ctx: FilterContext, parse_filter: ParseFilter):
         return ByExtension(ext)
 
     async def filter(self, messages: Iterable[Message]) -> list[Message]:
@@ -137,7 +174,7 @@ class Not(FilterAllMessagesProto):
     @staticmethod
     def from_config(
         _filter: FilterConfigValue,
-        ctx: FilterFromConfigContext,
+        ctx: FilterContext,
         parse_filter: ParseFilter,
     ):
         return Not(parse_filter(_filter))
@@ -157,7 +194,7 @@ class Union(FilterAllMessagesProto):
 
     @staticmethod
     def from_config(
-        gs: FilterConfigValue, ctx: FilterFromConfigContext, parse_filter: ParseFilter
+        gs: FilterConfigValue, ctx: FilterContext, parse_filter: ParseFilter
     ):
         return Union(filters=parse_filter(gs))
 
@@ -175,7 +212,7 @@ class And(FilterAllMessagesProto):
 
     @staticmethod
     def from_config(
-        gs: FilterConfigValue, ctx: FilterFromConfigContext, parse_filter: ParseFilter
+        gs: FilterConfigValue, ctx: FilterContext, parse_filter: ParseFilter
     ):
         return And(filters=parse_filter(gs))
 
@@ -199,7 +236,7 @@ class Seq(FilterAllMessagesProto):
 
     @staticmethod
     def from_config(
-        gs: FilterConfigValue, ctx: FilterFromConfigContext, parse_filter: ParseFilter
+        gs: FilterConfigValue, ctx: FilterContext, parse_filter: ParseFilter
     ):
         return Seq(filters=parse_filter(gs))
 
@@ -216,7 +253,7 @@ class All(FilterAllMessagesProto):
         pass
 
     @staticmethod
-    def from_config(d: dict, ctx: FilterFromConfigContext, parse_filter: ParseFilter):
+    def from_config(d: dict, ctx: FilterContext, parse_filter: ParseFilter):
         return All()
 
     async def filter(self, messages: Iterable[Message]) -> list[Message]:
@@ -228,7 +265,7 @@ class Last(FilterAllMessagesProto):
         self._count = count
 
     @staticmethod
-    def from_config(arg: int, ctx: FilterFromConfigContext, parse_filter: ParseFilter):
+    def from_config(arg: int, ctx: FilterContext, parse_filter: ParseFilter):
         return Last(count=arg)
 
     async def filter(self, messages: Iterable[Message]) -> list[Message]:
@@ -240,7 +277,7 @@ class First(FilterAllMessagesProto):
         self._count = count
 
     @staticmethod
-    def from_config(arg: int, ctx: FilterFromConfigContext, parse_filter: ParseFilter):
+    def from_config(arg: int, ctx: FilterContext, parse_filter: ParseFilter):
         return Last(count=arg)
 
     async def filter(self, messages: Iterable[Message]) -> list[Message]:
@@ -271,7 +308,7 @@ def from_guard(g: Callable[[Any], bool]) -> Type[Filter]:
             return list(filter(lambda m: g(m), messages))
 
         @staticmethod
-        def from_config(gs, ctx: FilterFromConfigContext, parse_filter: ParseFilter):
+        def from_config(gs, ctx: FilterContext, parse_filter: ParseFilter):
             return FromGuardFunc()
 
     return FromGuardFunc
@@ -281,7 +318,7 @@ def from_context_classifier(klass_name: str) -> Type[FilterFromConfigProto]:
     """If `classifier` supports message of `filter_name` type returns filter for that type, otherwise returns `None`"""
 
     def from_config(
-        d, ctx: FilterFromConfigContext, parse_filter: ParseFilter
+        d, ctx: FilterContext, parse_filter: ParseFilter
     ) -> Optional[Filter]:
 
         func = ctx.classifier.try_get_guard(klass_name)

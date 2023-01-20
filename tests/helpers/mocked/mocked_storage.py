@@ -1,3 +1,4 @@
+from collections import defaultdict
 from typing import TypedDict
 from tgmount.tgclient.client_types import (
     IterDownloadProto,
@@ -153,6 +154,11 @@ class StorageEntityMixin:
                 )
         return res
 
+    async def edit_message(
+        self, old_message: MockedMessage, new_message: MockedMessage
+    ):
+        return await self._storage.edit_message(old_message, new_message)
+
     async def message(
         self,
         text: str | None = None,
@@ -200,7 +206,11 @@ class StorageEntityMixin:
         video_note=False,
         gif=False,
     ) -> MockedMessageWithDocument:
-        msg = await self.message(put=False, sender=sender, forward=forward)
+        msg = await self.message(
+            put=False,
+            sender=sender,
+            forward=forward,
+        )
 
         if isinstance(file, str):
             storage_file = await self._storage.create_storage_file(file, file_name)
@@ -284,13 +294,23 @@ class StorageEntity(StorageEntityMixin):
 
     def init_message(self):
         return MockedMessage(
-            message_id=self.get_new_message_id(),
+            # message_id=self.get_new_message_id(),
             chat_id=self.chat_id,
         )
 
     def get_new_message_id(self):
+
         self._last_message_id += 1
         return self._last_message_id
+
+    async def edit_message(
+        self, old_message: MockedMessage, message: MockedMessage
+    ) -> MockedMessage:
+
+        self._messages.remove(old_message)
+        self._messages.append(message)
+
+        return message
 
     async def add_message(
         self,
@@ -298,7 +318,8 @@ class StorageEntity(StorageEntityMixin):
         # message_text: str | None = None,
         # storage_file: Optional["StorageFile"] = None,
     ) -> MockedMessage:
-
+        message.id = self.get_new_message_id()
+        message.chat_id = self.chat_id
         self._messages.append(message)
 
         return message
@@ -332,11 +353,17 @@ class MockedTelegramStorage:
         self._files_cache: dict[str, bytes] = {}
         self._files = Files()
 
-        self._subscriber_per_entity_new: dict[EntityId, list[ListenerNewMessages]] = {}
+        self._subscriber_per_entity_new: defaultdict[
+            EntityId, list[ListenerNewMessages]
+        ] = defaultdict(list)
 
-        self._subscriber_per_entity_removed: dict[
+        self._subscriber_per_entity_removed: defaultdict[
             EntityId, list[ListenerRemovedMessages]
-        ] = {}
+        ] = defaultdict(list)
+
+        self._subscriber_per_entity_edited: defaultdict[
+            EntityId, list[ListenerEditedMessage]
+        ] = defaultdict(list)
 
     @property
     def files(self):
@@ -360,17 +387,13 @@ class MockedTelegramStorage:
         ), self._subscriber_per_entity_removed.get(entity, [])
 
     def subscribe_new_messages(self, listener: ListenerNewMessages, chats):
-        subs = self._subscriber_per_entity_new.get(chats, [])
-        subs.append(listener)
-        self._subscriber_per_entity_new[chats] = subs
+        self._subscriber_per_entity_new[chats].append(listener)
 
     def subscribe_removed_messages(self, listener: ListenerRemovedMessages, chats):
-        subs = self._subscriber_per_entity_removed.get(chats, [])
-        subs.append(listener)
-        self._subscriber_per_entity_removed[chats] = subs
+        self._subscriber_per_entity_removed[chats].append(listener)
 
     def subscribe_edited_message(self, listener: ListenerEditedMessage, chats):
-        pass
+        self._subscriber_per_entity_edited[chats].append(listener)
 
     # async def create_message(
     #     self, entity: str, message=None, file=None, force_document=False
@@ -415,9 +438,22 @@ class MockedTelegramStorage:
 
         return ent.init_message()
 
+    async def edit_message(
+        self, old_message: MockedMessage, new_message: MockedMessage
+    ):
+
+        ent = self._entity_by_id[old_message.chat_id]
+        message = await ent.edit_message(old_message, new_message)
+
+        for s in self._subscriber_per_entity_edited[ent.entity_id]:
+            await s(events.MessageEdited.Event(message))
+
+        return message
+
     async def put_message(self, message: MockedMessage):
 
         ent = self._entity_by_id[message.chat_id]
+
         message = await ent.add_message(message)
 
         for s in self._get_subscribers(ent.entity_id)[0]:
@@ -425,48 +461,67 @@ class MockedTelegramStorage:
 
         return message
 
-    async def add_message(
-        self,
-        entity: EntityId,
-        message_text: str | None = None,
-        file: str | None = None,
-        file_name: str | bool = True,
-        audio: bool = False,
-        voice: bool = False,
-        # force_document=False,
-    ):
+    # async def create_message(
+    #     self,
+    #     message_text: str | None = None,
+    #     file: str | None = None,
+    #     file_name: str | bool = True,
+    #     audio: bool = False,
+    #     voice: bool = False,
+    # ):
+    #     storage_file = None
+    #     _file_name = None
 
-        storage_file = None
-        _file_name = None
+    #     if file is not None:
+    #         storage_file = await self.create_storage_file(file, file_name)
 
-        ent = self.get_entity(entity)
+    #     message = MockedMessage(
+    #         message=message_text,
+    #         document=storage_file.get_document() if storage_file is not None else None,
+    #     )
 
-        if file is not None:
-            storage_file = await self.create_storage_file(file, file_name)
+    #     if storage_file is not None:
+    #         message.file = MockedFile(
+    #             name=_file_name,
+    #             mime_type=map_none(
+    #                 _file_name, lambda n: telethon.utils.mimetypes.guess_type(n)[0]
+    #             ),
+    #             ext=map_none(_file_name, lambda n: os.path.splitext(n)[0]),
+    #             performer=None,
+    #         )
 
-        message = MockedMessage(
-            message_id=ent.get_new_message_id(),
-            chat_id=ent.chat_id,
-            message=message_text,
-            document=storage_file.get_document() if storage_file is not None else None,
-        )
+    #     return message
 
-        if storage_file is not None:
-            message.file = MockedFile(
-                name=_file_name,
-                mime_type=map_none(
-                    _file_name, lambda n: telethon.utils.mimetypes.guess_type(n)[0]
-                ),
-                ext=map_none(_file_name, lambda n: os.path.splitext(n)[0]),
-                performer=None,
-            )
+    # async def add_message(
+    #     self,
+    #     entity: EntityId,
+    #     message_text: str | None = None,
+    #     file: str | None = None,
+    #     file_name: str | bool = True,
+    #     audio: bool = False,
+    #     voice: bool = False,
+    #     # force_document=False,
+    # ) -> MockedMessage:
 
-        message = await ent.add_message(message)
+    #     ent = self.get_entity(entity)
 
-        for s in self._get_subscribers(entity)[0]:
-            await s(events.NewMessage.Event(message))
+    #     message = await self.create_message(
+    #         message_text=message_text,
+    #         file=file,
+    #         file_name=file_name,
+    #         audio=audio,
+    #         voice=voice,
+    #     )
 
-        return message
+    #     # message.id = ent.get_new_message_id()
+    #     # message.chat_id = ent.chat_id
+
+    #     message = await ent.add_message(message)
+
+    #     for s in self._get_subscribers(entity)[0]:
+    #         await s(events.NewMessage.Event(message))
+
+    #     return message
 
     async def delete_messages(self, entity: str, msg_ids: list[int]):
         ent = self.get_entity(entity)

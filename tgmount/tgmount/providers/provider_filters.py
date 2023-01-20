@@ -4,7 +4,7 @@ from typing import Mapping, Optional, Protocol, Type, Callable
 from tgmount.config import ConfigError
 from tgmount.util import none_fallback
 from ..filters_types import (
-    FilterFromConfigContext,
+    FilterContext,
     FilterFromConfigProto,
     Filter,
     ParseFilter,
@@ -55,7 +55,7 @@ class FilterProviderBase(FilterProviderProto):
 
         class _FromConfig(FilterFromConfigProto):
             @staticmethod
-            def from_config(d, ctx: FilterFromConfigContext, parse_filter: ParseFilter):
+            def from_config(d, ctx: FilterContext, parse_filter: ParseFilter):
                 for fg in _fgs:
                     if _f := fg.from_config(d, ctx, parse_filter):
                         return _f

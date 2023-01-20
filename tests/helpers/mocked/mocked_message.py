@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import overload
 import telethon
@@ -39,6 +40,30 @@ class GlobalIds:
 
 
 global_ids = GlobalIds()
+
+
+@dataclass
+class MockedReactionEmoji(ReactionEmojiProto):
+    emoticon: str
+
+
+@dataclass
+class MockedReactionCount(ReactionCountProto):
+    reaction: MockedReactionEmoji
+    count: int
+
+
+class MockedReactions(ReactionsProto):
+    def __init__(self, results) -> None:
+        self.results = results
+
+    @staticmethod
+    def from_dict(reactions: Mapping[str, int]):
+        results = []
+
+        for r, c in reactions.items():
+            results.append(MockedReactionCount(MockedReactionEmoji(r), c))
+        return MockedReactions(results)
 
 
 @dataclass
@@ -133,8 +158,8 @@ class MockedMessage(MessageProto):
     def __init__(
         self,
         *,
-        message_id: int,
-        chat_id: int,
+        message_id: int = None,
+        chat_id: int = None,
         peer_id=None,
         message=None,
         username=None,
@@ -160,7 +185,7 @@ class MockedMessage(MessageProto):
         self._text = message
 
         self.id = message_id
-        self.chat_id = chat_id
+        self.chat_id: int = chat_id
         # self._sender.id =
         self.sender: MockedSender | None = None
         self.file = file
@@ -198,74 +223,6 @@ class MockedMessage(MessageProto):
     def message(self, text):
         self._text = text
 
-    # @property
-    # def id(self):
-    #     return self._message_id
-
-    # @property
-    # def peer_id(self):
-    #     return self._peer_id
-
-    # @property
-    # def chat_id(self):
-    #     return self._chat_id
-
-    # @property
-    # def post(self):
-    #     return None
-
-    # @property
-    # def file(self):
-    #     return self._file
-
-    # @property
-    # def media(self):
-    #     return self._media
-
-    # @property
-    # def forward(self):
-    #     return self._forward
-
-    # @property
-    # def photo(self):
-    #     return self._photo
-
-    # @property
-    # def audio(self):
-    #     return self._audio
-
-    # @property
-    # def voice(self):
-    #     return self._voice
-
-    # @property
-    # def sticker(self):
-    #     return self._sticker
-
-    # @property
-    # def video_note(self):
-    #     return self._video_note
-
-    # @property
-    # def video(self):
-    #     return self._video
-
-    # @property
-    # def gif(self):
-    #     return self._gif
-
-    # @property
-    # def document(self):
-    #     return self._document
-
-    # @property
-    # def action(self):
-    #     return None
-
-    # @property
-    # def reactions(self):
-    #     return self._reactions
-
     async def get_sender(self) -> SenderProto:
         return self.sender
 
@@ -274,6 +231,12 @@ class MockedMessage(MessageProto):
             "id": self.id,
             "document_id": self.document.id if self.document is not None else None,
         }
+
+    def clone(self):
+        return deepcopy(self)
+
+
+from copy import deepcopy
 
 
 class MockedMessageWithDocument(MockedMessage):

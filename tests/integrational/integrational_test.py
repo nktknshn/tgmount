@@ -142,7 +142,7 @@ class TgmountIntegrationContext:
         logging_level = (
             logging.DEBUG
             if value is True
-            else logging.CRITICAL
+            else logging.ERROR
             if value is False
             else value
         )
