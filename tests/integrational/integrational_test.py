@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from collections.abc import Awaitable, Callable
+from os import stat_result
 from typing import Any, AsyncGenerator, Iterable, Mapping
 
 import aiofiles
@@ -206,6 +207,9 @@ class TgmountIntegrationContext:
             res.extend([vfs.path_join(str(dirpath), str(fn)) for fn in filenames])
 
         return set(res)
+
+    async def stat(self, path: str) -> stat_result:
+        return await aiofiles.os.stat(self._path(path))
 
     async def read_text(self, path: str) -> str:
         async with aiofiles.open(self._path(path), "r") as f:

@@ -17,6 +17,7 @@ from .client_types import (
     ListenerRemovedMessages,
 )
 from telethon import events
+from .message_reaction_event import MessageReactionEvent
 
 logger = logging.getLogger("tgclient")
 
@@ -94,4 +95,16 @@ class TgmountTelegramClient(
         self.add_event_handler(listener, events.MessageDeleted(chats=chats))
 
     def subscribe_edited_message(self, listener: ListenerEditedMessage, chats=None):
+        async def _update_reactions(event: MessageReactionEvent):
+            await listener(event)
+            # self.get_input_entity()
+
         self.add_event_handler(listener, events.MessageEdited(chats=chats))
+        self.add_event_handler(_update_reactions, MessageReactionEvent(chats=chats))
+        # self.add_event_handler(print, events.Raw(UpdateMessageReactions, chats=chats))
+
+
+# UpdateMessageReactions(peer=PeerChannel(channel_id=1556824772), msg_id=111, reactions=MessageReactions(results=[ReactionCount(reaction=ReactionEmoji(emoticon='👍'), count=1, chosen_order=0)], min=False, can_see_list=False, recent_reactions=[]), top_msg_id=None)
+
+# async def printt(ev):
+#     print(ev)

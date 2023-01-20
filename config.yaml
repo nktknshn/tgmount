@@ -156,16 +156,16 @@ root:
   #   source: { source: ru_python, recursive: True }
   #   <<: *ogranized
   #   by-sender: *by-sender
-  NappingCat_Chat:
-    source: { source: NappingCat, recursive: True }
-    <<: *ogranized
-    by-sender: *by-sender
+  # NappingCat_Chat:
+  #   source: { source: NappingCat, recursive: True }
+  #   <<: *ogranized
+  #   by-sender: *by-sender
+  # my-mount:
+  #   source: { source: my-mount, recursive: True }
+  #   wrappers: ExcludeEmptyDirs
+  #   <<: *ogranized
   tmtc:
     source: { source: tmtc, recursive: True }
     <<: *ogranized
     by-sender:
       <<: *by-sender
-  my-mount:
-    source: { source: my-mount, recursive: True }
-    wrappers: ExcludeEmptyDirs
-    <<: *ogranized

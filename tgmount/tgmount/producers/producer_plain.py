@@ -13,7 +13,8 @@ from tgmount.tgmount.vfs_tree_producer_types import (
 )
 from tgmount.util import measure_time
 from tgmount.util.col import sets_difference
-
+from tgmount.util.func import snd
+from ..util import messages_difference
 from .logger import logger as _logger
 
 M = TypeVar("M")
@@ -92,29 +93,36 @@ class VfsTreeProducerPlainDir(VfsTreeProducerProto):
         old_messages_dict = {
             m.id: m for m in old_messages if m.id in self._message_to_file.keys()
         }
+
         edited_messages_dict = {m.id: m for m in edited_messages}
 
         filtered_edited_messages = await self._config.apply_filters(edited_messages)
 
-        removed_ids, new_ids, common_ids = sets_difference(
-            set(old_messages_dict.keys()),
-            set(m.id for m in filtered_edited_messages),
+        # removed_ids, new_ids, common_ids = sets_difference(
+        #     set(old_messages_dict.keys()),
+        #     set(m.id for m in filtered_edited_messages),
+        # )
+
+        removed_messages, new_messages, common_messages = messages_difference(
+            list(old_messages_dict.values()), filtered_edited_messages
         )
 
-        new_messages = [edited_messages_dict[i] for i in new_ids]
+        # new_messages = [edited_messages_dict[i] for i in new_ids]
 
-        old_updated_messages = [old_messages_dict[i] for i in common_ids]
-        old_updated_files = [self._message_to_file[i] for i in common_ids]
-        updated_messages = [edited_messages_dict[i] for i in common_ids]
+        # old_updated_messages = [old_messages_dict[i] for i in common_ids]
+        old_updated_files = [
+            self._message_to_file[old.id] for (old, new) in common_messages
+        ]
+        # updated_messages = [edited_messages_dict[i] for i in common_ids]
 
-        removed_files = [self._message_to_file[i] for i in removed_ids]
+        removed_files = [self._message_to_file[m.id] for m in removed_messages]
 
         new_files: list[vfs.FileLike] = [
             await self._config.produce_file(m) for m in new_messages
         ]
 
         updated_files: list[vfs.FileLike] = [
-            await self._config.produce_file(m) for m in updated_messages
+            await self._config.produce_file(new) for old, new in common_messages
         ]
 
         update_content_dict = {
@@ -125,7 +133,7 @@ class VfsTreeProducerPlainDir(VfsTreeProducerProto):
         self._message_to_file.update(
             {
                 **{m.id: f for m, f in zip(new_messages, new_files)},
-                **{m.id: f for m, f in zip(updated_messages, updated_files)},
+                **{m.id: f for m, f in zip(map(snd, common_messages), updated_files)},
             }
         )
 

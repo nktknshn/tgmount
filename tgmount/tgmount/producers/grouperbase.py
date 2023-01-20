@@ -1,9 +1,11 @@
 import abc
 import os
 from typing import Iterable, Mapping, TypeVar
+from tests.helpers.spawn import P
 
 from tgmount.tgclient.message_source import MessageSource
 from tgmount.tgclient.message_types import MessageProto
+from tgmount.tgmount.util import messages_difference
 
 from ..error import TgmountError
 from ..producers.producer_plain import VfsTreeProducerPlainDir
@@ -13,7 +15,7 @@ from ..vfs_tree_producer_types import VfsTreeProducerConfig
 
 from tgmount.util import sanitize_string_for_path
 from tgmount.util.col import sets_difference
-from tgmount.util.func import map_values
+from tgmount.util.func import map_values, snd
 from tgmount.util.timer import Timer
 
 from ..vfs_tree import VfsTreeDir
@@ -78,7 +80,6 @@ class VfsTreeProducerGrouperBase(abc.ABC):
         )
 
         tree_dir = await self._dir.create_dir(dir_name)
-        # tree_dir.additional_data = self._dir.additional_data
 
         self._source_by_name[dir_name] = dir_source
 
@@ -90,44 +91,19 @@ class VfsTreeProducerGrouperBase(abc.ABC):
             ),
         )
 
-    async def _update_new_message(self, source, messages: Iterable[MessageProto]):
-        self._logger.info(f"update_new_messages({list(map(lambda m: m.id, messages))})")
-
-        messages = await self._config.apply_filters(messages)
-
-        self._logger.debug(f"after filtering left {len(messages)} messages")
-
-        grouped, root = await self._group_messages(messages)
-
-        removed_dirs, new_dirs, common_dirs = sets_difference(
-            self._current_dirs, frozenset(grouped.keys())
-        )
-
-        self._logger.debug(f"new_dirs={new_dirs} common_dirs={common_dirs}")
-
-        await self._source_root.set_messages(root)
-
-        for d in new_dirs:
-            await self._add_dir(d, grouped[d])
-
-        for d in common_dirs:
-            self._logger.debug(f"updating {d}")
-            _source = self._source_by_name.get(d)
-
-            if _source is None:
-                raise TgmountError(f"Missing source for dir {d}")
-
-            await _source.add_messages(grouped[d])
-
-    async def _update_edited_messages(
-        self,
-        source,
-        old_messages: list[MessageProto],
-        removed_messages: list[MessageProto],
-    ):
+    async def _update_new_message(self, source, new_messages: Iterable[MessageProto]):
         self._logger.info(
-            f"_update_edited_messages({list(map(lambda m: m.id, old_messages))})"
+            f"update_new_messages({list(map(lambda m: m.id, new_messages))})"
         )
+
+        new_messages = await self._config.apply_filters(new_messages)
+
+        self._logger.debug(f"after filtering left {len(new_messages)} messages")
+
+        grouped, root = await self._group_messages(new_messages)
+
+        for dir_name, dir_messages in grouped.items():
+            await self._update_group(dir_name, [], dir_messages)
 
     async def _update_removed_messages(
         self, source, removed_messages: list[MessageProto]
@@ -141,19 +117,58 @@ class VfsTreeProducerGrouperBase(abc.ABC):
         await self._source_root.set_messages(root)
 
         for dir_name, dir_messages in grouped.items():
-            dir_src = self._source_by_name.get(dir_name)
+            await self._update_group(dir_name, dir_messages, [])
 
-            if dir_src is None:
-                self._logger.error(f"Missing source for dir {dir_name}")
+    async def _update_group(
+        self,
+        dir_name: str,
+        dir_messages_before: list[MessageProto],
+        dir_messages_after: list[MessageProto],
+    ):
+        dir_src = self._source_by_name.get(dir_name)
+
+        if dir_src is None:
+            await self._add_dir(dir_name, dir_messages_after)
+            return
+
+        removed, new, updated = messages_difference(
+            dir_messages_before, dir_messages_after
+        )
+
+        await dir_src.remove_messages(removed)
+        await dir_src.add_messages(new)
+        await dir_src.edit_messages(map(snd, updated))
+
+        if len(await dir_src.get_messages()) == 0:
+            await self._dir.remove_subdir(dir_name)
+            del self._source_by_name[dir_name]
+
+    async def _update_edited_messages(
+        self,
+        source,
+        messages_before: list[MessageProto],
+        messages_after: list[MessageProto],
+    ):
+        self._logger.info(
+            f"_update_edited_messages({list(map(lambda m: m.id, messages_before))})"
+        )
+
+        grouped_before, root_before = await self._group_messages(messages_before)
+
+        grouped_after, root_after = await self._group_messages(messages_after)
+
+        for dir_name, dir_messages_before in grouped_before.items():
+
+            dir_after = grouped_after.get(dir_name, [])
+
+            await self._update_group(dir_name, dir_messages_before, dir_after)
+
+        for dir_name, dir_messages_after in grouped_after.items():
+
+            if dir_name in grouped_before:
                 continue
 
-            await dir_src.remove_messages(dir_messages)
-
-            _msgs = await dir_src.get_messages()
-
-            if len(_msgs) == 0:
-                await self._dir.remove_subdir(dir_name)
-                del self._source_by_name[dir_name]
+            await self._update_group(dir_name, [], dir_messages_after)
 
     async def produce(self):
         t1 = Timer()

@@ -127,6 +127,13 @@ class MessageSource(MessageSourceSubscribableProto, Generic[M]):
 
         await self.event_removed_messages.notify(inter)
 
+    async def get_by_ids(self, ids: list[int]) -> list[M] | None:
+        if self._messages is None:
+            self._logger.error(f"Messages are not initiated yet")
+            return None
+
+        return self._messages.get_by_ids(ids)
+
     async def get_messages(self) -> list[M]:
         self._logger.debug(f"get_messages()")
 

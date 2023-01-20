@@ -76,6 +76,8 @@ class FileSystemOperationsUpdatable(FileSystemOperations):
 
             self.update_subitem(path, filelike, parent_item.inode)
 
+            pyfuse3.invalidate_inode(parent_item.inode)
+
         for path, filelike in update.new_files.items():
             parent_path = os.path.dirname(path)
             parent_item = self.inodes.get_by_path(parent_path)

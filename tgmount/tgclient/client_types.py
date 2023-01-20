@@ -4,11 +4,15 @@ from typing import Awaitable, Callable, Protocol
 from telethon import events, hints
 from telethon.tl.custom import Message
 
+from tgmount.tgclient.message_reaction_event import MessageReactionEvent
+
 from .types import InputDocumentFileLocation, InputPhotoFileLocation, TotalListTyped
 
 ListenerNewMessages = Callable[[events.NewMessage.Event], Awaitable[None]]
 ListenerRemovedMessages = Callable[[events.MessageDeleted.Event], Awaitable[None]]
-ListenerEditedMessage = Callable[[events.MessageEdited.Event], Awaitable[None]]
+ListenerEditedMessage = Callable[
+    [events.MessageEdited.Event | MessageReactionEvent], Awaitable[None]
+]
 
 
 class TgmountTelegramClientEventProto(Protocol):

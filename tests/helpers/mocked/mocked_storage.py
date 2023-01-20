@@ -1,4 +1,5 @@
 from collections import defaultdict
+from collections.abc import Mapping
 from typing import TypedDict
 from tgmount.tgclient.client_types import (
     IterDownloadProto,
@@ -26,6 +27,7 @@ from .mocked_message import (
     MockedForward,
     MockedMessage,
     MockedMessageWithDocument,
+    MockedReactions,
     MockedSender,
 )
 
@@ -165,6 +167,7 @@ class StorageEntityMixin:
         put=True,
         sender: str | MockedSender | None = None,
         forward: str | MockedForward | None = None,
+        reactions: Mapping[str, int] | None = None,
     ) -> MockedMessage:
         msg = self._storage.init_message(self._entity_id)
 
@@ -184,6 +187,9 @@ class StorageEntityMixin:
 
         if text is not None:
             msg.text = text
+
+        if reactions is not None:
+            msg.reactions = MockedReactions.from_dict(reactions)
 
         if put:
             await self._storage.put_message(msg)
@@ -205,11 +211,13 @@ class StorageEntityMixin:
         voice_note=False,
         video_note=False,
         gif=False,
+        reactions: Mapping[str, int] | None = None,
     ) -> MockedMessageWithDocument:
         msg = await self.message(
             put=False,
             sender=sender,
             forward=forward,
+            reactions=reactions,
         )
 
         if isinstance(file, str):
@@ -303,7 +311,7 @@ class StorageEntity(StorageEntityMixin):
         self._last_message_id += 1
         return self._last_message_id
 
-    async def edit_message(
+    async def _edit_message(
         self, old_message: MockedMessage, message: MockedMessage
     ) -> MockedMessage:
 
@@ -443,7 +451,7 @@ class MockedTelegramStorage:
     ):
 
         ent = self._entity_by_id[old_message.chat_id]
-        message = await ent.edit_message(old_message, new_message)
+        message = await ent._edit_message(old_message, new_message)
 
         for s in self._subscriber_per_entity_edited[ent.entity_id]:
             await s(events.MessageEdited.Event(message))

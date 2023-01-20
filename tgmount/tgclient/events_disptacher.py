@@ -2,15 +2,19 @@ from telethon import events
 
 from tgmount import config
 from tgmount.tgclient.client_types import TgmountTelegramClientGetMessagesProto
+from tgmount.tgclient.message_reaction_event import MessageReactionEvent
 
 from .message_source import MessageSource
 
 from .logger import logger as _logger
-
+import copy
 
 EntityId = str | int
 EventType = (
-    events.NewMessage.Event | events.MessageDeleted.Event | events.MessageEdited.Event
+    events.NewMessage.Event
+    | events.MessageDeleted.Event
+    | events.MessageEdited.Event
+    | MessageReactionEvent.Event
 )
 
 
@@ -76,10 +80,10 @@ class TelegramEventsDispatcher:
         self._sources_events_queue[chat_id] = q
 
     async def _on_edited_message(
-        self, chat_id: EntityId, event: events.MessageEdited.Event
+        self,
+        chat_id: EntityId,
+        event: events.MessageEdited.Event | MessageReactionEvent.Event,
     ):
-        self.logger.info(f"Edited message: {event.message}")
-
         if self.is_paused:
             await self._enqueue_event(chat_id, event)
             return
@@ -90,7 +94,22 @@ class TelegramEventsDispatcher:
             self.logger.error(f"_on_edited_message: Missing {chat_id}")
             return
 
-        await source.edit_messages([event.message])
+        if isinstance(event, MessageReactionEvent.Event):
+            messages = await source.get_by_ids([event.msg_id])
+            if messages is None or len(messages) == 0:
+                self.logger.error(
+                    f"_on_edited_message: Missing message with id {event.msg_id}"
+                )
+            else:
+                self.logger.debug(f"_on_edited_message: Missing {event.msg_id}")
+
+            message = copy.copy(messages[0])
+            message.reactions = event.reactions
+
+            await source.edit_messages([message])
+        else:
+            self.logger.info(f"Edited message: {event.message}")
+            await source.edit_messages([event.message])
 
     async def _on_new_message(self, chat_id: EntityId, event: events.NewMessage.Event):
         self.logger.info(f"New message: {event.message}")
@@ -139,10 +158,14 @@ class TelegramEventsDispatcher:
             for ev in q:
                 if isinstance(ev, events.NewMessage.Event):
                     await self._on_new_message(chat_id, ev)
-                elif isinstance(ev, events.MessageEdited.Event):
+                elif isinstance(
+                    ev, (events.MessageEdited.Event, MessageReactionEvent.Event)
+                ):
                     await self._on_edited_message(chat_id, ev)
-                else:
+                elif isinstance(ev, events.MessageDeleted().Event):
                     await self._on_delete_message(chat_id, ev)
+                else:
+                    self.logger.error(f"Invalid event type: {ev}")
 
 
 class TelegramMessagesFetcher:

@@ -81,16 +81,23 @@ async def main_test1(props: Props, on_event):
     return tgm.fs
 
 
+from telethon import TelegramClient
+
+
 @pytest.mark.asyncio
-async def test_fs_tg_test1(mnt_dir, caplog, tgclient_second):
+async def test_fs_tg_test1(
+    mnt_dir, caplog, tgclient_second: TelegramClient, files: FixtureFiles
+):
 
     client = tgclient_second
     # caplog.set_level(logging.DEBUG)
+    helper = TgmountIntegrationContext(mnt_dir, caplog=caplog)
+    # helper.debug = logging.DEBUG
 
     for ctx in spawn_fs_ops(
         main_test1,
         props=lambda ctx: {
-            "debug": logging.CRITICAL,
+            "debug": logging.DEBUG,
             "ev0": ctx.mgr.Event(),
             "ev1": ctx.mgr.Event(),
             "cfg": create_config(
@@ -102,7 +109,8 @@ async def test_fs_tg_test1(mnt_dir, caplog, tgclient_second):
                         "source": {"source": "tmtc", "recursive": True},
                         "all": {"filter": "All"},
                         # "wrappers": "ExcludeEmptyDirs",
-                        # "texts": {"filter": "MessageWithText"},
+                        "texts": {"filter": "MessageWithText"},
+                        "images": {"filter": "MessageWithDocumentImage"},
                     },
                 },
             ),
@@ -111,36 +119,60 @@ async def test_fs_tg_test1(mnt_dir, caplog, tgclient_second):
         min_tasks=10,
     ):
 
-        subfiles = await async_listdir(ctx.path("tmtc/all/"))
-        len1 = len(subfiles)
-        # await print_tasks()
-        # ctx.props["ev0"].set()
-        # print("Sending message 1")
+        # subfiles = await async_listdir(ctx.path("tmtc/all/"))
+        # len1 = len(subfiles)
+        # # await print_tasks()
+        # # ctx.props["ev0"].set()
+        # # print("Sending message 1")
 
-        msg0 = await client.send_message(TESTING_CHANNEL, message="asdsad")
+        # msg0 = await client.send_message(TESTING_CHANNEL, message="asdsad")
 
-        # print(f"Done Sending message 1: {msg0.id}")
+        # # print(f"Done Sending message 1: {msg0.id}")
 
-        assert len1 > 0
-        # print("Sending message 2")
+        # assert len1 > 0
+        # # print("Sending message 2")
 
-        msg1 = await client.send_message(
-            TESTING_CHANNEL, file="tests/fixtures/small_zip.zip"
+        # msg1 = await client.send_message(
+        #     TESTING_CHANNEL, file="tests/fixtures/small_zip.zip"
+        # )
+        # # ctx.props["ev1"].set()
+        # # print(f"Done Sending message 2: {msg1.id}")
+        # msg2 = await client.send_message(
+        #     TESTING_CHANNEL, file="tests/fixtures/small_zip.zip"
+        # )
+        # # print(f"Done Sending message 3: {msg2.id}")
+        # await asyncio.sleep(1)
+        # subfiles = await async_listdir(ctx.path("tmtc/all/"))
+
+        # assert len(subfiles) == len1 + 3
+
+        # await client.delete_messages(TESTING_CHANNEL, [msg0.id, msg1.id, msg2.id])
+
+        # # print(f"Removed messages")
+        # await asyncio.sleep(1)
+        # subfiles = await async_listdir(ctx.path("tmtc/all/"))
+        # assert len(subfiles) == len1
+
+        msg3 = await client.send_message(TESTING_CHANNEL, message="hello")
+
+        assert (await helper.listdir("tmtc/all/")).count(f"{msg3.id}_message.txt") == 1
+
+        assert await helper.read_text(f"tmtc/all/{msg3.id}_message.txt") == "hello"
+
+        assert (await helper.stat(f"tmtc/all/{msg3.id}_message.txt")).st_size == 5
+
+        msg3 = await client.edit_message(
+            TESTING_CHANNEL, message=msg3.id, text="hello hello", file=files.Hummingbird
         )
-        # ctx.props["ev1"].set()
-        # print(f"Done Sending message 2: {msg1.id}")
-        msg2 = await client.send_message(
-            TESTING_CHANNEL, file="tests/fixtures/small_zip.zip"
+
+        assert (await helper.stat(f"tmtc/all/{msg3.id}_message.txt")).st_size == 11
+
+        assert (
+            await helper.read_text(f"tmtc/all/{msg3.id}_message.txt") == "hello hello"
         )
-        # print(f"Done Sending message 3: {msg2.id}")
-        await asyncio.sleep(1)
-        subfiles = await async_listdir(ctx.path("tmtc/all/"))
 
-        assert len(subfiles) == len1 + 3
+        assert (await helper.listdir(ctx.path("tmtc/images/"))).count(
+            f"{msg3.id}_Hummingbird.jpg"
+        ) == 1
 
-        await client.delete_messages(TESTING_CHANNEL, [msg0.id, msg1.id, msg2.id])
-
-        # print(f"Removed messages")
-        await asyncio.sleep(1)
-        subfiles = await async_listdir(ctx.path("tmtc/all/"))
-        assert len(subfiles) == len1
+        await client.delete_messages(TESTING_CHANNEL, [msg3.id])
