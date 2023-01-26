@@ -3,6 +3,7 @@ from telethon import events
 from tgmount import config
 from tgmount.tgclient.client_types import TgmountTelegramClientGetMessagesProto
 from tgmount.tgclient.message_reaction_event import MessageReactionEvent
+from tgmount.tgclient.message_types import MessageProto
 
 from .message_source import MessageSource
 
@@ -72,7 +73,7 @@ class TelegramEventsDispatcher:
         event: EventType,
     ):
         self.logger.info(
-            f"_enqueue_event: {event}. Total events enqued: {self._get_total()}"
+            f"_enqueue_event: {event.__class__}. Total events enqued: {self._get_total()}"
         )
 
         q = self._sources_events_queue.get(chat_id, [])
@@ -87,6 +88,13 @@ class TelegramEventsDispatcher:
         if self.is_paused:
             await self._enqueue_event(chat_id, event)
             return
+
+        if isinstance(event, events.MessageEdited.Event):
+            self.logger.debug(f"_on_edited_message: {event.id}")
+        else:
+            self.logger.debug(
+                f"_on_edited_message: message {event.msg_id} reactions update {event.reactions}"
+            )
 
         source = self._sources.get(chat_id)
 
@@ -114,7 +122,9 @@ class TelegramEventsDispatcher:
             await source.edit_messages([event.message])
 
     async def _on_new_message(self, chat_id: EntityId, event: events.NewMessage.Event):
-        self.logger.info(f"New message: {event.message}")
+        self.logger.debug(f"New message: {MessageProto.repr_short(event.message)}")
+
+        self.logger.trace(event.message)
 
         if self.is_paused:
             await self._enqueue_event(chat_id, event)
@@ -131,7 +141,7 @@ class TelegramEventsDispatcher:
     async def _on_delete_message(
         self, chat_id: EntityId, event: events.MessageDeleted.Event
     ):
-        self.logger.info(f"Removed messages: {event.deleted_ids} from {chat_id}")
+        self.logger.debug(f"Removed messages: {event.deleted_ids} from {chat_id}")
 
         if self.is_paused:
             await self._enqueue_event(chat_id, event)

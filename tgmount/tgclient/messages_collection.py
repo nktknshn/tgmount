@@ -24,6 +24,10 @@ class WithId(Protocol):
 M = TypeVar("M", bound=WithId)
 
 
+def message_ids(ms: Sequence[WithId]) -> list[int]:
+    return [m.id for m in ms]
+
+
 def messages_difference(
     before: Sequence[M], after: Sequence[M]
 ) -> tuple[list[M], list[M], list[tuple[M, M]],]:

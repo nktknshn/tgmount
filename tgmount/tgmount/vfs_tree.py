@@ -105,6 +105,10 @@ class VfsTreeDirMixin:
             )
 
 
+class VfsTreeDirProducer:
+    pass
+
+
 class VfsTreeDir(VfsTreeDirMixin):
     """
     Represents a single dir.
@@ -119,14 +123,11 @@ class VfsTreeDir(VfsTreeDirMixin):
         tree: "VfsTree",
         path: str,
         wrappers=None,
-        # subs are the users of the dir
-        # subs: list[VfsTreeProducerProto] | None = None,
     ) -> None:
         self._parent_tree = tree
         self._path = path
         self._wrappers: list[VfsTreeWrapperProto] = none_fallback(wrappers, [])
         self._dir_content_items: list[vfs.DirContentItem] = []
-        # self._subs = none_fallback(subs, [])
 
         self._logger = self.logger.getChild(self.path)
 

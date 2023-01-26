@@ -101,7 +101,7 @@ class Formatter(logging.Formatter):
         rec.message = rec.getMessage()
         rec.name = rec.name.replace("tgmount.", "", 1)
 
-        if yes(rec.tag):
+        if hasattr(rec, "tag") and yes(rec.tag):
             log_str = f"{rec.levelname} [{rec.name}] [{rec.tag}] {rec.message}"
         else:
             log_str = f"{rec.levelname} [{rec.name}] {rec.message}"
@@ -124,15 +124,24 @@ class Formatter(logging.Formatter):
 def init_logging(debug_level: int = 0):
     # print(f"init_logging: {debug_level}", file=sys.stderr)
     logging.getLogger("asyncio").setLevel(logging.ERROR)
-    logging.getLogger("telethon").setLevel(logging.ERROR)
+    logging.getLogger("telethon").setLevel(logging.INFO)
 
     tgmount.tgmount.logger.setLevel(debug_level)
     tgmount.tgmount.filters.logger.setLevel(logging.INFO)
+    tgmount.tgmount.producers.producer_plain.VfsTreeProducerPlainDir.logger.setLevel(
+        logging.INFO
+    )
+
+    tgmount.tgmount.producers.grouperbase.VfsTreeProducerGrouperBase.logger.setLevel(
+        logging.INFO
+    )
+
     tgmount.fs.logger.setLevel(logging.INFO)
+
     # tgmount.tgmount.wrappers.logger.setLevel(logging.INFO)
-    # tgmount.tgmount.wrappers.wrapper_exclude_empty_dirs.WrapperEmpty.logger.setLevel(
-    #     TRACE
-    # )
+    tgmount.tgmount.wrappers.wrapper_exclude_empty_dirs.WrapperEmpty.logger.setLevel(
+        logging.INFO
+    )
 
     handler = logging.StreamHandler()
     handler.setFormatter(Formatter())

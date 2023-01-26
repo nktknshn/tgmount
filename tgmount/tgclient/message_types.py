@@ -3,6 +3,8 @@ from typing import Any, Optional, Protocol
 
 import telethon
 
+from tgmount.util import is_not_none, yes
+
 MessageId = int
 ChatId = str | int
 
@@ -134,3 +136,11 @@ class MessageProto(Protocol):
     def guard(msg: Any):
         return hasattr(msg, "id") and hasattr(msg, "document")
         #  and hasattr(msg, "file")
+
+    @staticmethod
+    def repr_short(message: "MessageProto"):
+
+        if yes(message.text):
+            return f"Message(id={message.id}, message='{message.text[:10]}...', document={bool(message.document)}, photo={bool(message.photo)})"
+
+        return f"Message(id={message.id}, document={bool(message.document)}, photo={bool(message.photo)})"

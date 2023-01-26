@@ -1,7 +1,5 @@
 from typing import Mapping, TypeVar
 
-from telethon.tl.custom import Message
-
 from tgmount import vfs
 from tgmount.tgclient.message_types import MessageProto
 from tgmount.tgclient.messages_collection import MessagesCollection, messages_difference
@@ -54,7 +52,7 @@ class VfsTreeProducerPlainDir(VfsTreeProducerProto):
 
         _messages = MessagesCollection.from_iterable(await self._config.get_messages())
 
-        self._logger.info(f"Producing from {len(_messages)} messages...")
+        self._logger.debug(f"Producing from {len(_messages)} messages...")
 
         self._message_to_file = {
             m.id: await self._config.produce_file(m) for m in _messages
@@ -143,9 +141,9 @@ class VfsTreeProducerPlainDir(VfsTreeProducerProto):
         if len(updated_files):
             await self._tree_dir.update_content(update_content_dict)
 
-    async def update_new_messages(self, source, new_messages: list[Message]):
+    async def update_new_messages(self, source, new_messages: list[MessageProto]):
 
-        self._logger.info(
+        self._logger.debug(
             f"update_new_messages({list(map(lambda m: m.id, new_messages))})"
         )
 
@@ -167,8 +165,10 @@ class VfsTreeProducerPlainDir(VfsTreeProducerProto):
         if len(new_files):
             await self._tree_dir.put_content(new_files)
 
-    async def update_removed_messages(self, source, removed_messages: list[Message]):
-        self._logger.info(
+    async def update_removed_messages(
+        self, source, removed_messages: list[MessageProto]
+    ):
+        self._logger.debug(
             f"update_removed_messages({list(map(lambda m: m.id, removed_messages))})"
         )
 

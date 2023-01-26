@@ -98,7 +98,7 @@ class VfsTreeProducerGrouperBase(abc.ABC):
 
         new_messages = await self._config.apply_filters(new_messages)
 
-        self._logger.debug(f"after filtering left {len(new_messages)} messages")
+        self._logger.trace(f"after filtering left {len(new_messages)} messages")
 
         grouped, root = await self._group_messages(new_messages)
 
@@ -135,9 +135,14 @@ class VfsTreeProducerGrouperBase(abc.ABC):
             dir_messages_before, dir_messages_after
         )
 
-        await dir_src.remove_messages(removed)
-        await dir_src.add_messages(new)
-        await dir_src.edit_messages(map(snd, updated))
+        if len(removed) > 0:
+            await dir_src.remove_messages(removed)
+
+        if len(new) > 0:
+            await dir_src.add_messages(new)
+
+        if len(updated) > 0:
+            await dir_src.edit_messages(map(snd, updated))
 
         if len(await dir_src.get_messages()) == 0:
             await self._dir.remove_subdir(dir_name)

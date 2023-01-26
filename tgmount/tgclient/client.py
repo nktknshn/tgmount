@@ -45,7 +45,7 @@ class TgmountTelegramClient(
         request_retries: int = 5,
         connection_retries: int = 5,
         retry_delay: int = 1,
-        auto_reconnect: bool = True,
+        auto_reconnect: bool = False,
         sequential_updates: bool = False,
         flood_sleep_threshold: int = 60,
         raise_last_call_error: bool = False,
@@ -97,14 +97,6 @@ class TgmountTelegramClient(
     def subscribe_edited_message(self, listener: ListenerEditedMessage, chats=None):
         async def _update_reactions(event: MessageReactionEvent):
             await listener(event)
-            # self.get_input_entity()
 
         self.add_event_handler(listener, events.MessageEdited(chats=chats))
         self.add_event_handler(_update_reactions, MessageReactionEvent(chats=chats))
-        # self.add_event_handler(print, events.Raw(UpdateMessageReactions, chats=chats))
-
-
-# UpdateMessageReactions(peer=PeerChannel(channel_id=1556824772), msg_id=111, reactions=MessageReactions(results=[ReactionCount(reaction=ReactionEmoji(emoticon='👍'), count=1, chosen_order=0)], min=False, can_see_list=False, recent_reactions=[]), top_msg_id=None)
-
-# async def printt(ev):
-#     print(ev)

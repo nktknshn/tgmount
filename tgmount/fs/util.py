@@ -41,7 +41,7 @@ def exception_handler(func):
             raise
         except Exception:
             if exception_handler.catch:
-                tglog.tgmount_logger.error(traceback.format_exc())
+                # tglog.tgmount_logger.error(traceback.format_exc())
                 raise pyfuse3.FUSEError(errno.EIO)
             else:
                 raise

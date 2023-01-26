@@ -1,5 +1,5 @@
 from typing import Callable, Generic, Iterable, TypeVar
-from tgmount.tgclient.messages_collection import MessagesCollection, WithId
+from tgmount.tgclient.messages_collection import MessagesCollection, WithId, message_ids
 
 from tgmount.util import none_fallback
 
@@ -95,7 +95,7 @@ class MessageSource(MessageSourceSubscribableProto, Generic[M]):
 
         _filtered = await self._filter_messages(messages)
 
-        self._logger.debug(f"add_messages({len(_filtered)})")
+        self._logger.debug(f"add_messages({message_ids(_filtered)})")
 
         if len(_filtered) == 0:
             return
@@ -111,7 +111,10 @@ class MessageSource(MessageSourceSubscribableProto, Generic[M]):
         if self._messages is None:
             self._messages = MessagesCollection()
 
-        self._logger.debug(f"remove_messages({len(removed_messages)})")
+        self._logger.debug(f"remove_messages({message_ids(removed_messages)})")
+
+        if len(removed_messages) == 0:
+            return
 
         inter = self._messages.remove_messages(removed_messages)
 
@@ -121,7 +124,7 @@ class MessageSource(MessageSourceSubscribableProto, Generic[M]):
         if self._messages is None:
             self._messages = MessagesCollection()
 
-        self._logger.debug(f"remove_messages({len(removed_messages)})")
+        self._logger.debug(f"remove_messages({removed_messages})")
 
         inter = self._messages.remove_ids(removed_messages)
 
@@ -136,20 +139,26 @@ class MessageSource(MessageSourceSubscribableProto, Generic[M]):
 
     async def get_messages(self) -> list[M]:
         if self._messages is None:
-            self._logger.debug(f"get_messages()")
+            self._logger.trace(f"get_messages()")
             self._logger.error(f"Messages are not initiated yet")
             return []
 
         messages = self._messages.get_messages_list()
 
-        self._logger.debug(f"get_messages(). Returning {len(messages)} messages.")
+        self._logger.trace(f"get_messages(). Returning {len(messages)} messages.")
 
         return messages
 
     async def set_messages(self, messages: list[M], notify=True):
         """Sets the source messages. `notify` sets if the subscribers should be notified about the update"""
 
-        self._logger.debug(f"set_messages({len(messages)} messages, notify={notify})")
+        # if len(messages) == 0:
+        #     self._logger.trace(f"empty set_messages request")
+        #     return
+        if len(messages) > 0:
+            self._logger.debug(
+                f"set_messages({len(messages)} messages, notify={notify})"
+            )
 
         filtered = await self._filter_messages(messages)
 
@@ -165,7 +174,7 @@ class MessageSource(MessageSourceSubscribableProto, Generic[M]):
 
         removed, new, common = self._messages.get_difference(filtered)  # type: ignore
 
-        self._logger.debug(f"removed({removed}, new={new}, common={common})")
+        # self._logger.debug(f"removed({removed}, new={new}, common={common})")
 
         if len(removed) > 0 or len(new) > 0:
             self._messages = MessagesCollection.from_iterable(messages)

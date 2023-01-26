@@ -58,13 +58,17 @@ class VfsTreeProducer:
     ):
         """Using `VfsDirConfig` produce content into `tree_dir`"""
 
-        self.logger.info(f"Produce: {vfs.path_join(tree_dir.path, path)}")
+        self.logger.info(f"Producing {vfs.path_join(tree_dir.path, path)}")
 
         # create the subdir
         sub_dir = await tree_dir.create_dir(path)
 
         # If the directory has any wrapper
         if vfs_config.vfs_wrappers is not None:
+            # self.logger.debug(
+            #     f"{sub_dir.path} has {len(vfs_config.vfs_wrappers)} wrappers"
+            # )
+
             for wrapper_cls, wrapper_arg in vfs_config.vfs_wrappers:
                 wrapper = wrapper_cls.from_config(
                     none_fallback(wrapper_arg, {}), sub_dir
@@ -76,6 +80,8 @@ class VfsTreeProducer:
             vfs_config.vfs_producer is not None
             and vfs_config.vfs_producer_config is not None
         ):
+            # self.logger.debug(f"{sub_dir.path} uses {vfs_config.vfs_producer} producer")
+
             producer = await vfs_config.vfs_producer.from_config(
                 self._resources,
                 vfs_config.vfs_producer_config,

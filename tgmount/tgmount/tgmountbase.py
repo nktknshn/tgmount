@@ -10,6 +10,7 @@ from tgmount.fs.update import FileSystemOperationsUpdate
 from tgmount.tgclient.add_hash import add_hash_to_telegram_message_class
 from tgmount.tgclient.message_source import MessageSource
 from tgmount.tgclient.events_disptacher import EntityId, TelegramEventsDispatcher
+from tgmount.tgclient.message_types import MessageProto
 from tgmount.tgmount.producers.producer_plain import VfsTreeProducerPlainDir
 from tgmount.tgmount.vfs_tree_producer import VfsTree, VfsTreeProducer
 from tgmount.util import measure_time, none_fallback
@@ -144,7 +145,8 @@ class TgmountBase:
 
     @measure_time(logger_func=logger.info)
     async def on_new_message(self, entity_id: EntityId, event: events.NewMessage.Event):
-        self.logger.info(f"on_new_message({event})")
+        self.logger.info(f"on_new_message({MessageProto.repr_short(event.message)})")
+        self.logger.trace(f"on_new_message({event})")
 
         listener = TreeListener(self._vfs_tree)
 
@@ -157,7 +159,7 @@ class TgmountBase:
                 self.logger.debug(f"Tree generated {len(listener.events)} events")
                 await self._on_vfs_tree_update(listener.events)
 
-        self.logger.info(f"on_new_message() done")
+        # self.logger.info(f"on_new_message() done")
 
     @measure_time(logger_func=logger.info)
     async def on_delete_message(
@@ -176,13 +178,14 @@ class TgmountBase:
                 self.logger.debug(f"Tree generated {len(listener.events)} events")
                 await self._on_vfs_tree_update(listener.events)
 
-        self.logger.info(f"on_delete_message() done")
+        # self.logger.info(f"on_delete_message() done")
 
     @measure_time(logger_func=logger.info)
     async def on_edited_message(
         self, entity_id: EntityId, event: events.MessageEdited.Event
     ):
-        self.logger.info(f"on_edited_message({event})")
+        self.logger.info(f"on_edited_message({MessageProto.repr_short(event.message)})")
+        self.logger.trace(event.message)
 
         listener = TreeListener(self._vfs_tree)
 
@@ -196,7 +199,7 @@ class TgmountBase:
                 self.logger.debug(f"Tree generated {len(listener.events)} events")
                 await self._on_vfs_tree_update(listener.events)
 
-        self.logger.info(f"on_delete_message() done")
+        # self.logger.info(f"on_delete_message() done")
 
     # @measure_time(logger_func=logger.info)
     async def _update_fs(self, fs_update: FileSystemOperationsUpdate):
@@ -235,7 +238,7 @@ class TgmountBase:
 
         fs_update = await self._join_tree_events(updates)
 
-        self.logger.info(
+        self.logger.debug(
             f"UPDATE: new_files={list(fs_update.new_files.keys())}"
             + f" removed_files={list(fs_update.removed_files)}"
             # + f" update_dir_content={list(fs_update.update_dir_content.keys())}"
