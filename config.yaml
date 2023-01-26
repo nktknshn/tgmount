@@ -13,7 +13,7 @@ caches:
     capacity: 50MB
     block_size: 128KB
 # every source is a separate get_messages request
-count: &count 1000
+count: &count 10
 updates: &updates True
 
     

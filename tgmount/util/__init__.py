@@ -10,6 +10,10 @@ T = TypeVar("T")
 O = TypeVar("O")
 
 
+def yes(value: Optional[T]) -> TypeGuard[T]:
+    return value is not None
+
+
 def none_fallback(value: Optional[T], default: T) -> T:
     return value if value is not None else default
 

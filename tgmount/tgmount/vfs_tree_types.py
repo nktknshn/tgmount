@@ -16,7 +16,6 @@ class TreeEventRemovedItems(Generic[T]):
     """Triggered by `VfsTree.remove_content`"""
 
     sender: T
-    update_path: str
     removed_items: list[vfs.DirContentItem]
 
 
@@ -25,7 +24,6 @@ class TreeEventNewItems(Generic[T]):
     """Triggered by `VfsTree.put_content`"""
 
     sender: T
-    update_path: str
     new_items: list[vfs.DirContentItem]
 
 
@@ -34,7 +32,6 @@ class TreeEventUpdatedItems(Generic[T]):
     """Triggered by `VfsTree.update_content`"""
 
     sender: T
-    update_path: str
     updated_items: Mapping[str, vfs.DirContentItem]
 
 
@@ -43,7 +40,6 @@ class TreeEventRemovedDirs(Generic[T]):
     """Triggered by `VfsTree.remove_dir`"""
 
     sender: T
-    update_path: str
     removed_dirs: list[str]
 
 
@@ -52,7 +48,6 @@ class TreeEventNewDirs(Generic[T]):
     """Triggered by `VfsTree.put_dir` and `VfsTree.create_dir`"""
 
     sender: T
-    update_path: str
     new_dirs: list[str]
 
 

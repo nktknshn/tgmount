@@ -37,7 +37,7 @@ class WrapperEmpty(VfsTreeWrapperProto):
     def __init__(self, wrapped_dir: "VfsTreeDir") -> None:
         self._wrapped_dir = wrapped_dir
         self._wrapped_nonempty_dir_subdirs: set["VfsTreeDir"] = set()
-        self._logger = self.logger.getChild(self._wrapped_dir.path)
+        self._logger = self.logger.getChild(self._wrapped_dir.path, suffix_as_tag=True)
 
     async def wrap_dir_content(
         self, dir_content: vfs.DirContentProto
@@ -57,7 +57,9 @@ class WrapperEmpty(VfsTreeWrapperProto):
         self,
         events: list[TreeEventType[VfsTreeDir]],
     ) -> list[TreeEventType]:
-        self._logger.debug(f"wrap_events({events})")
+
+        self._logger.debug(f"wrap_events({[e.__class__.__name__ for e in events]})")
+        self._logger.trace(f"{events}")
 
         _events = []
 
@@ -72,11 +74,11 @@ class WrapperEmpty(VfsTreeWrapperProto):
                 if sender in self._wrapped_nonempty_dir_subdirs:
                     # if the folder used to be not empty and visible
                     if is_empty:
+                        self._logger.debug(f"{sender.path} became empty.")
                         # remove it
                         _events.append(
                             TreeEventRemovedDirs(
                                 sender=self._wrapped_dir,
-                                update_path=self._wrapped_dir.path,
                                 removed_dirs=[sender.path],
                             )
                         )
@@ -88,11 +90,11 @@ class WrapperEmpty(VfsTreeWrapperProto):
                     if not is_empty:
                         # if the folder has not been visible yet and now it is
                         #  not empty, then show it to the file system
+                        self._logger.debug(f"{sender.path} stopped being empty.")
                         _events.extend(
                             [
                                 TreeEventNewDirs(
                                     sender=self._wrapped_dir,
-                                    update_path=self._wrapped_dir.path,
                                     new_dirs=[sender.path],
                                 ),
                                 ev,
@@ -105,7 +107,6 @@ class WrapperEmpty(VfsTreeWrapperProto):
                 if isinstance(ev, TreeEventNewDirs):
                     _e = TreeEventNewDirs(
                         sender=sender,
-                        update_path=ev.update_path,
                         new_dirs=[],
                     )
 
@@ -116,6 +117,9 @@ class WrapperEmpty(VfsTreeWrapperProto):
                         if not await self._is_empty(d):
                             _e.new_dirs.append(dpath)
                             self._wrapped_nonempty_dir_subdirs.add(d)
+                            self._logger.debug(f"{d.path} is not empty.")
+                        else:
+                            self._logger.debug(f"{d.path} is empty.")
                 else:
                     _events.append(ev)
             else:

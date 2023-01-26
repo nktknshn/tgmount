@@ -2,7 +2,12 @@ from collections.abc import Mapping, Sequence
 from typing import Any, Union
 
 from tgmount import vfs
-from tgmount.tgclient.message_source_types import Subscribable
+from tgmount.tgclient.message_source_types import (
+    Subscribable,
+    SubscribableListener,
+    SubscribableProto,
+)
+from tgmount.tglog import TgmountLogger
 from tgmount.tgmount.error import TgmountError
 from tgmount.tgmount.vfs_tree_types import (
     TreeEventNewDirs,
@@ -58,6 +63,8 @@ class VfsTreeDirContent(vfs.DirContentProto):
 
 
 class VfsTreeDirMixin:
+    _logger: TgmountLogger
+
     async def _update_content(
         self: "VfsTreeDir",  # type: ignore
         content: Mapping[str, vfs.DirContentItem],
@@ -90,7 +97,12 @@ class VfsTreeDirMixin:
         self,
         item: vfs.DirContentItem,
     ):
-        self._dir_content_items.remove(item)
+        try:
+            self._dir_content_items.remove(item)
+        except ValueError:
+            self._logger.error(
+                f"Error removing {item} from {self}. Element not found: content: {self._dir_content_items}"
+            )
 
 
 class VfsTreeDir(VfsTreeDirMixin):
@@ -125,7 +137,7 @@ class VfsTreeDir(VfsTreeDirMixin):
 
     async def child_updated(self, events: list[TreeEventType["VfsTreeDir"]]):
         """Method used by subdirs to notify the dir about its modifications. If this dir contains any wrappers updates are wrapped with `wrap_updates` method."""
-        self._logger.debug(f"child_updated( {events})")
+        # self._logger.debug(f"child_updated( {events})")
 
         parent = await self.get_parent()
 
@@ -217,6 +229,7 @@ class VfsTreeDir(VfsTreeDirMixin):
         item: vfs.DirContentItem,
         subpath: str = "/",
     ):
+        self._logger.debug(f"remove_content({item}, subpath={subpath})")
         await self._parent_tree.remove_content(self._globalpath(subpath), item)
 
     async def get_dir_content(self):
@@ -298,7 +311,7 @@ class VfsTree(Subscribable, VfsTreeProto):
     def __init__(self) -> None:
         Subscribable.__init__(self)
 
-        self._dirs: dict[str, VfsTreeDir] = {}
+        self._dir_by_path: dict[str, VfsTreeDir] = {}
         self._path_dy_dir: dict[VfsTreeDir, str] = {}
         self._subdirs = SubdirsRegistry()
 
@@ -316,7 +329,7 @@ class VfsTree(Subscribable, VfsTreeProto):
     async def child_updated(self, updates: list[TreeEventType]):
         """Notifies tree subscribers with subchild `updates`"""
 
-        self.logger.debug(f"child_updated({updates})")
+        # self.logger.debug(f"child_updated({updates})")
         await self.notify(updates)
 
     async def remove_content(
@@ -330,7 +343,7 @@ class VfsTree(Subscribable, VfsTreeProto):
         await sd._remove_from_content(item)
 
         await sd.child_updated(
-            [TreeEventRemovedItems(sender=sd, update_path=path, removed_items=[item])],
+            [TreeEventRemovedItems(sender=sd, removed_items=[item])],
         )
 
     async def put_content(
@@ -346,7 +359,7 @@ class VfsTree(Subscribable, VfsTreeProto):
         await sd._put_content(content, replace=replace)
 
         await sd.child_updated(
-            [TreeEventNewItems(sender=sd, update_path=path, new_items=list(content))],
+            [TreeEventNewItems(sender=sd, new_items=list(content))],
         )
 
     async def update_content(
@@ -363,7 +376,6 @@ class VfsTree(Subscribable, VfsTreeProto):
             [
                 TreeEventUpdatedItems(
                     sender=sd,
-                    update_path=path,
                     updated_items=map_keys(
                         lambda name: vfs.path_join(path, name), content
                     ),
@@ -386,21 +398,17 @@ class VfsTree(Subscribable, VfsTreeProto):
         parent = await self.get_parent(path)
 
         for sd in subdirs:
-            del self._dirs[sd.path]
+            del self._dir_by_path[sd.path]
             del self._path_dy_dir[sd]
 
-        del self._dirs[path]
+        del self._dir_by_path[path]
         del self._path_dy_dir[thedir]
 
         self._subdirs.remove_path(path)
 
         await parent.child_updated(
             # parent,  # type: ignore
-            [
-                TreeEventRemovedDirs(
-                    sender=parent, update_path=parent.path, removed_dirs=[path]
-                )
-            ],
+            [TreeEventRemovedDirs(sender=parent, removed_dirs=[path])],
         )
 
     async def create_dir(self, path: str) -> VfsTreeDir:
@@ -411,34 +419,34 @@ class VfsTree(Subscribable, VfsTreeProto):
         """Put `VfsTreeDir`. May be used instead of `create_dir` method."""
         path = vfs.norm_path(d.path, addslash=True)
         # parent_dir, dir_name = vfs.split_path(path, addslash=True)
-        parent = await self.get_parent(path)
 
-        if path in self._dirs:
-            self._dirs[path] = d
+        if path in self._dir_by_path:
+            self._dir_by_path[path] = d
             self._path_dy_dir[d] = path
-            return self._dirs[path]
+            return self._dir_by_path[path]
 
-        if path != "/" and parent.path not in self._dirs:
-            await self.create_dir(parent.path)
-
-        self._dirs[path] = d
+        self._dir_by_path[path] = d
         self._path_dy_dir[d] = path
         self._subdirs.add_path(path)
 
-        await parent.child_updated(
-            # parent,  # type: ignore
-            [TreeEventNewDirs(sender=parent, update_path=parent.path, new_dirs=[path])],
-        )
+        if path != "/":
+            parent = await self.get_parent(path)
 
-        return self._dirs[path]
+            if parent.path not in self._dir_by_path:
+                await self.create_dir(parent.path)
 
-    async def get_parents(
-        self, path_or_dir: str | VfsTreeDir
-    ) -> list[Union[VfsTreeDir, "VfsTree"]]:
+            await parent.child_updated(
+                # parent,  # type: ignore
+                [TreeEventNewDirs(sender=parent, new_dirs=[path])],
+            )
+
+        return self._dir_by_path[path]
+
+    async def get_parents(self, path_or_dir: str | VfsTreeDir) -> list[VfsTreeDir]:
         """ "Returns a list of parents of `path_or_dir` with first element being `VfsTree`"""
 
         if path_or_dir == "/":
-            return [self]
+            return []
 
         if isinstance(path_or_dir, str):
             path = path_or_dir
@@ -459,13 +467,13 @@ class VfsTree(Subscribable, VfsTreeProto):
     async def exists(self, dir_or_path: VfsTreeDir | str):
         return (
             dir_or_path.path if isinstance(dir_or_path, VfsTreeDir) else dir_or_path
-        ) in self._dirs
+        ) in self._dir_by_path
 
-    async def get_parent(self, path: str) -> Union[VfsTreeDir, "VfsTree"]:
+    async def get_parent(self, path: str) -> VfsTreeDir:
         """Returns parent `VfsTreeDir` for dir at `path`. Returns `VfsTree` for `path == '/'`"""
 
         if path == "/":
-            return self
+            raise VfsTreeError(f"Cannot get parent for /")
 
         parent_dir, dir_name = vfs.split_path(path, addslash=True)
 
@@ -478,10 +486,10 @@ class VfsTree(Subscribable, VfsTreeProto):
 
     async def get_dir(self, path: str) -> "VfsTreeDir":
         """Returns `VfsTreeDir` stored at `path`"""
-        if path not in self._dirs:
+        if path not in self._dir_by_path:
             raise VfsTreeNotFoundError(f"Missing directory {path}", path=path)
 
-        return self._dirs[path]
+        return self._dir_by_path[path]
 
     async def get_subdirs(self, path: str, *, recursive=False) -> list[VfsTreeDir]:
         """Returns a list of `VfsTreeDir` which are subdirs of dir stored at `path`. If `recursive` flag is set all the nested subdirs are included."""
@@ -490,7 +498,7 @@ class VfsTree(Subscribable, VfsTreeProto):
         subdirs = self._subdirs.get_subdirs(path, recursive)
 
         for s in subdirs:
-            res.append(self._dirs[s])
+            res.append(self._dir_by_path[s])
 
         return res
 
@@ -521,3 +529,6 @@ class VfsTree(Subscribable, VfsTreeProto):
             dc = await w.wrap_dir_content(dc)
 
         return dc
+
+
+TreeListener = SubscribableListener[TreeEventType]

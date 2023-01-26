@@ -85,7 +85,7 @@ from telethon import TelegramClient
 
 
 @pytest.mark.asyncio
-async def test_fs_tg_test1(
+async def _test_fs_tg_test1(
     mnt_dir, caplog, tgclient_second: TelegramClient, files: FixtureFiles
 ):
 

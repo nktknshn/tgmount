@@ -138,7 +138,8 @@ class FileSystemOperations(pyfuse3.Operations, FileSystemOperationsMixin):
         self._init_handles()
 
     def _init_root(self, root: vfs.DirLike, last_inode=None):
-        self.logger.debug(f"_init_root")
+        self.logger.debug(f"init_root")
+
         self._inodes = InodesRegistry[FileSystemItem](
             self.create_FileSystemItem(
                 root,

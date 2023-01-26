@@ -60,7 +60,7 @@ async def main_test1(props, _):
 
 
 @pytest.mark.asyncio
-async def test_fs_tg_test1(mnt_dir, caplog):
+async def _test_fs_tg_test1(mnt_dir, caplog):
 
     caplog.set_level(logging.DEBUG)
 

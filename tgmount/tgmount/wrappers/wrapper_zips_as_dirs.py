@@ -95,9 +95,7 @@ class WrapperZipsAsDirs(VfsTreeWrapperProto):
 
             # when items appear
             if isinstance(e, TreeEventNewItems):
-                _e = TreeEventNewItems(
-                    sender=e.sender, update_path=e.update_path, new_items=[]
-                )
+                _e = TreeEventNewItems(sender=e.sender, new_items=[])
 
                 for item in e.new_items:
                     await self._process_event_new_item(e, _e, item)
@@ -106,9 +104,7 @@ class WrapperZipsAsDirs(VfsTreeWrapperProto):
 
             # when items disappear
             elif isinstance(e, TreeEventRemovedItems):
-                _e = TreeEventRemovedItems(
-                    sender=e.sender, update_path=e.update_path, removed_items=[]
-                )
+                _e = TreeEventRemovedItems(sender=e.sender, removed_items=[])
 
                 for item in e.removed_items:
                     if (

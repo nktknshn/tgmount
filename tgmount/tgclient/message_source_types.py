@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Any, Awaitable, Callable, Protocol, TypeVar
+from typing import Any, Awaitable, Callable, Generic, Protocol, TypeVar
 from typing_extensions import TypeVarTuple, Unpack
 
 from telethon import events
@@ -62,3 +62,18 @@ class Subscribable(SubscribableProto[Arg]):
     async def notify(self, *args):
         for listener in self._listeners:
             await listener(self, *args)
+
+
+class SubscribableListener(Generic[T]):
+    def __init__(self, source: SubscribableProto) -> None:
+        self.source = source
+        self.events: list[T] = []
+
+    async def _append_events(self, sender, events: list[T]):
+        self.events.extend(events)
+
+    async def __aenter__(self):
+        self.source.subscribe(self._append_events)
+
+    async def __aexit__(self, type, value, traceback):
+        self.source.unsubscribe(self._append_events)

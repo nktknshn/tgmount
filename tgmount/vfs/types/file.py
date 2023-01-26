@@ -87,23 +87,3 @@ class FileContent(FileContentProto):
 
     def __repr__(self):
         return f"FileContent(size={self.size})"
-
-
-@dataclass
-class FileContentHandle:
-    file_content: FileContentProto
-    handle: Any
-    is_closed: bool = False
-
-    async def read(self, off: int, size: int) -> bytes:
-        return await self.file_content.read_func(self.handle, off, size)
-
-    async def close(self):
-        await self.file_content.close_func(self.handle)
-        self.is_closed = True
-
-    async def seek(self, n: int, w: int):
-        return await self.file_content.seek_func(self.handle, n, w)
-
-    async def tell(self):
-        return await self.file_content.tell_func(self.handle)

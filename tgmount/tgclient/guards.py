@@ -68,6 +68,8 @@ class MessageDownloadable(
     TryGetFromGuard["MessageDownloadable"],
     Protocol,
 ):
+    """Message that has a document or a compressed photo attached.  `MessageWithDocument` or `MessageWithCompressedPhoto`"""
+
     file: FileProto
 
     @staticmethod
@@ -441,7 +443,7 @@ class MessageWithText(
         )
 
     @staticmethod
-    def filename(message: "MessageWithVoice"):
+    def filename(message: "MessageWithText"):
         return f"{message.id}_message.txt"
 
 

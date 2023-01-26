@@ -4,7 +4,7 @@ from telethon.tl.custom import Message
 
 from tgmount import vfs
 from tgmount.tgclient.message_types import MessageProto
-from tgmount.tgclient.messages_collection import MessagesCollection
+from tgmount.tgclient.messages_collection import MessagesCollection, messages_difference
 
 from tgmount.tgmount.vfs_tree import VfsTreeDir
 from tgmount.tgmount.vfs_tree_producer_types import (
@@ -14,7 +14,6 @@ from tgmount.tgmount.vfs_tree_producer_types import (
 from tgmount.util import measure_time
 from tgmount.util.col import sets_difference
 from tgmount.util.func import snd
-from ..util import messages_difference
 from .logger import logger as _logger
 
 M = TypeVar("M")
@@ -35,7 +34,9 @@ class VfsTreeProducerPlainDir(VfsTreeProducerProto):
 
         self._message_to_file: dict[int, vfs.FileLike] = {}
 
-        self._logger = self.logger.getChild(f"{self._tree_dir.path}")
+        self._logger = self.logger.getChild(
+            f"{self._tree_dir.path}", suffix_as_tag=True
+        )
 
     @classmethod
     async def from_config(
@@ -83,8 +84,8 @@ class VfsTreeProducerPlainDir(VfsTreeProducerProto):
         edited_messages: list[MessageProto],
     ):
         """ """
-        self._logger.info(
-            f"update_edited_messages({list(map(lambda m: m.id, old_messages))})"
+        self._logger.debug(
+            f"update_edited_messages(old_messages={list(map(lambda m: m.id, old_messages))})"
         )
 
         if len(old_messages) == 0:
@@ -98,16 +99,9 @@ class VfsTreeProducerPlainDir(VfsTreeProducerProto):
 
         filtered_edited_messages = await self._config.apply_filters(edited_messages)
 
-        # removed_ids, new_ids, common_ids = sets_difference(
-        #     set(old_messages_dict.keys()),
-        #     set(m.id for m in filtered_edited_messages),
-        # )
-
         removed_messages, new_messages, common_messages = messages_difference(
             list(old_messages_dict.values()), filtered_edited_messages
         )
-
-        # new_messages = [edited_messages_dict[i] for i in new_ids]
 
         # old_updated_messages = [old_messages_dict[i] for i in common_ids]
         old_updated_files = [
@@ -136,6 +130,9 @@ class VfsTreeProducerPlainDir(VfsTreeProducerProto):
                 **{m.id: f for m, f in zip(map(snd, common_messages), updated_files)},
             }
         )
+
+        for m in removed_messages:
+            del self._message_to_file[m.id]
 
         for f in removed_files:
             await self._tree_dir.remove_content(f)

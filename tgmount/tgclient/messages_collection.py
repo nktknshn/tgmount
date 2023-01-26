@@ -6,6 +6,7 @@ from typing import (
     Iterable,
     OrderedDict,
     Protocol,
+    Sequence,
     TypeGuard,
     TypeVar,
     Union,
@@ -21,6 +22,28 @@ class WithId(Protocol):
 
 
 M = TypeVar("M", bound=WithId)
+
+
+def messages_difference(
+    before: Sequence[M], after: Sequence[M]
+) -> tuple[list[M], list[M], list[tuple[M, M]],]:
+    before_dict = {m.id: m for m in before}
+    after_dict = {m.id: m for m in after}
+
+    removed, new, common = sets_difference(
+        set(before_dict.keys()), set(after_dict.keys())
+    )
+
+    return (
+        [before_dict[i] for i in removed],
+        [after_dict[i] for i in new],
+        list(
+            zip(
+                [before_dict[i] for i in common],
+                [after_dict[i] for i in common],
+            )
+        ),
+    )
 
 
 class MessagesCollection(Generic[M]):
@@ -84,21 +107,22 @@ class MessagesCollection(Generic[M]):
         return res
 
     def get_difference(self, ms: Iterable[M]):
-        removed = []
-        new = []
-        common = []
+        return messages_difference(self.get_messages_list(), list(ms))
+        # removed = []
+        # new = []
+        # common = []
 
-        ms_dict = {m.id: m for m in ms}
+        # ms_dict = {m.id: m for m in ms}
 
-        removed, new, common = sets_difference(
-            set(self._messages.keys()), set(ms_dict.keys())
-        )
+        # removed, new, common = sets_difference(
+        #     set(self._messages.keys()), set(ms_dict.keys())
+        # )
 
-        return (
-            [self._messages[i] for i in removed],
-            [ms_dict[i] for i in new],
-            [self._messages[i] for i in common],
-        )
+        # return (
+        #     [self._messages[i] for i in removed],
+        #     [ms_dict[i] for i in new],
+        #     [self._messages[i] for i in common],
+        # )
 
     def get_messages_iter(self):
         return self._messages.values()

@@ -5,7 +5,7 @@ from tests.helpers.spawn import P
 
 from tgmount.tgclient.message_source import MessageSource
 from tgmount.tgclient.message_types import MessageProto
-from tgmount.tgmount.util import messages_difference
+from tgmount.tgclient.messages_collection import messages_difference
 
 from ..error import TgmountError
 from ..producers.producer_plain import VfsTreeProducerPlainDir
@@ -55,7 +55,7 @@ class VfsTreeProducerGrouperBase(abc.ABC):
 
         self._source_root = self.MessageSource(tag=os.path.join(self._dir.path))
 
-        self._logger = self.logger.getChild(f"{self._dir.path}")
+        self._logger = self.logger.getChild(f"{self._dir.path}", suffix_as_tag=True)
 
     @classmethod
     def sanitize(cls, dirname: str):
@@ -92,7 +92,7 @@ class VfsTreeProducerGrouperBase(abc.ABC):
         )
 
     async def _update_new_message(self, source, new_messages: Iterable[MessageProto]):
-        self._logger.info(
+        self._logger.debug(
             f"update_new_messages({list(map(lambda m: m.id, new_messages))})"
         )
 
@@ -108,7 +108,7 @@ class VfsTreeProducerGrouperBase(abc.ABC):
     async def _update_removed_messages(
         self, source, removed_messages: list[MessageProto]
     ):
-        self._logger.info(
+        self._logger.debug(
             f"update_removed_messages({list(map(lambda m: m.id, removed_messages))})"
         )
 
@@ -149,7 +149,7 @@ class VfsTreeProducerGrouperBase(abc.ABC):
         messages_before: list[MessageProto],
         messages_after: list[MessageProto],
     ):
-        self._logger.info(
+        self._logger.debug(
             f"_update_edited_messages({list(map(lambda m: m.id, messages_before))})"
         )
 

@@ -77,8 +77,8 @@ async def test_wrapper1(caplog):
 
     # now the folder should appear
     assert listener.pop() == [
-        TreeEventNewDirs(sender=d1, update_path=d1.path, new_dirs=[sd1.path]),
-        TreeEventNewItems(sender=sd1, update_path=sd1.path, new_items=[sd1f1]),
+        TreeEventNewDirs(sender=d1, new_dirs=[sd1.path]),
+        TreeEventNewItems(sender=sd1, new_items=[sd1f1]),
     ]
 
     assert (await vfs.dir_content_read_dict(dc1)).keys() == {
@@ -91,7 +91,7 @@ async def test_wrapper1(caplog):
 
     # now the folder should disappear
     assert listener.pop() == [
-        TreeEventRemovedDirs(sender=d1, update_path=d1.path, removed_dirs=[sd1.path]),
+        TreeEventRemovedDirs(sender=d1, removed_dirs=[sd1.path]),
     ]
 
     assert (await vfs.dir_content_read_dict(dc1)).keys() == {
@@ -135,15 +135,15 @@ async def test_wrapper_nested_wrappers(caplog):
     # /subdir1 and /subdir1/subsubdir1 shoueld appear in events
 
     assert listener.pop() == [
-        TreeEventNewDirs(sender=d1, update_path=d1.path, new_dirs=[sd1.path]),
-        TreeEventNewDirs(sender=sd1, update_path=sd1.path, new_dirs=[ssd1.path]),
-        TreeEventNewItems(sender=ssd1, update_path=ssd1.path, new_items=[sd1f1]),
+        TreeEventNewDirs(sender=d1, new_dirs=[sd1.path]),
+        TreeEventNewDirs(sender=sd1, new_dirs=[ssd1.path]),
+        TreeEventNewItems(sender=ssd1, new_items=[sd1f1]),
     ]
 
     await ssd1.remove_content(sd1f1)
 
     assert listener.pop() == [
-        TreeEventRemovedDirs(sender=d1, update_path=d1.path, removed_dirs=[sd1.path]),
+        TreeEventRemovedDirs(sender=d1, removed_dirs=[sd1.path]),
     ]
 
     sssd1 = await ssd1.create_dir("subsubsubdir1")
@@ -153,8 +153,8 @@ async def test_wrapper_nested_wrappers(caplog):
     await sssd1.put_content(sd1f1)
 
     assert listener.pop() == [
-        TreeEventNewDirs(sender=d1, update_path=d1.path, new_dirs=[sd1.path]),
-        TreeEventNewDirs(sender=sd1, update_path=sd1.path, new_dirs=[ssd1.path]),
-        TreeEventNewDirs(sender=ssd1, update_path=ssd1.path, new_dirs=[sssd1.path]),
-        TreeEventNewItems(sender=sssd1, update_path=sssd1.path, new_items=[sd1f1]),
+        TreeEventNewDirs(sender=d1, new_dirs=[sd1.path]),
+        TreeEventNewDirs(sender=sd1, new_dirs=[ssd1.path]),
+        TreeEventNewDirs(sender=ssd1, new_dirs=[sssd1.path]),
+        TreeEventNewItems(sender=sssd1, new_items=[sd1f1]),
     ]

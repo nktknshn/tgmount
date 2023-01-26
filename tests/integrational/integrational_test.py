@@ -59,7 +59,7 @@ async def main_function(
     test_logger.setLevel(debug)
 
     # tglog.getLogger("FileSystemOperations()").setLevel(logging.ERROR)
-    # logging.getLogger("telethon").setLevel(logging.DEBUG)
+    # logging.getLogger("telethon").setLevel(logging.ERROR)
 
     test_logger.info("Building...")
     builder = MockedTgmountBuilderBase(storage=storage)

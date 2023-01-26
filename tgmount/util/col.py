@@ -5,15 +5,29 @@ from typing import (
     Sequence,
     TypeVar,
     Iterator,
+    overload,
 )
 
 T = TypeVar("T")
 
 
+@overload
+def map_keys(
+    mapper: Callable[[str], str],
+    d: dict[str, T],
+) -> dict[str, T]:
+    ...
+
+
+@overload
 def map_keys(
     mapper: Callable[[str], str],
     d: Mapping[str, T],
 ) -> Mapping[str, T]:
+    ...
+
+
+def map_keys(mapper, d) -> dict[str, T] | Mapping[str, T]:
     return {mapper(k): v for k, v in d.items()}
 
 
@@ -65,11 +79,11 @@ def sets_difference(
     return unique_left, unique_right, common
 
 
-def difference(
-    left: list[T], right: list[T], func: Callable[[T], int]
-) -> tuple[Set[T], Set[T], Set[T]]:
-    unique_left = left - right
-    unique_right = right - left
-    common = right.intersection(left)
+# def difference(
+#     left: list[T], right: list[T], func: Callable[[T], int]
+# ) -> tuple[Set[T], Set[T], Set[T]]:
+#     unique_left = left - right
+#     unique_right = right - left
+#     common = right.intersection(left)
 
-    return unique_left, unique_right, common
+#     return unique_left, unique_right, common

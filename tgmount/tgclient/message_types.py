@@ -132,10 +132,5 @@ class MessageProto(Protocol):
 
     @staticmethod
     def guard(msg: Any):
-        return (
-            hasattr(msg, "id")
-            and hasattr(msg, "document")
-            and hasattr(msg, "file")
-            and hasattr(msg, "forward")
-            # and hasattr(msg, "media")
-        )
+        return hasattr(msg, "id") and hasattr(msg, "document")
+        #  and hasattr(msg, "file")

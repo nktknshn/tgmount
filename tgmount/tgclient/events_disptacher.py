@@ -24,7 +24,7 @@ class TelegramEventsDispatcher:
 
     Puts events in a queue when paused
 
-    Use `resume` method to pass the enqued events to message sources
+    Use `resume` method to pass the enqueued events to message sources
     """
 
     logger = _logger.getChild("TelegramEventsDispatcher")
@@ -46,7 +46,7 @@ class TelegramEventsDispatcher:
         entity_id: EntityId,
         source: MessageSource,
     ):
-        """events from `entity_id` will be turned into `MessageSourceSimple` methods calls"""
+        """events from `entity_id` will be turned into `MessageSource` methods calls"""
 
         self.logger.debug(f"connect({entity_id})")
         self._sources[entity_id] = source
@@ -96,12 +96,14 @@ class TelegramEventsDispatcher:
 
         if isinstance(event, MessageReactionEvent.Event):
             messages = await source.get_by_ids([event.msg_id])
+
             if messages is None or len(messages) == 0:
                 self.logger.error(
                     f"_on_edited_message: Missing message with id {event.msg_id}"
                 )
-            else:
-                self.logger.debug(f"_on_edited_message: Missing {event.msg_id}")
+                return
+            # else:
+            #     self.logger.debug(f"_on_edited_message: Missing {event.msg_id}")
 
             message = copy.copy(messages[0])
             message.reactions = event.reactions

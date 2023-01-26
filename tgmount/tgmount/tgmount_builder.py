@@ -29,11 +29,11 @@ def reactions_file_name():
     pass
 
 
-MyFileFactoryDefault.register(
-    klass=MessageWithReactions,
-    filename=MessageWithText.filename,
-    file_content=lambda m: vfs.text_content(m.text),
-)
+# MyFileFactoryDefault.register(
+#     klass=MessageWithText,
+#     filename=MessageWithText.filename,
+#     file_content=lambda m: vfs.text_content(m.text),
+# )
 
 
 class MyClassifier(ClassifierDefault[MessageWithText]):

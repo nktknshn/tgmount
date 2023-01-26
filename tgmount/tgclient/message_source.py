@@ -1,8 +1,7 @@
-from typing import Callable, Generic, Iterable, Optional, OrderedDict, TypeVar
-from tgmount.tgclient.message_types import MessageProto
+from typing import Callable, Generic, Iterable, TypeVar
 from tgmount.tgclient.messages_collection import MessagesCollection, WithId
 
-from tgmount.util import none_fallback, sets_difference
+from tgmount.util import none_fallback
 
 from .logger import logger as _logger
 from .message_source_types import MessageSourceSubscribableProto, Subscribable
@@ -34,7 +33,7 @@ class MessageSource(MessageSourceSubscribableProto, Generic[M]):
     def __init__(self, messages: Iterable[M] | None = None, tag=None) -> None:
         self._tag = none_fallback(tag, "NoTag")
 
-        self._logger = self.logger.getChild(f"{self.tag}")
+        self._logger = self.logger.getChild(f"{self.tag}", suffix_as_tag=True)
 
         self._messages: MessagesCollection[M] | None = (
             MessagesCollection.from_iterable(messages) if messages is not None else None
@@ -72,6 +71,7 @@ class MessageSource(MessageSourceSubscribableProto, Generic[M]):
     async def edit_messages(self, messages: Iterable[M]):
 
         if self._messages is None:
+            self._logger.error(f"edit_messages(). Messages are not initiated yet")
             return
 
         filtered = await self._filter_messages(messages)
@@ -135,23 +135,28 @@ class MessageSource(MessageSourceSubscribableProto, Generic[M]):
         return self._messages.get_by_ids(ids)
 
     async def get_messages(self) -> list[M]:
-        self._logger.debug(f"get_messages()")
-
         if self._messages is None:
+            self._logger.debug(f"get_messages()")
             self._logger.error(f"Messages are not initiated yet")
             return []
 
-        return self._messages.get_messages_list()
+        messages = self._messages.get_messages_list()
+
+        self._logger.debug(f"get_messages(). Returning {len(messages)} messages.")
+
+        return messages
 
     async def set_messages(self, messages: list[M], notify=True):
         """Sets the source messages. `notify` sets if the subscribers should be notified about the update"""
 
+        self._logger.debug(f"set_messages({len(messages)} messages, notify={notify})")
+
         filtered = await self._filter_messages(messages)
 
-        self._logger.debug(f"set_messages({len(filtered)}, notify={notify})")
-
         if self._messages is None:
+
             self._messages = MessagesCollection.from_iterable(filtered)
+
             if not notify:
                 return
 
