@@ -21,15 +21,17 @@ T = TypeVar("T", covariant=True)
 
 DocId = int
 
-BlockFetcher = Callable[[int, int], Awaitable[bytes]]
+RangeFetcher = Callable[[int, int], Awaitable[bytes]]
 
 
 class CacheBlockReaderWriterProto(Protocol):
-    async def read_range(self, fetcher: BlockFetcher, offset: int, size: int):
+    async def read_range(self, fetcher: RangeFetcher, offset: int, size: int):
         raise NotImplementedError()
 
 
 class CacheBlocksStorageProto(Protocol):
+    """Storage for blocks of a single file"""
+
     block_size: int
     total_size: int
 
@@ -51,6 +53,10 @@ class CacheBlocksStorageProto(Protocol):
 
     @abstractmethod
     async def blocks(self) -> Set[int]:
+        ...
+
+    @abstractmethod
+    async def discard_blocks(self, blocks: set[int]) -> None:
         ...
 
     # async def discard_blocks(self, blocks: set[int]) -> None:

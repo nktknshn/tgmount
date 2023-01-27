@@ -1,4 +1,5 @@
 import abc
+from dataclasses import replace
 from typing import Type
 
 from tgmount import cache, config, tgclient
@@ -154,13 +155,19 @@ class TgmountBuilderBase(abc.ABC):
             producers=self.producers,
             classifier=self.classifier,
             vfs_wrappers=self.wrappers,
+            extra=await self.create_extra(),
         )
+
+    async def create_extra(self):
+        return {
+            "get_tgm": lambda: self.tgm,
+        }
 
     async def create_tgmount(self, cfg: config.Config, **kwargs) -> TgmountBase:
         self.client = await self.create_client(cfg, **kwargs)
         self.resources = await self.create_tgmount_resources(self.client, cfg)
 
-        tgm = self.TgmountBase(
+        self.tgm = tgm = self.TgmountBase(
             client=self.client,
             resources=self.resources,
             root_config=cfg.root.content,

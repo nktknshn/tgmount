@@ -32,7 +32,7 @@ from .file import (
     vfile,
     file_content_from_bytes,
     file_content,
-    FileContentBasic,
+    FileContentString,
 )
 
 from .lookup import dirlike_ls as ls, dirlike_get_by_path_list

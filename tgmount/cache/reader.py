@@ -1,7 +1,9 @@
+from collections import defaultdict
+from datetime import datetime
 import logging
-
+from tgmount.util.func import snd
 from .types import (
-    BlockFetcher,
+    RangeFetcher,
     CacheBlocksStorageProto,
     CacheBlockReaderWriterBaseProto,
 )
@@ -10,11 +12,36 @@ from .logger import module_logger
 
 
 class CacheBlockReaderWriter(CacheBlockReaderWriterBaseProto):
+    """Reads blocks from a block storage and writes to"""
+
     logger = module_logger.getChild("CacheBlockReaderWriter")
 
     def __init__(self, blocks_storage: CacheBlocksStorageProto) -> None:
         self._blocks_storage: CacheBlocksStorageProto = blocks_storage
-        self._blocks_read_count: dict[int, int] = {}
+        self._blocks_read_count: defaultdict[int, int] = defaultdict(lambda: 0)
+        self._last_read_time: datetime | None = None
+
+    @property
+    def blocks_storage(self):
+        return self._blocks_storage
+
+    @property
+    def last_read_time(self) -> datetime | None:
+        return self._last_read_time
+
+    async def discard_least_read_block(self):
+        s = list(sorted(self._blocks_read_count.items(), key=snd))
+
+        if len(s) == 0:
+            self.logger.debug(f"Nothing to discard.")
+            return
+
+        block_id = s[0][0]
+
+        self.logger.debug(f"Discarding block {block_id}")
+
+        del self._blocks_read_count[block_id]
+        await self._blocks_storage.discard_blocks({block_id})
 
     def range_blocks(self, offset: int, limit: int):
         """Get block ids for the range"""
@@ -49,7 +76,19 @@ class CacheBlockReaderWriter(CacheBlockReaderWriterBaseProto):
 
         return result[start_pos : start_pos + limit]
 
-    async def read_range(self, block_fetcher: BlockFetcher, offset: int, limit: int):
+    async def fetch_block(self, range_fetcher: RangeFetcher, block_number: int):
+        return await range_fetcher(
+            block_number * self._blocks_storage.block_size,
+            self._blocks_storage.block_size,
+        )
+
+    async def get_block(self, block_number: int) -> bytes | None:
+        return await self._blocks_storage.get(block_number)
+
+    async def put_block(self, block_number: int, block: bytes):
+        await self._blocks_storage.put(block_number, block)
+
+    async def read_range(self, range_fetcher: RangeFetcher, offset: int, limit: int):
         """Returns bytes for the range fetching and storing missing blocks"""
 
         start = offset
@@ -61,20 +100,22 @@ class CacheBlockReaderWriter(CacheBlockReaderWriterBaseProto):
         result = b""
 
         for block_number in self.range_blocks(offset, limit):
-            if block := await self._blocks_storage.get(block_number):
+            if block := await self.get_block(block_number):
                 self.logger.debug(
-                    f"CacheBlockReaderWriter(blocksize={self._blocks_storage.block_size}).read_range(offset={offset}, limit={limit} ({limit//1024} kb)): block {block_number} hit"
+                    f"read_range(offset={offset}, limit={limit} ({limit//1024} kb)): block {block_number} hit"
                 )
             else:
                 self.logger.debug(
-                    f"CacheBlockReaderWriter.read_range({offset}, {limit} ({limit//1024} kb)): block {block_number} miss"
-                )
-                block = await block_fetcher(
-                    block_number * self._blocks_storage.block_size,
-                    self._blocks_storage.block_size,
+                    f"read_range({offset}, {limit} ({limit//1024} kb)): block {block_number} miss"
                 )
 
-                await self._blocks_storage.put(block_number, block)
+                block = await self.fetch_block(range_fetcher, block_number)
+
+                await self.put_block(block_number, block)
+
+            self._blocks_read_count[block_number] += 1
+
             result += block
 
+        self._last_read_time = datetime.now()
         return result[start_pos : start_pos + limit]

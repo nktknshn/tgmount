@@ -11,7 +11,12 @@ from typing import (
 
 import aiofiles
 
-from tgmount.vfs.types.file import FileContent, FileContentProto, FileLike, FileContentBasic
+from tgmount.vfs.types.file import (
+    FileContent,
+    FileContentProto,
+    FileLike,
+    FileContentString,
+)
 from tgmount.vfs.util import MyLock
 
 logger = logging.getLogger("tgvfs")

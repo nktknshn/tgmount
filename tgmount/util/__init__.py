@@ -41,6 +41,11 @@ def map_none(value: Optional[T], func: Callable[[T], O]) -> O | None:
     return func(value) if value is not None else None
 
 
+def map_none_else(value: Optional[T], func: Callable[[T], O], default: O) -> O:
+
+    return none_fallback(map_none(value, func), default)
+
+
 def none_fallback_lazy(value: Optional[T], default: Callable[[], T]) -> T:
     return value if value is not None else default()
 

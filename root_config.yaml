@@ -62,7 +62,7 @@ unpacked:
   cache: 
     type: memory
     block_size: 256KB
-    capacity: 50MB
+    capacity: 2MB
   wrappers:
     - ZipsAsDirs:
   #       skip_folder_if_single_subfolder: True

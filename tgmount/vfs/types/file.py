@@ -75,7 +75,7 @@ def async_constant(v):
     return _inner
 
 
-class FileContentBasic(FileContentProto):
+class FileContentString(FileContentProto):
     size: int
     encoding = "utf-8"
 

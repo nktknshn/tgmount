@@ -51,7 +51,7 @@ class CacheFileFactoryFactory(CacheFileFactoryFactoryProto):
         caches_class_provider: CachesTypesProviderProto,
     ):
         self._client = client
-        self._cache_classes_provider = caches_class_provider
+        self._cache_types_provider = caches_class_provider
 
         self._caches: dict[str, CacheInBlocksProto] = {}
         self._caches_file_source: dict[str, FilesSourceCached] = {}
@@ -78,7 +78,7 @@ class CacheFileFactoryFactory(CacheFileFactoryFactoryProto):
             f"create_cached_filefactory({cache_id}, {cache_type}, {cache_kwargs})"
         )
 
-        cache_class = self._cache_classes_provider.get_cache_type(cache_type)
+        cache_class = self._cache_types_provider.get_cache_type(cache_type)
 
         if cache_class is None:
             raise TgmountError(f"Missing {cache_type} in cache provider.")

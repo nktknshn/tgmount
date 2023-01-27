@@ -12,7 +12,7 @@ from tgmount.tgmount.vfs_tree_producer_types import (
 from tgmount.util import measure_time
 from tgmount.util.col import sets_difference
 from tgmount.util.func import snd
-from .logger import logger as _logger
+from .logger import module_logger as _logger
 
 M = TypeVar("M")
 

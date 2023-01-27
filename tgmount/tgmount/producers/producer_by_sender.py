@@ -12,7 +12,7 @@ from tgmount.util import func, measure_time
 from .grouperbase import GroupedMessages, VfsTreeProducerGrouperBase
 
 
-from .logger import logger as _logger
+from .logger import module_logger as _logger
 
 
 def get_get_key(*, use_get_sender=True):

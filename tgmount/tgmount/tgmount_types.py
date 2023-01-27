@@ -36,5 +36,7 @@ class TgmountResources:
     #  | None = None
     """ Dictionary of initial messages fetchers """
 
+    extra: Mapping[str, Any]
+
     def set_sources(self, sources: SourcesProviderProto):
         return replace(self, sources=sources)

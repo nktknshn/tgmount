@@ -16,7 +16,7 @@ from ..tgmount_types import TgmountResources
 from ..vfs_tree import VfsTreeDir
 from ..vfs_tree_producer import VfsTreeProducer
 from ..vfs_tree_producer_types import VfsTreeProducerConfig
-from .logger import logger as _logger
+from .logger import module_logger as _logger
 
 M = TypeVar("M", bound=MessageProto)
 GroupedMessages = tuple[Mapping[str, list[M]], list[M]]

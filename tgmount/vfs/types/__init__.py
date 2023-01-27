@@ -1,7 +1,7 @@
 from typing import Mapping, TypeVar, Union
 
 from tgmount.vfs.types.dir import DirLike
-from tgmount.vfs.types.file import FileLike, FileContentBasic
+from tgmount.vfs.types.file import FileLike, FileContentString
 
 T = TypeVar("T")
 

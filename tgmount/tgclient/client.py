@@ -96,6 +96,9 @@ class TgmountTelegramClient(
             print(d)
 
         self.on_disconnected = Subscribable()
+
+        self._reconnections = 0
+
         # self.on(events.Raw)(aprint)
 
         # self._wait_disconnected_handle = self.loop.create_task(
@@ -104,8 +107,14 @@ class TgmountTelegramClient(
 
         self.on_disconnected.subscribe(aprint)
 
+    @property
+    def reconnections(self):
+        return self._reconnections
+
     async def _handle_auto_reconnect(self):
-        tglog.getLogger("TgmountTelegramClient").error("Reconnected")
+        self._reconnections += 1
+        tglog.getLogger("TgmountTelegramClient").warning("Reconnected")
+
         await self.get_me()
         await self.catch_up()
 

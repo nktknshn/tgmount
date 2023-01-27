@@ -1,8 +1,9 @@
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping
 from tgmount import vfs
 from tgmount.tgclient.guards import MessageDownloadable
 from tgmount.tgmount.cached_filefactory_factory import CacheFileFactoryFactory
 from tgmount.tgmount.tgmount_types import TgmountResources
+from tgmount.tgmount.tgmountbase import TgmountBase
 from tgmount.tgmount.vfs_tree import VfsTreeDir
 from tgmount.tgmount.vfs_tree_producer_types import (
     VfsTreeProducerConfig,
@@ -10,12 +11,14 @@ from tgmount.tgmount.vfs_tree_producer_types import (
 )
 from tgmount.util import yes
 
+from .logger import module_logger
+
 
 def encode(s: str):
     return s.encode("utf-8")
 
 
-class SysInfoFileCaches(vfs.FileContentBasic):
+class SysInfoCaches(vfs.FileContentString):
     """fuse doesn't support reading empty files like procfs"""
 
     size = 666666
@@ -53,7 +56,28 @@ class SysInfoFileCaches(vfs.FileContentBasic):
         return result
 
 
+from tgmount import fs
+
+
+class SysInfoFileSystem(vfs.FileContentString):
+    size = 666666
+
+    def __init__(self, get_fs: Callable[[], fs.FileSystemOperations]) -> None:
+        super().__init__()
+        self._get_fs = get_fs
+
+    async def read(self, handle: Any) -> str:
+        result = ""
+        inodes = self._get_fs().inodes.get_inodes()
+
+        result += f"Inodes count: {len(inodes)}"
+
+        return result
+
+
 class VfsTreeProducerSysInfo(VfsTreeProducerProto):
+    logger = module_logger.getChild("VfsTreeProducerSysInfo")
+
     def __init__(
         self,
         resources: TgmountResources,
@@ -77,5 +101,19 @@ class VfsTreeProducerSysInfo(VfsTreeProducerProto):
 
     async def produce(self):
         await self._vfs_tree_dir.put_content(
-            vfs.vfile("caches", SysInfoFileCaches(self._resources.caches)),
+            vfs.vfile("caches", SysInfoCaches(self._resources.caches)),
+        )
+
+        get_tgm: Callable[[], TgmountBase] | None = self._resources.extra.get("get_tgm")
+
+        if not yes(get_tgm):
+            self.logger.warning("Missinex get_tgm in extra.")
+            return
+
+        fs_dir = await self._vfs_tree_dir.create_dir("fs")
+
+        tgm: TgmountBase = get_tgm()
+
+        await fs_dir.put_content(
+            vfs.vfile("info", SysInfoFileSystem(lambda: tgm.fs)),
         )

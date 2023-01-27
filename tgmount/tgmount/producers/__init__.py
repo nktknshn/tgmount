@@ -1,4 +1,4 @@
-from .logger import logger
+from .logger import module_logger
 from . import grouperbase
 from . import producer_by_forward
 from . import producer_by_performer

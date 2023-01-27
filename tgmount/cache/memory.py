@@ -4,13 +4,27 @@ from typing import Optional
 from .cache_in_blocks import CacheInBlocks
 from .reader import CacheBlockReaderWriter
 from .types import CacheBlocksStorageProto
+from .logger import module_logger
 
 
 class CacheBlocksStorageMemory(CacheBlocksStorageProto):
+    """Storage for blocks of a single file"""
+
+    logger = module_logger.getChild(f"CacheBlocksStorageMemory")
+
     def __init__(self, block_size: int, total_size: int):
         self._block_size = block_size
         self._total_size = total_size
         self._blocks: dict[int, bytes] = {}
+
+    async def discard_blocks(self, blocks: set[int]) -> None:
+        for b in blocks:
+            if b in self._blocks:
+                del self._blocks[b]
+            else:
+                self.logger.warning(
+                    f"discard_blocks: Missing block {b} in the storage."
+                )
 
     @property
     def block_size(self):
