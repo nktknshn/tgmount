@@ -1,21 +1,20 @@
 from typing import Optional
 
-import telethon
 
-from .factory import Cache
+from .cache_in_blocks import CacheInBlocks
 from .reader import CacheBlockReaderWriter
 from .types import CacheBlocksStorageProto
 
 
 class CacheBlocksStorageMemory(CacheBlocksStorageProto):
-    def __init__(self, blocksize: int, total_size: int):
-        self._blocksize = blocksize
+    def __init__(self, block_size: int, total_size: int):
+        self._block_size = block_size
         self._total_size = total_size
         self._blocks: dict[int, bytes] = {}
 
     @property
-    def blocksize(self):
-        return self._blocksize
+    def block_size(self):
+        return self._block_size
 
     @property
     def total_size(self):
@@ -31,18 +30,23 @@ class CacheBlocksStorageMemory(CacheBlocksStorageProto):
         return set(self._blocks.keys())
 
     async def total_stored(self):
-        return len(await self.blocks()) * self.blocksize
+        return len(await self.blocks()) * self.block_size
 
 
-class CacheFactoryMemory(Cache):
+class CacheMemory(CacheInBlocks):
     """This class is gonna decide how to store documents cache if needed"""
 
     CacheBlocksStorage = CacheBlocksStorageMemory
     CacheBlockReaderWriter = CacheBlockReaderWriter
 
-    def __init__(self, *, block_size: int | str, capacity: int | str) -> None:
+    def __init__(
+        self,
+        *,
+        block_size: int | str,
+        capacity: int | str,
+    ) -> None:
         super().__init__(block_size=block_size, capacity=capacity)
 
     @classmethod
     async def create(cls, *, block_size: int | str, capacity: int | str):
-        return CacheFactoryMemory(block_size=block_size, capacity=capacity)
+        return CacheMemory(block_size=block_size, capacity=capacity)

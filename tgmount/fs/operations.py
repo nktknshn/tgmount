@@ -490,13 +490,6 @@ class FileSystemOperations(pyfuse3.Operations, FileSystemOperationsMixin):
             self.logger.error(f"open({inode}): is not file")
             raise pyfuse3.FUSEError(errno.EIO)
 
-        # if item.data.structure_item.content is None:
-        #     self._logger.debug(f"open({inode}): file has no content")
-
-        # if (
-        #     item.data.structure_item.content
-        #     and item.data.structure_item.content.open_func
-        # ):
         handle = await item.data.structure_item.content.open_func()
 
         fh = self._handles.open_fh(item, handle)
@@ -519,14 +512,11 @@ class FileSystemOperations(pyfuse3.Operations, FileSystemOperationsMixin):
             raise pyfuse3.FUSEError(errno.ENOENT)
 
         if not vfs.FileLike.guard(item.data.structure_item):
-            self.logger.error(f"open(fh={fh}): is not file")
+            self.logger.error(f"read(fh={fh}): is not file.")
             raise pyfuse3.FUSEError(errno.EIO)
 
-        if item.data.structure_item.content is None:
-            self.logger.debug("open(): file has no content")
-            return
-
         chunk = await item.data.structure_item.content.read_func(handle, off, size)
+
         self.logger.debug(
             f"- read(fh={fh},off={off},size={size}) returns { len(chunk)} bytes"
         )
@@ -547,12 +537,6 @@ class FileSystemOperations(pyfuse3.Operations, FileSystemOperationsMixin):
             self.logger.error(f"release({fh}): is not file")
             raise pyfuse3.FUSEError(errno.EIO)
 
-        # if item.data.structure_item.content is None:
-        # self._logger.debug("release(): file has no content")
-        # self._handlers.release_fh(fh)
-        # return
-
-        # if item.data.structure_item.content.close_func:
         await item.data.structure_item.content.close_func(data)
 
         self._handles.release_fh(fh)

@@ -2,7 +2,7 @@ import abc
 from typing import Type
 
 from tgmount import cache, config, tgclient
-from tgmount.cache.types import CacheProto
+from tgmount.cache.types import CacheInBlocksProto
 from tgmount.tgclient.events_disptacher import (
     TelegramEventsDispatcher,
 )
@@ -144,7 +144,7 @@ class TgmountBuilderBase(abc.ABC):
             # cached_factories[k] = fc
 
         return TgmountResources(
-            sources=source_provider,
+            message_sources=source_provider,
             fetchers_dict=fetchers_dict,
             caches=self.cached_filefactory_factory,
             # caches=cached_factories,
@@ -173,7 +173,7 @@ class TgmountBuilderBase(abc.ABC):
 
         for k, msc in cfg.message_sources.sources.items():
 
-            ms = self.resources.sources.get(k)
+            ms = self.resources.message_sources.get(k)
 
             if ms is None:
                 continue

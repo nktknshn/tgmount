@@ -1,17 +1,17 @@
 from abc import abstractmethod
 from typing import Protocol, Type, Mapping
 
-from tgmount.cache import CacheProto
+from tgmount.cache import CacheInBlocksProto
 from ..error import TgmountError
 
 
 class CachesTypesProviderProto(Protocol):
     @abstractmethod
-    def as_mapping(self) -> Mapping[str, Type[CacheProto]]:
+    def as_mapping(self) -> Mapping[str, Type[CacheInBlocksProto]]:
         pass
 
     @abstractmethod
-    def get_cache_type(self, cache_type: str) -> Type[CacheProto]:
+    def get_cache_type(self, cache_type: str) -> Type[CacheInBlocksProto]:
         pass
 
     # @abstractmethod
@@ -20,12 +20,12 @@ class CachesTypesProviderProto(Protocol):
 
 
 class CacheTypesProviderBase(CachesTypesProviderProto):
-    caches: Mapping[str, Type[CacheProto]]
+    caches: Mapping[str, Type[CacheInBlocksProto]]
 
-    def as_mapping(self) -> Mapping[str, Type[CacheProto]]:
+    def as_mapping(self) -> Mapping[str, Type[CacheInBlocksProto]]:
         return self.caches
 
-    def get_cache_type(self, cache_type: str) -> Type[CacheProto]:
+    def get_cache_type(self, cache_type: str) -> Type[CacheInBlocksProto]:
         cache = self.caches.get(cache_type)
 
         if cache is None:

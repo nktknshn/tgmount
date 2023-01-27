@@ -1,11 +1,15 @@
 import logging
 
-from .types import BlockFetcher, CacheBlocksStorageProto, CacheBlockReaderWriterBase
+from .types import (
+    BlockFetcher,
+    CacheBlocksStorageProto,
+    CacheBlockReaderWriterBaseProto,
+)
 
 from .logger import module_logger
 
 
-class CacheBlockReaderWriter(CacheBlockReaderWriterBase):
+class CacheBlockReaderWriter(CacheBlockReaderWriterBaseProto):
     logger = module_logger.getChild("CacheBlockReaderWriter")
 
     def __init__(self, blocks_storage: CacheBlocksStorageProto) -> None:
@@ -18,8 +22,8 @@ class CacheBlockReaderWriter(CacheBlockReaderWriterBase):
         start = offset
         end = offset + limit
 
-        start_block_number = start // self._blocks_storage.blocksize
-        end_block_number = end // self._blocks_storage.blocksize
+        start_block_number = start // self._blocks_storage.block_size
+        end_block_number = end // self._blocks_storage.block_size
 
         return list(range(start_block_number, end_block_number + 1))
 
@@ -34,7 +38,7 @@ class CacheBlockReaderWriter(CacheBlockReaderWriterBase):
         """Returns None if the cache doesn't have required blocks"""
 
         start = offset
-        start_pos = start % self._blocks_storage.blocksize
+        start_pos = start % self._blocks_storage.block_size
         result = b""
 
         for block_number in self.range_blocks(offset, limit):
@@ -51,23 +55,23 @@ class CacheBlockReaderWriter(CacheBlockReaderWriterBase):
         start = offset
         end = offset + limit
 
-        start_pos = start % self._blocks_storage.blocksize
-        end_pos = end % self._blocks_storage.blocksize
+        start_pos = start % self._blocks_storage.block_size
+        end_pos = end % self._blocks_storage.block_size
 
         result = b""
 
         for block_number in self.range_blocks(offset, limit):
             if block := await self._blocks_storage.get(block_number):
                 self.logger.debug(
-                    f"CacheBlockReaderWriter(blocksize={self._blocks_storage.blocksize}).read_range(offset={offset}, limit={limit} ({limit//1024} kb)): block {block_number} hit"
+                    f"CacheBlockReaderWriter(blocksize={self._blocks_storage.block_size}).read_range(offset={offset}, limit={limit} ({limit//1024} kb)): block {block_number} hit"
                 )
             else:
                 self.logger.debug(
                     f"CacheBlockReaderWriter.read_range({offset}, {limit} ({limit//1024} kb)): block {block_number} miss"
                 )
                 block = await block_fetcher(
-                    block_number * self._blocks_storage.blocksize,
-                    self._blocks_storage.blocksize,
+                    block_number * self._blocks_storage.block_size,
+                    self._blocks_storage.block_size,
                 )
 
                 await self._blocks_storage.put(block_number, block)

@@ -4,7 +4,7 @@ from telethon.tl.custom.file import File
 
 from tgmount.tgclient.message_types import PhotoProto
 from ..types import InputPhotoFileLocation, TypeInputFileLocation
-from .item import SourceItem, SourceItemId
+from .item import FileSourceItem, SourceItemId
 
 
 def get_photo_input_location(
@@ -22,7 +22,7 @@ def get_photo_input_location(
     )
 
 
-class SourceItemPhoto(SourceItem):
+class SourceItemPhoto(FileSourceItem):
     id: SourceItemId
     file_reference: bytes
     access_hash: int

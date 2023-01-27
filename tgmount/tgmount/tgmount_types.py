@@ -25,14 +25,12 @@ class TgmountResources:
     """Stores resourses which are used for producing VfsTree from a config"""
 
     file_factory: FileFactoryProto
-    sources: SourcesProviderProto[MessageSourceProto[MessageProto]]
+    classifier: ClassifierBase
+    message_sources: SourcesProviderProto[MessageSourceProto[MessageProto]]
     filters: FilterProviderProto
     producers: ProducersProviderBase
     caches: CacheFileFactoryFactory
-    # caches: Mapping[str, FileFactoryProto]
-    # cache_provider: CachesTypesProviderProto
     vfs_wrappers: ProviderVfsWrappersBase
-    classifier: ClassifierBase
 
     fetchers_dict: Mapping
     #  | None = None

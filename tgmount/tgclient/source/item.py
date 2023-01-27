@@ -5,7 +5,7 @@ from ..types import TypeInputFileLocation
 SourceItemId = int
 
 
-class SourceItem(Protocol):
+class FileSourceItem(Protocol):
     id: SourceItemId
     file_reference: bytes
     access_hash: int

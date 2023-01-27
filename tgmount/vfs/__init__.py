@@ -32,7 +32,9 @@ from .file import (
     vfile,
     file_content_from_bytes,
     file_content,
+    FileContentBasic,
 )
+
 from .lookup import dirlike_ls as ls, dirlike_get_by_path_list
 from .root import VfsRoot, root
 from .tree import (

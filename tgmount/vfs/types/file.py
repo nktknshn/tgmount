@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
 from typing import (
@@ -40,20 +41,23 @@ class FileContentProto(Protocol, Generic[T]):
 
     size: int
 
+    @abstractmethod
     async def open_func(self) -> T:
-        raise NotImplementedError()
+        ...
 
+    @abstractmethod
     async def read_func(self, handle: T, off: int, size: int) -> bytes:
-        raise NotImplementedError()
+        ...
 
+    @abstractmethod
     async def close_func(self, handle: T):
-        raise NotImplementedError()
+        ...
 
+    @abstractmethod
     async def seek_func(self, handle: T, n: int, w: int):
-        raise NotImplementedError()
+        ...
 
-    async def tell_func(self, handle: T):
-        raise NotImplementedError()
+    tell_func: Optional[Callable[[Any], Awaitable[int]]] = None
 
     @staticmethod
     def guard(item: Any) -> TypeGuard["FileContentProto"]:
@@ -71,19 +75,68 @@ def async_constant(v):
     return _inner
 
 
-@dataclass
+class FileContentBasic(FileContentProto):
+    size: int
+    encoding = "utf-8"
+
+    @abstractmethod
+    async def read(self, handle) -> str:
+        pass
+
+    async def read_func(self, handle, off: int, size: int) -> bytes:
+        content = await self.read(handle)
+
+        return content.encode(self.encoding)[off : off + size]
+
+    async def open_func(self) -> None:
+        return
+
+    async def close_func(self, handle):
+        return
+
+    async def seek_func(self, handle, n: int, w: int):
+        raise NotImplementedError()
+
+    tell_func: Optional[Callable[[Any], Awaitable[int]]] = None
+
+
+# @dataclass
 class FileContent(FileContentProto):
     """implementation of `FileContentProto` with functions"""
 
-    size: int
+    def __init__(
+        self,
+        size: int,
+        read_func: Callable[[Any, int, int], Awaitable[bytes]],
+        open_func: Callable[[], Awaitable[Any]] = async_noop,
+        close_func: Callable[[Any], Awaitable[None]] = async_noop,
+        seek_func: Callable[[Any, int, int], Awaitable[Any]] = async_noop,
+        tell_func: Optional[Callable[[Any], Awaitable[int]]] = None,
+    ) -> None:
+        self.size = size
+        self._read_func = read_func
+        self._open_func = open_func
+        self._close_func = close_func
+        self._seek_func = seek_func
 
-    read_func: Callable[[Any, int, int], Awaitable[bytes]]
-    open_func: Callable[[], Awaitable[Any]] = async_noop
-    close_func: Callable[[Any], Awaitable[None]] = async_noop
-    seek_func: Callable[[Any, int, int], Awaitable[Any]] = async_noop
+        self.tell_func = tell_func
+
+    async def read_func(self, handle, off: int, size: int) -> bytes:
+        return await self._read_func(handle, off, size)
+
+    async def open_func(self) -> None:
+        return await self._open_func()
+
+    async def close_func(self, handle):
+        return await self._close_func(handle)
+
+    async def seek_func(self, handle, n: int, w: int):
+        return await self._seek_func(handle, n, w)
+
+    # async def tell_func(self, handle):
+    #     return await self._tell_func(handle)
 
     # XXX
-    tell_func: Optional[Callable[[Any], Awaitable[int]]] = None
 
     def __repr__(self):
         return f"FileContent(size={self.size})"

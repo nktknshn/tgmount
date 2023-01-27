@@ -1,6 +1,6 @@
 from typing import Any, Mapping, Type
 
-from tgmount.cache import CacheFactoryMemory
+from tgmount.cache import CacheMemory
 from tgmount.tgmount.producers.producer_by_performer import VfsTreeGroupByPerformer
 from tgmount.tgmount.producers.producer_by_forward import VfsTreeGroupByForward
 from tgmount.tgmount.producers.producer_by_reaction import VfsTreeGroupByReactions
@@ -38,7 +38,7 @@ class VfsWrappersProvider(ProviderVfsWrappersBase):
 
 class CachesProvider(CacheTypesProviderBase):
     caches = {
-        "memory": CacheFactoryMemory,  # type: ignore XXX
+        "memory": CacheMemory,  # type: ignore XXX
     }
 
 

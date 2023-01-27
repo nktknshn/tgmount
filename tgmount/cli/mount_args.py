@@ -45,7 +45,7 @@ def add_mount_args_arguments(command_mount: ArgumentParser):
         "--reverse", default=False, action="store_true", dest="reverse"
     )
     command_mount.add_argument(
-        "--updates", default=True, action="store_false", dest="updates"
+        "--no-updates", default=False, action="store_true", dest="no_updates"
     )
 
     command_mount.add_argument(
@@ -114,7 +114,7 @@ async def mount_args(
                     offset_id=args.offset_id,
                     reply_to=args.reply_to,
                     reverse=args.reverse,
-                    updates=args.updates,
+                    updates=not args.no_updates,
                     wait_time=args.wait_time,
                 )
             }
@@ -133,7 +133,7 @@ async def mount_args(
         # await tgm.client.disconnect()
         raise TgmountError(f"Error while authenticating the client: {e}")
 
-    if not tgm.client.is_connected():
+    if not tgm.client.is_connected():  # type: ignore
         raise TgmountError(
             f"Error while connecting the client. Check api_id and api_hash"
         )

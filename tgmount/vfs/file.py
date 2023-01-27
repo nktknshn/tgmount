@@ -11,7 +11,7 @@ from typing import (
 
 import aiofiles
 
-from tgmount.vfs.types.file import FileContent, FileContentProto, FileLike
+from tgmount.vfs.types.file import FileContent, FileContentProto, FileLike, FileContentBasic
 from tgmount.vfs.util import MyLock
 
 logger = logging.getLogger("tgvfs")
@@ -33,7 +33,7 @@ def file_content(
     size: int,
     read_func: Callable[[Any, int, int], Awaitable[bytes]],
 ):
-    return FileContent(size, read_func)
+    return FileContent(size=size, read_func=read_func)
 
 
 def simple_read(content: str):

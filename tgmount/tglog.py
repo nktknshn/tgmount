@@ -3,6 +3,44 @@ import logging
 import tgmount
 from tgmount.util import yes
 
+
+def init_logging(debug_level: int = 0):
+    # print(f"init_logging: {debug_level}", file=sys.stderr)
+    logging.getLogger("asyncio").setLevel(logging.CRITICAL)
+    logging.getLogger("telethon").setLevel(logging.INFO)
+
+    tgmount.tgmount.logger.setLevel(debug_level)
+    tgmount.cli.logger.setLevel(debug_level)
+
+    tgmount.tgmount.filters.logger.setLevel(logging.INFO)
+    tgmount.tgmount.producers.producer_plain.VfsTreeProducerPlainDir.logger.setLevel(
+        logging.INFO
+    )
+
+    tgmount.tgmount.producers.grouperbase.VfsTreeProducerGrouperBase.logger.setLevel(
+        logging.INFO
+    )
+
+    tgmount.fs.logger.setLevel(logging.DEBUG)
+
+    # tgmount.tgmount.wrappers.logger.setLevel(logging.INFO)
+    tgmount.tgmount.wrappers.wrapper_exclude_empty_dirs.WrapperEmpty.logger.setLevel(
+        logging.INFO
+    )
+
+    handler = logging.StreamHandler()
+    handler.setFormatter(Formatter())
+    handler.addFilter(ContextFilter())
+
+    root_logger = logging.getLogger()
+
+    if root_logger.hasHandlers():
+        root_logger.handlers.clear()
+
+    root_logger.addHandler(handler)
+    tgmount_logger.setLevel(debug_level)
+
+
 TRACE = 5
 logging.addLevelName(TRACE, "TRACE")
 
@@ -123,40 +161,3 @@ class Formatter(logging.Formatter):
         color = self.COLORS[rec.levelno]
 
         return color + self._format(rec) + self.reset
-
-
-def init_logging(debug_level: int = 0):
-    # print(f"init_logging: {debug_level}", file=sys.stderr)
-    logging.getLogger("asyncio").setLevel(logging.CRITICAL)
-    logging.getLogger("telethon").setLevel(logging.INFO)
-
-    tgmount.tgmount.logger.setLevel(debug_level)
-    tgmount.cli.logger.setLevel(debug_level)
-
-    tgmount.tgmount.filters.logger.setLevel(logging.INFO)
-    tgmount.tgmount.producers.producer_plain.VfsTreeProducerPlainDir.logger.setLevel(
-        logging.INFO
-    )
-
-    tgmount.tgmount.producers.grouperbase.VfsTreeProducerGrouperBase.logger.setLevel(
-        logging.INFO
-    )
-
-    tgmount.fs.logger.setLevel(logging.INFO)
-
-    # tgmount.tgmount.wrappers.logger.setLevel(logging.INFO)
-    tgmount.tgmount.wrappers.wrapper_exclude_empty_dirs.WrapperEmpty.logger.setLevel(
-        logging.INFO
-    )
-
-    handler = logging.StreamHandler()
-    handler.setFormatter(Formatter())
-    handler.addFilter(ContextFilter())
-
-    root_logger = logging.getLogger()
-
-    if root_logger.hasHandlers():
-        root_logger.handlers.clear()
-
-    root_logger.addHandler(handler)
-    tgmount_logger.setLevel(debug_level)

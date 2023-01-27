@@ -96,7 +96,7 @@ class TgmountConfigReader(RootProducerPropsReader):
 
         if source_prop is not None and source_prop["recursive"] is True:
             ctx = ctx.set_recursive_source(
-                resources.sources[source_prop["source_name"]]
+                resources.message_sources[source_prop["source_name"]]
             )
 
         if cache_prop is not None:
@@ -145,7 +145,7 @@ class TgmountConfigReader(RootProducerPropsReader):
         if source_prop is not None and not source_prop["recursive"]:
             self.logger.info(f"1. source_prop is specified and it's not recursive")
 
-            message_source = resources.sources.get(source_prop["source_name"])
+            message_source = resources.message_sources.get(source_prop["source_name"])
 
             if message_source is None:
                 raise config.ConfigError(
@@ -170,7 +170,9 @@ class TgmountConfigReader(RootProducerPropsReader):
             )
 
             if source_prop is not None:
-                message_source = resources.sources.get(source_prop["source_name"])
+                message_source = resources.message_sources.get(
+                    source_prop["source_name"]
+                )
             else:
                 message_source = ctx.recursive_source
 
@@ -186,7 +188,9 @@ class TgmountConfigReader(RootProducerPropsReader):
             self.logger.info(
                 f"Setting recoursive message source: {source_prop['source_name']}"
             )
-            recursive_message_source = resources.sources.get(source_prop["source_name"])
+            recursive_message_source = resources.message_sources.get(
+                source_prop["source_name"]
+            )
 
             if recursive_message_source is None:
                 raise config.ConfigError(

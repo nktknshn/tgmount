@@ -5,6 +5,8 @@ docs:
       - MessageWithOtherDocument
       - Not:
           - ByExtension: .zip
+sysinfo:
+  producer: SysInfo
 mixed-audio:
   filter: MessageWithZip
   music:

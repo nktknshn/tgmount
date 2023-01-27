@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from typing import Generic, Mapping, Protocol, Type, TypeVar
-from tgmount.cache.source import FilesSourceCached
-from tgmount.cache.types import CacheProto
+from tgmount.cache.file_source import FilesSourceCached
+from tgmount.cache.types import CacheInBlocksProto
 from tgmount.tgclient.client_types import TgmountTelegramClientReaderProto
 from tgmount.tgclient.files_source import TelegramFilesSource
 from tgmount.tgmount.error import TgmountError
@@ -22,8 +22,13 @@ class CacheFileFactoryFactoryProto(Protocol, Generic[T]):
     ) -> FileFactoryProto:
         pass
 
+    @property
     @abstractmethod
-    def get_cache_by_id(self, cache_id: str) -> CacheProto | None:
+    def ids(self) -> list[str]:
+        ...
+
+    @abstractmethod
+    def get_cache_by_id(self, cache_id: str) -> CacheInBlocksProto | None:
         ...
 
     @abstractmethod
@@ -48,11 +53,15 @@ class CacheFileFactoryFactory(CacheFileFactoryFactoryProto):
         self._client = client
         self._cache_classes_provider = caches_class_provider
 
-        self._caches: dict[str, CacheProto] = {}
+        self._caches: dict[str, CacheInBlocksProto] = {}
         self._caches_file_source: dict[str, FilesSourceCached] = {}
         self._caches_filefactories: dict[str, FileFactoryDefault] = {}
 
-    def get_cache_by_id(self, cache_id: str) -> CacheProto | None:
+    @property
+    def ids(self):
+        return list(self._caches.keys())
+
+    def get_cache_by_id(self, cache_id: str) -> CacheInBlocksProto | None:
         return self._caches.get(cache_id)
 
     def get_filesource_by_id(self, cache_id: str) -> FilesSourceCached | None:

@@ -8,7 +8,7 @@ from tgmount.tgclient.message_types import MessageProto, PhotoProto
 
 from .guards import MessageDownloadable, MessageWithCompressedPhoto
 from .source.document import SourceItemDocument
-from .source.item import SourceItem
+from .source.item import FileSourceItem
 from .source.photo import SourceItemPhoto
 from .source.types import InputSourceItem
 from .source.util import BLOCK_SIZE, split_range
@@ -28,7 +28,7 @@ T = TypeVar("T")
 # XXX telethon.utils.is_gif
 
 
-def item_to_inner_object(input_item: InputSourceItem) -> SourceItem:
+def item_to_inner_object(input_item: InputSourceItem) -> FileSourceItem:
     if PhotoProto.guard(input_item):
         item = SourceItemPhoto(input_item)
     else:
@@ -37,7 +37,7 @@ def item_to_inner_object(input_item: InputSourceItem) -> SourceItem:
     return item
 
 
-def get_downloadable_item(message: MessageDownloadable) -> SourceItem:
+def get_filesource_item(message: MessageDownloadable) -> FileSourceItem:
     if MessageWithCompressedPhoto.guard(message):
         return item_to_inner_object(message.photo)
 
@@ -61,7 +61,7 @@ class TelegramFilesSource:
 
     def file_content(self, message: MessageDownloadable) -> vfs.FileContent:
 
-        item = get_downloadable_item(message)
+        item = get_filesource_item(message)
 
         async def read_func(handle: Any, off: int, size: int) -> bytes:
             return await self.read(message, off, size)
@@ -76,25 +76,27 @@ class TelegramFilesSource:
 
         return await self._item_read_function(message, offset, limit)
 
-    async def _get_item_input_location(self, item: SourceItem) -> TypeInputFileLocation:
+    async def _get_item_input_location(
+        self, item: FileSourceItem
+    ) -> TypeInputFileLocation:
         return item.input_location(
             self._get_item_file_reference(item),
         )
 
-    def _get_item_file_reference(self, item: SourceItem) -> bytes:
+    def _get_item_file_reference(self, item: FileSourceItem) -> bytes:
         return self.items_file_references.get(
             item.id,
             item.file_reference,
         )
 
-    def _set_item_file_reference(self, item: SourceItem, file_reference: bytes):
+    def _set_item_file_reference(self, item: FileSourceItem, file_reference: bytes):
         self.items_file_references[item.id] = file_reference
 
     async def _update_item_file_reference(
         self, message: MessageDownloadable
     ) -> TypeInputFileLocation:
 
-        item = get_downloadable_item(message)
+        item = get_filesource_item(message)
 
         refetched_msg: MessageProto
 
@@ -162,7 +164,7 @@ class TelegramFilesSource:
         offset: int,
         limit: int,
     ) -> bytes:
-        item = get_downloadable_item(message)
+        item = get_filesource_item(message)
 
         logger.debug(
             f"TelegramFilesSource._item_read_function(Message(id={message.id},chat_id={message.chat_id}), item(name={message.file.name}, id={item.id}, offset={offset}, limit={limit})"  # type: ignore

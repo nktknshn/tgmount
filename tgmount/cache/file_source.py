@@ -6,7 +6,7 @@ from tgmount.tgclient import TelegramFilesSource, TgmountTelegramClient
 from tgmount.tgclient import guards
 from tgmount.tgclient.client_types import TgmountTelegramClientReaderProto
 from tgmount.tgclient.source.util import BLOCK_SIZE
-from .types import CacheProto
+from .types import CacheInBlocksProto
 
 logger = logging.getLogger("tgmount-cache")
 
@@ -17,7 +17,7 @@ class FilesSourceCached(TelegramFilesSource):
     def __init__(
         self,
         client: TgmountTelegramClientReaderProto,
-        cache: CacheProto,
+        cache: CacheInBlocksProto,
         request_size: int = BLOCK_SIZE,
     ) -> None:
         super().__init__(client, request_size)
@@ -30,9 +30,9 @@ class FilesSourceCached(TelegramFilesSource):
         limit: int,
     ) -> bytes:
 
-        cache = await self._cache.get_reader(message)
+        cache_reader = await self._cache.get_reader(message)
 
-        data = await cache.read_range(
+        data = await cache_reader.read_range(
             lambda offset, limit, self=self: super(FilesSourceCached, self).read(
                 message, offset, limit
             ),

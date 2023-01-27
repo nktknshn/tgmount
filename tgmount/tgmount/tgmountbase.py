@@ -112,7 +112,7 @@ class TgmountBase:
 
         for k, fetcher in self._resources.fetchers_dict.items():
             self.logger.info(f"Fetching from '{k}'...")
-            source = self._resources.sources.get(k)
+            source = self._resources.message_sources.get(k)
 
             assert source
 

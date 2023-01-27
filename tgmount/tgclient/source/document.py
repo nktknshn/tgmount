@@ -3,7 +3,7 @@ from typing import Optional
 from tgmount.tgclient.message_types import DocumentProto
 
 from ..types import InputDocumentFileLocation, TypeInputFileLocation
-from .item import SourceItemId, SourceItem
+from .item import SourceItemId, FileSourceItem
 
 
 def get_document_input_location(
@@ -19,7 +19,7 @@ def get_document_input_location(
     )
 
 
-class SourceItemDocument(SourceItem):
+class SourceItemDocument(FileSourceItem):
     id: SourceItemId
     file_reference: bytes
     access_hash: int

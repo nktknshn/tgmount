@@ -12,7 +12,8 @@ import pyfuse3
 
 # logger = logging.getLogger("tgvfs")
 
-from tgmount import tglog
+
+from .logger import logger
 
 
 def measure_time_sync(*, logger_func):
@@ -41,7 +42,7 @@ def exception_handler(func):
             raise
         except Exception:
             if exception_handler.catch:
-                # tglog.tgmount_logger.error(traceback.format_exc())
+                logger.error(traceback.format_exc())
                 raise pyfuse3.FUSEError(errno.EIO)
             else:
                 raise
@@ -86,7 +87,7 @@ def create_attributes(st_mode: int, stamp: int, size: int, inode: Optional[int] 
     #     attrs.st_mode = (stat.S_IFDIR | 0o755)
     attrs.st_mode = st_mode
     attrs.st_size = size
-
+    # attrs.
     stamp = stamp
 
     attrs.st_atime_ns = stamp

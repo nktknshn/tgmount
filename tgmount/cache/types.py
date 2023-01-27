@@ -9,8 +9,10 @@ from typing import (
     Set,
     TypeVar,
 )
+from typing_extensions import Self
 
 import telethon
+from tgmount.tgclient.guards import MessageDownloadable
 
 from tgmount.tgclient.message_types import MessageProto
 from tgmount.tgmount.file_factory.types import FileFactoryProto
@@ -28,11 +30,11 @@ class CacheBlockReaderWriterProto(Protocol):
 
 
 class CacheBlocksStorageProto(Protocol):
-    blocksize: int
+    block_size: int
     total_size: int
 
     @abstractmethod
-    def __init__(self, blocksize: int, total_size: int) -> None:
+    def __init__(self, block_size: int, total_size: int) -> None:
         pass
 
     @abstractmethod
@@ -57,7 +59,7 @@ class CacheBlocksStorageProto(Protocol):
 
 class CacheProtoGeneric(Protocol, Generic[T]):
     @abstractclassmethod
-    async def create(cls, **kwargs) -> "CacheProtoGeneric[T]":
+    async def create(cls, **kwargs) -> Self:
         ...
 
     @abstractmethod
@@ -77,11 +79,17 @@ class CachingDocumentsStorageError(Exception):
         super().__init__(message)
 
 
-class CacheProto(CacheProtoGeneric[CacheBlockReaderWriterProto], Protocol):
-    pass
+class CacheInBlocksProto(CacheProtoGeneric[CacheBlockReaderWriterProto], Protocol):
+    block_size: int
+    capacity: int
+    documents: list[DocId]
+
+    @abstractmethod
+    async def stored_per_message(self) -> list[tuple[MessageDownloadable, int]]:
+        ...
 
 
-class CacheBlockReaderWriterBase(CacheBlockReaderWriterProto):
+class CacheBlockReaderWriterBaseProto(CacheBlockReaderWriterProto):
     @abstractmethod
     def __init__(self, blocks_storage: CacheBlocksStorageProto) -> None:
         pass
