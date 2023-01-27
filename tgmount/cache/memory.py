@@ -4,13 +4,13 @@ from typing import Optional
 from .cache_in_blocks import CacheInBlocks
 from .reader import CacheBlockReaderWriter
 from .types import CacheBlocksStorageProto
-from .logger import module_logger
+from .logger import logger
 
 
 class CacheBlocksStorageMemory(CacheBlocksStorageProto):
     """Storage for blocks of a single file"""
 
-    logger = module_logger.getChild(f"CacheBlocksStorageMemory")
+    logger = logger.getChild(f"CacheBlocksStorageMemory")
 
     def __init__(self, block_size: int, total_size: int):
         self._block_size = block_size

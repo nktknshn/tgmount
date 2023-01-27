@@ -3,14 +3,13 @@ from typing import Generic, Mapping, Protocol, Type, TypeVar
 from tgmount.cache.file_source import FilesSourceCached
 from tgmount.cache.types import CacheInBlocksProto
 from tgmount.tgclient.client_types import TgmountTelegramClientReaderProto
-from tgmount.tgclient.files_source import TelegramFilesSource
 from tgmount.tgmount.error import TgmountError
 from tgmount.tgmount.file_factory.filefactory import FileFactoryDefault
 
 from tgmount.tgmount.file_factory.types import FileFactoryProto
 from tgmount.tgmount.providers.provider_caches import CachesTypesProviderProto
 
-from .logger import logger as module_logger
+from .logger import module_logger as module_logger
 
 T = TypeVar("T", covariant=True)
 

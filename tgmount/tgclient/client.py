@@ -1,5 +1,6 @@
 import asyncio
 import logging
+
 import typing
 from abc import abstractmethod
 from typing import Optional, Protocol
@@ -9,7 +10,7 @@ from telethon import TelegramClient
 from tgmount import tglog
 
 from tgmount.tgclient.message_source_types import Subscribable
-from tgmount.util import yes
+from tgmount.util import map_none_else, yes
 
 from .auth import TelegramAuthen
 
@@ -23,7 +24,7 @@ from .client_types import (
 from telethon import events
 from .message_reaction_event import MessageReactionEvent
 
-logger = logging.getLogger("tgclient")
+from .logger import logger as module_logger
 
 
 class TgmountTelegramClient(
@@ -32,6 +33,8 @@ class TgmountTelegramClient(
     TelegramSearch,
     TgmountTelegramClientEventProto,
 ):
+    logger = module_logger.getChild("TgmountTelegramClient")
+
     def __repr__(self):
         return f"TgmountTelegramClient({self.session.filename if yes(self.session) else None})"
 
@@ -91,6 +94,11 @@ class TgmountTelegramClient(
 
         # self.api_id = api_id
         # self.api_hash = api_hash
+        self.logger = TgmountTelegramClient.logger.getChild(
+            # self.session.filename if yes(self.session) else None,
+            map_none_else(self.session, lambda s: s.filename, "No session"),
+            suffix_as_tag=True,
+        )
 
         async def aprint(d):
             print(d)
@@ -132,7 +140,10 @@ class TgmountTelegramClient(
 
     def subscribe_edited_message(self, listener: ListenerEditedMessage, chats=None):
         async def _update_reactions(event: MessageReactionEvent):
-            await listener(event)
+            try:
+                await listener(event)
+            except Exception as e:
+                self.logger.error(e)
 
         self.add_event_handler(listener, events.MessageEdited(chats=chats))
         self.add_event_handler(_update_reactions, MessageReactionEvent(chats=chats))

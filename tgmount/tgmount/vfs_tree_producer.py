@@ -2,7 +2,7 @@ from tgmount import tglog, vfs
 from tgmount.util import none_fallback
 from tgmount.util.timer import Timer
 
-from .logger import logger as _logger
+from .logger import module_logger as _logger
 from .root_config_reader import TgmountConfigReader
 from .root_config_types import RootConfigWalkingContext
 from .tgmount_types import TgmountResources

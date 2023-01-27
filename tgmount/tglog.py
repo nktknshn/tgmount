@@ -9,7 +9,7 @@ def init_logging(debug_level: int = 0):
     logging.getLogger("asyncio").setLevel(logging.CRITICAL)
     logging.getLogger("telethon").setLevel(logging.INFO)
 
-    tgmount.tgmount.logger.setLevel(debug_level)
+    tgmount.tgmount.module_logger.setLevel(debug_level)
     tgmount.cli.logger.setLevel(debug_level)
 
     tgmount.tgmount.filters.logger.setLevel(logging.INFO)
@@ -21,7 +21,7 @@ def init_logging(debug_level: int = 0):
         logging.INFO
     )
 
-    tgmount.fs.logger.setLevel(logging.DEBUG)
+    tgmount.fs.logger.setLevel(logging.INFO)
 
     # tgmount.tgmount.wrappers.logger.setLevel(logging.INFO)
     tgmount.tgmount.wrappers.wrapper_exclude_empty_dirs.WrapperEmpty.logger.setLevel(

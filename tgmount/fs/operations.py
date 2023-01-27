@@ -111,13 +111,13 @@ class FileSystemOperationsMixin:
         )
 
 
-from .logger import logger as _logger
+from .logger import logger
 
 
 class FileSystemOperations(pyfuse3.Operations, FileSystemOperationsMixin):
 
     FsRegistryItem = RegistryItem[FileSystemItem] | RegistryRoot[FileSystemItem]
-    logger = _logger.getChild(f"FileSystemOperations")
+    logger = logger.getChild(f"FileSystemOperations")
 
     def __init__(
         self,

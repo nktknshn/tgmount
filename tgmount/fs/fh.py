@@ -1,6 +1,6 @@
 import logging
 from typing import Dict, Generic, Tuple, Any, Optional, TypeVar
-from .logger import logger as _logger
+from .logger import logger
 
 T = TypeVar("T")
 
@@ -8,7 +8,7 @@ T = TypeVar("T")
 class FileSystemHandles(Generic[T]):
     """Stores mapping from fh to a tuple of item and handle object"""
 
-    logger = _logger.getChild("FileSystemHandles")
+    logger = logger.getChild("FileSystemHandles")
     logger.setLevel(logging.CRITICAL)
 
     LAST_FH = 10

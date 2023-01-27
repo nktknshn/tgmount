@@ -8,6 +8,7 @@ from tests import tgmount
 from tgmount import fs, main, tgclient, tglog, tgmount, vfs
 from tgmount.fs.update import FileSystemOperationsUpdate
 from tgmount.tgclient.events_disptacher import EntityId, TelegramEventsDispatcher
+from tgmount.tgclient.message_reaction_event import MessageReactionEvent
 from tgmount.tgclient.message_source import MessageSource
 from tgmount.tgclient.message_source_types import MessageSourceProto
 from tgmount.tgclient.message_types import MessageProto
@@ -17,7 +18,7 @@ from tgmount.util import measure_time, none_fallback
 from tgmount.vfs.util import MyLock
 
 from .error import TgmountError
-from .logger import logger as _logger
+from .logger import module_logger as _logger
 from .tgmount_types import TgmountResources
 from .vfs_tree import TreeListener, VfsTreeDir
 from .vfs_tree_types import (
@@ -175,18 +176,29 @@ class TgmountBase:
 
     @measure_time(logger_func=logger.info)
     async def on_edited_message(
-        self, entity_id: EntityId, event: events.MessageEdited.Event
+        self,
+        entity_id: EntityId,
+        event: events.MessageEdited.Event | MessageReactionEvent.Event,
     ):
-        self.logger.info(f"on_edited_message({MessageProto.repr_short(event.message)})")
-        self.logger.trace(event.message)
+        if isinstance(event, events.MessageEdited):
+            self.logger.info(
+                f"on_edited_message({MessageProto.repr_short(event.message)})"
+            )
+        else:
+            self.logger.info(f"on_edited_message(reaction update for {event.msg_id})")
+
+        self.logger.trace(event)
 
         listener = TreeListener(self._vfs_tree)
 
         async with self._update_lock:
             async with listener:
-                await self.events_dispatcher.process_edited_message_event(
-                    entity_id, event
-                )
+                try:
+                    await self.events_dispatcher.process_edited_message_event(
+                        entity_id, event
+                    )
+                except Exception as e:
+                    self.logger.error(e)
 
             if len(listener.events) > 0:
                 self.logger.debug(f"Tree generated {len(listener.events)} events")

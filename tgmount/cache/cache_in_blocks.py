@@ -19,7 +19,7 @@ from .types import (
     DocId,
 )
 from .util import get_bytes_count
-from .logger import module_logger
+from .logger import logger
 
 
 class CacheBlockReaderPassby(CacheBlockReaderWriterBaseProto):
@@ -41,26 +41,6 @@ class CacheBlockReaderLimitedBLocks(CacheBlockReaderWriter):
             pass
         else:
             return await super().put_block(block_number, block)
-
-
-# class CacheBlockReaderCapacityAware(CacheBlockReaderWriter):
-#     def __init__(
-#         self,
-#         blocks_storage: CacheBlocksStorageProto,
-#         capacity: int,
-#     ) -> None:
-#         super().__init__(blocks_storage)
-#         self._capacity = capacity
-
-#     async def put_block(self, block_number: int, block: bytes):
-
-#         total_stored = await self._blocks_storage.total_stored()
-#         block_count = len(await self._blocks_storage.blocks())
-
-#         if total_stored + self._blocks_storage.block_size > self._capacity:
-#             await self.discard_least_read_block()
-
-#         await super().put_block(block_number, block)
 
 
 class CacheBlockCapacityHandlerProto(Protocol):
@@ -94,10 +74,9 @@ class CacheInBlocks(
 ):
     """This class is gonna decide how to store documents cache if needed"""
 
-    logger = module_logger.getChild("CacheInBlocks")
+    logger = logger.getChild("CacheInBlocks")
 
     CacheBlocksStorage: Type[CacheBlocksStorageProto]
-    # CacheBlockReaderWriter: Type[CacheBlockReaderWriterBaseProto]
 
     @property
     def block_size(self):
@@ -168,8 +147,6 @@ class CacheInBlocks(
         if reader not in self._by_reader:
             self.logger.error(f"put_block: Missing {reader}.")
             return
-
-        # storage, doc_id = self._by_reader[reader]
 
         total_stored = await self.total_stored()
 

@@ -8,13 +8,13 @@ from .types import (
     CacheBlockReaderWriterBaseProto,
 )
 
-from .logger import module_logger
+from .logger import logger
 
 
 class CacheBlockReaderWriter(CacheBlockReaderWriterBaseProto):
     """Reads blocks from a block storage and writes to"""
 
-    logger = module_logger.getChild("CacheBlockReaderWriter")
+    logger = logger.getChild("CacheBlockReaderWriter")
 
     def __init__(self, blocks_storage: CacheBlocksStorageProto) -> None:
         self._blocks_storage: CacheBlocksStorageProto = blocks_storage

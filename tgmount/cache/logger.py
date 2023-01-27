@@ -1,3 +1,3 @@
 from tgmount import tglog
 
-module_logger = tglog.getLogger("cache")
+logger = tglog.getLogger("cache")

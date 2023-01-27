@@ -6,7 +6,7 @@ from telethon.tl.custom import Message
 from tgmount.tgmount.error import TgmountError
 
 
-from .logger import logger as _logger
+from .logger import module_logger as _logger
 
 logger = _logger.getChild("filters")
 

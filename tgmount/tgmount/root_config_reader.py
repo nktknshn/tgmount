@@ -10,7 +10,7 @@ from .tgmount_types import TgmountResources
 from .types import TgmountRootSource
 from .vfs_tree_producer_types import VfsTreeProducerConfig, VfsDirConfig
 from dataclasses import dataclass
-from .logger import logger as _logger
+from .logger import module_logger as _logger
 
 T = TypeVar("T")
 

@@ -14,7 +14,7 @@ import pyfuse3
 from tgmount import tglog
 from tgmount.util import none_fallback
 from .util import bytes_to_str, str_to_bytes
-from .logger import logger as _logger
+from .logger import logger
 
 T = TypeVar("T")
 
@@ -45,7 +45,7 @@ InodesRegistryItem = RegistryRoot[T] | RegistryItem[T]
 
 class InodesRegistry(Generic[T]):
     ROOT_INODE: int = pyfuse3.ROOT_INODE
-    logger = _logger.getChild(f"InodesRegistry")
+    logger = logger.getChild(f"InodesRegistry")
     # logger.setLevel(logging.DEBUG)
 
     def __init__(self, root_item: T, last_inode=None):

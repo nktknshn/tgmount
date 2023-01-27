@@ -58,11 +58,10 @@ top-likes:
 unpacked:
   filter: MessageWithZip
   # it's recommended to use cache with ZipsAsDirs. otherwise it is slow
-  # cache: memory1
   cache: 
     type: memory
     block_size: 256KB
-    capacity: 2MB
+    capacity: 300MB
   wrappers:
     - ZipsAsDirs:
   #       skip_folder_if_single_subfolder: True

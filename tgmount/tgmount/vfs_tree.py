@@ -21,7 +21,7 @@ from tgmount.tgmount.vfs_tree_types import (
 from tgmount.tgmount.vfs_tree_wrapper_types import VfsTreeWrapperProto
 from tgmount.util import none_fallback
 from tgmount.util.col import map_keys
-from .logger import logger as _logger
+from .logger import module_logger as _logger
 
 
 class VfsTreeError(TgmountError):

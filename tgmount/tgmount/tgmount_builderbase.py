@@ -28,7 +28,7 @@ from .providers.provider_sources import SourcesProvider
 
 from .tgmount_types import TgmountResources
 from .tgmountbase import TgmountBase
-from .logger import logger as _logger
+from .logger import module_logger as _logger
 
 
 class TgmountBuilderBase(abc.ABC):
