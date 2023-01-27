@@ -1,0 +1,76 @@
+filter: { filter: [OnlyUniqueDocs], recursive: True }
+wrappers: ExcludeEmptyDirs
+docs:
+  filter:
+      - MessageWithOtherDocument
+      - Not:
+          - ByExtension: .zip
+mixed-audio:
+  filter: MessageWithZip
+  music:
+    filter: MessageWithMusic
+  voices:
+    filter: MessageWithVoice
+music:
+  filter: MessageWithMusic
+reactions:
+  filter: MessageWithReactions
+zips:
+  filter: MessageWithZip
+personal:
+  filter:
+    Union: [MessageWithKruzhochek, MessageWithVoice]
+video:
+  filter: MessageWithVideoFile
+images:
+  filter:
+    Union: [MessageWithDocumentImage, MessageWithCompressedPhoto]
+stickers:
+  filter:
+    Union: [MessageWithAnimated, MessageWithSticker]
+messages:
+  filter: MessageWithText
+  treat_as: MessageWithText
+all:
+  filter: All
+by-forward: 
+  filter: MessageForwarded
+  producer: ByForward  
+music-by-performer:
+  filter: MessageWithMusic
+  producer: ByPerformer
+forwareded-video:
+  filter:
+    And: [MessageForwarded, MessageWithVideo]
+by-reactions: 
+  producer: ByReactions      
+likes: 
+  filter: 
+    - ByReaction: 
+        reaction: 👍
+top-likes: 
+  filter: 
+    - ByReaction: 
+        reaction: 👍
+        minimum: 5
+unpacked:
+  filter: MessageWithZip
+  # it's recommended to use cache with ZipsAsDirs. otherwise it is slow
+  # cache: memory1
+  cache: 
+    type: memory
+    block_size: 256KB
+    capacity: 50MB
+  wrappers:
+    - ZipsAsDirs:
+  #       skip_folder_if_single_subfolder: True
+  #       hide_sources: True
+
+# by-sender:
+#   filter: All
+#   producer:
+#     BySender:
+#       use_get_sender: true
+#       dir_structure:
+#         <<: *ogranized
+

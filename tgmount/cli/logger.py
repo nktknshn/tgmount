@@ -1,3 +1,3 @@
 import logging
 
-logger = logging.getLogger("tgmount-cli")
+logger = logging.getLogger("cli")

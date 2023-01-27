@@ -15,7 +15,7 @@ class ContentDir:
 
     @staticmethod
     def from_dict(d: dict) -> "ContentDir":
-        return load_class_from_dict(ContentDir, d)
+        return load_class_from_mapping(ContentDir, d)
 
 
 ContentDirs = ContentDir | dict[str, "ContentDirs"]
@@ -55,7 +55,7 @@ class Content:
     @staticmethod
     def from_dict(d: dict) -> "Content":
 
-        return load_class_from_dict(
+        return load_class_from_mapping(
             Content,
             d,
             loaders={
@@ -109,7 +109,7 @@ class Root2:
 
     @staticmethod
     def from_dict(d: dict) -> "Root2":
-        return load_class_from_dict(
+        return load_class_from_mapping(
             Root2, d, loaders={"content": Root2.root_tree_from_dict}
         )
 

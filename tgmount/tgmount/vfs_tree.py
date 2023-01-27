@@ -129,7 +129,7 @@ class VfsTreeDir(VfsTreeDirMixin):
         self._wrappers: list[VfsTreeWrapperProto] = none_fallback(wrappers, [])
         self._dir_content_items: list[vfs.DirContentItem] = []
 
-        self._logger = self.logger.getChild(self.path)
+        self._logger = self.logger.getChild(self.path, suffix_as_tag=True)
 
         # self.additional_data: Any = None
 

@@ -1,11 +1,13 @@
 import logging
 
-from .types import BlockFetcher, CacheBlocksStorageProto, CacheBlockReaderWriter
+from .types import BlockFetcher, CacheBlocksStorageProto, CacheBlockReaderWriterBase
 
-logger = logging.getLogger("tgmount-cache")
+from .logger import module_logger
 
 
-class CacheBlockReaderWriter(CacheBlockReaderWriter):
+class CacheBlockReaderWriter(CacheBlockReaderWriterBase):
+    logger = module_logger.getChild("CacheBlockReaderWriter")
+
     def __init__(self, blocks_storage: CacheBlocksStorageProto) -> None:
         self._blocks_storage: CacheBlocksStorageProto = blocks_storage
         self._blocks_read_count: dict[int, int] = {}
@@ -56,11 +58,11 @@ class CacheBlockReaderWriter(CacheBlockReaderWriter):
 
         for block_number in self.range_blocks(offset, limit):
             if block := await self._blocks_storage.get(block_number):
-                logger.debug(
+                self.logger.debug(
                     f"CacheBlockReaderWriter(blocksize={self._blocks_storage.blocksize}).read_range(offset={offset}, limit={limit} ({limit//1024} kb)): block {block_number} hit"
                 )
             else:
-                logger.debug(
+                self.logger.debug(
                     f"CacheBlockReaderWriter.read_range({offset}, {limit} ({limit//1024} kb)): block {block_number} miss"
                 )
                 block = await block_fetcher(

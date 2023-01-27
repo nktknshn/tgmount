@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import TypeVar, Generator
+from typing import AsyncGenerator, Mapping, TypeVar, Generator
 
 from tgmount import config, vfs
 from tgmount.util import none_fallback
@@ -31,7 +31,7 @@ class TgmountConfigReader(RootProducerPropsReader):
     def __init__(self) -> None:
         pass
 
-    def get_used_sources(self, d: TgmountRootSource) -> set[str]:
+    async def get_used_sources(self, d: TgmountRootSource) -> set[str]:
         sources = set()
         for dir_props in self.walk_dir_props(d):
             if dir_props.source_prop is None:
@@ -55,15 +55,15 @@ class TgmountConfigReader(RootProducerPropsReader):
         yield DirProps(current_path_str, source_prop)
 
         for k in other_keys:
-            yield from self.walk_dir_props(d[k], current_path=[*current_path, k])
+            yield from (self.walk_dir_props(d[k], current_path=[*current_path, k]))
 
-    def walk_config_with_ctx(
+    async def walk_config_with_ctx(
         self,
         dir_config: TgmountRootSource,
         *,
         resources: TgmountResources,
         ctx: RootConfigWalkingContext,
-    ) -> Generator[tuple[str, set, VfsDirConfig, RootConfigWalkingContext], None, None]:
+    ) -> AsyncGenerator[tuple[str, set, VfsDirConfig, RootConfigWalkingContext], None]:
         """Walks `dir_config` yielding a tuple (current path, keys other than current path props, `VfsStructureConfig`, `RootConfigWalkingContext`)"""
         current_path_str = (
             f"/{os.path.join(*ctx.current_path)}" if len(ctx.current_path) > 0 else "/"
@@ -92,6 +92,7 @@ class TgmountConfigReader(RootProducerPropsReader):
         producer_cls = None
         # producer_cls = resources.producers.default
         producer_config = None
+        current_file_factory = None
 
         if source_prop is not None and source_prop["recursive"] is True:
             ctx = ctx.set_recursive_source(
@@ -101,13 +102,25 @@ class TgmountConfigReader(RootProducerPropsReader):
         if cache_prop is not None:
             self.logger.info(f"Cache {cache_prop} will be used for files contents")
 
-        current_file_factory = (
-            ctx.file_factory if cache_prop is None else resources.caches.get(cache_prop)
-        )
+        if isinstance(cache_prop, str):
+            current_file_factory = (
+                ctx.file_factory
+                if cache_prop is None
+                else resources.caches.get_filefactory_by_id(cache_prop)
+            )
+        elif isinstance(cache_prop, Mapping):
+            cached_filefactory = await resources.caches.create_cached_filefactory(
+                f"cache-at:{current_path_str}", cache_prop["type"], cache_prop["kwargs"]
+            )
+
+            current_file_factory = cached_filefactory
+
+        elif cache_prop is None:
+            current_file_factory = ctx.file_factory
 
         if current_file_factory is None:
             raise config.ConfigError(
-                f"missing cache named {cache_prop} in {ctx.current_path}"
+                f"Missing cache named {cache_prop} in {ctx.current_path}"
             )
 
         filters_from_prop = (
@@ -241,22 +254,11 @@ class TgmountConfigReader(RootProducerPropsReader):
         yield (current_path_str, other_keys, vfs_config, ctx)
 
         for k in other_keys:
-            yield from self.walk_config_with_ctx(
+            async for t in self.walk_config_with_ctx(
                 dir_config[k],
                 resources=resources,
                 ctx=ctx.add_path(k),
-            )
+            ):
+                yield t
 
         # return content_from_source
-
-    def walk_config(self, d: dict, *, resources: TgmountResources):
-
-        yield from self.walk_config_with_ctx(
-            d,
-            resources=resources,
-            ctx=RootConfigWalkingContext(
-                current_path=[],
-                file_factory=resources.file_factory,
-                classifier=resources.classifier,
-            ),
-        )

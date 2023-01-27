@@ -1,7 +1,15 @@
 from dataclasses import dataclass, replace
 from typing import Mapping, Type, Any
+from tgmount.config.types import MessageSource
+from tgmount.tgclient.message_source_types import (
+    MessageSourceProto,
+    MessageSourceProto,
+)
+from tgmount.tgclient.message_types import MessageProto
+from tgmount.tgmount.cached_filefactory_factory import CacheFileFactoryFactory
 
 from tgmount.tgmount.file_factory import FileFactoryProto, ClassifierBase
+from tgmount.tgmount.providers.provider_caches import CachesTypesProviderProto
 from tgmount.tgmount.providers.provider_filters import (
     FilterProviderProto,
 )
@@ -17,10 +25,12 @@ class TgmountResources:
     """Stores resourses which are used for producing VfsTree from a config"""
 
     file_factory: FileFactoryProto
-    sources: SourcesProviderProto
+    sources: SourcesProviderProto[MessageSourceProto[MessageProto]]
     filters: FilterProviderProto
     producers: ProducersProviderBase
-    caches: Mapping[str, FileFactoryProto]
+    caches: CacheFileFactoryFactory
+    # caches: Mapping[str, FileFactoryProto]
+    # cache_provider: CachesTypesProviderProto
     vfs_wrappers: ProviderVfsWrappersBase
     classifier: ClassifierBase
 

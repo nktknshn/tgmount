@@ -35,6 +35,7 @@ def get_parser():
 
     command_auth = commands_subparsers.add_parser("auth")
     command_mount = commands_subparsers.add_parser("mount")
+    command_mount_args = commands_subparsers.add_parser("mount-args")
     command_validate = commands_subparsers.add_parser("validate")
     command_stats = commands_subparsers.add_parser("stats")
 
@@ -46,11 +47,12 @@ def get_parser():
     cli.add_list_documents_arguments(command_list_documents)
     cli.add_mount_arguments(command_mount)
     cli.add_stats_parser(command_stats)
+    cli.add_mount_args_arguments(command_mount_args)
 
     return parser
 
 
-async def main():
+async def main(loop):
 
     args = get_parser().parse_args()
 
@@ -60,12 +62,12 @@ async def main():
     if args.command == "list" and args.list_subcommand == "dialogs":
         session, api_id, api_hash = get_tgapp_and_session(args)
 
-        async with ClientEnv(session, api_id, api_hash) as client:
+        async with ClientEnv(session, api_id, api_hash, loop=loop) as client:
             await cli.list_dialogs(client)
 
     elif args.command == "list" and args.list_subcommand == "documents":
         session, api_id, api_hash = get_tgapp_and_session(args)
-        async with ClientEnv(session, api_id, api_hash) as client:
+        async with ClientEnv(session, api_id, api_hash, loop=loop) as client:
             await cli.list_documents(
                 client,
                 args.entity,
@@ -81,6 +83,7 @@ async def main():
     elif args.command == "mount":
         session, api_id, api_hash = get_tgapp_and_session(args)
         main_settings.run_forever = args.run_server
+
         api_credentials = (
             (api_id, api_hash) if api_id is not None and api_hash is not None else None
         )
@@ -94,7 +97,17 @@ async def main():
             run_server=args.run_server,
             subfolder=args.subfolder,
         )
+    elif args.command == "mount-args":
+        session, api_id, api_hash = get_tgapp_and_session(args)
 
+        api_credentials = (
+            (api_id, api_hash) if api_id is not None and api_hash is not None else None
+        )
+        await cli.mount_args(
+            args,
+            api_credentials=api_credentials,
+            session=session,
+        )
     elif args.command == "stats":
         await cli.stats(args)
 

@@ -1,7 +1,29 @@
 from dataclasses import replace
+import datetime
 import yaml
 
 from .root import *
+import time
+
+
+DATE_FORMATS = [
+    "%d/%m/%Y %H:%M",
+    "%d-%m-%Y %H:%M",
+    "%d/%m/%Y",
+    "%d-%m-%Y",
+    "%d-%m-%y",
+    "%d/%m/%y",
+]
+
+
+def parse_datetime(s: str):
+    for f in DATE_FORMATS:
+        try:
+            return datetime.datetime.strptime(s, f)
+        except ValueError:
+            continue
+
+    raise ConfigError(f"Invalid date: {s}")
 
 
 @dataclass
@@ -10,8 +32,8 @@ class Cache:
     kwargs: dict
 
     @staticmethod
-    def from_dict(d: dict) -> "Cache":
-        return load_class_from_dict(
+    def from_mapping(d: dict) -> "Cache":
+        return load_class_from_mapping(
             Cache,
             d,
             loaders={"kwargs": lambda d: col.dict_exclude(d, ["type"])},
@@ -23,9 +45,9 @@ class Caches:
     caches: dict[str, Cache]
 
     @staticmethod
-    def from_dict(d: dict) -> "Caches":
+    def from_mapping(d: dict) -> "Caches":
         return Caches(
-            caches=load_dict(Cache.from_dict, d),
+            caches=load_mapping(Cache.from_mapping, d),
         )
 
 
@@ -35,8 +57,8 @@ class Wrapper:
     kwargs: dict
 
     @staticmethod
-    def from_dict(d: dict) -> "Wrapper":
-        return load_class_from_dict(
+    def from_mapping(d: dict) -> "Wrapper":
+        return load_class_from_mapping(
             Wrapper,
             d,
             loaders={"kwargs": lambda d: col.dict_exclude(d, ["type"])},
@@ -48,9 +70,9 @@ class Wrappers:
     wrappers: dict[str, Wrapper]
 
     @staticmethod
-    def from_dict(d: dict) -> "Wrappers":
+    def from_mapping(d: dict) -> "Wrappers":
         return Wrappers(
-            wrappers=load_dict(Wrapper.from_dict, d),
+            wrappers=load_mapping(Wrapper.from_mapping, d),
         )
 
 
@@ -61,8 +83,8 @@ class Client:
     api_hash: str
 
     @staticmethod
-    def from_dict(d: dict) -> "Client":
-        return load_class_from_dict(Client, d)
+    def from_mapping(d: dict) -> "Client":
+        return load_class_from_mapping(Client, d)
 
 
 @dataclass
@@ -70,12 +92,27 @@ class MessageSource:
     entity: Union[str, int]
     filter: Optional[str] = None
     limit: Optional[int] = None
-    reverse: Optional[bool] = None
+    offset_id: int = 0
+    min_id: int = 0
+    max_id: int = 0
+    wait_time: Optional[float] = None
+    reply_to: Optional[int] = None
+    from_user: Optional[str | int] = None
+    reverse: bool = False
     updates: Optional[bool] = None
+    offset_date: Optional[datetime.datetime] = None
 
     @staticmethod
-    def from_dict(d: dict) -> "MessageSource":
-        return load_class_from_dict(MessageSource, d)
+    def from_mapping(d: Mapping) -> "MessageSource":
+        return load_class_from_mapping(
+            MessageSource,
+            d,
+            loaders={
+                "offset_date": lambda d: parse_datetime(d["offset_date"])
+                if "offset_date" in d
+                else None
+            },
+        )
 
 
 @dataclass
@@ -83,14 +120,8 @@ class MessageSources:
     sources: dict[str, MessageSource]
 
     @staticmethod
-    def from_dict(d: dict) -> "MessageSources":
-
-        # assert_that(
-        #     len(d) > 0,
-        #     ConfigError(f"`message_sources` must contain at least one record."),
-        # )
-
-        return MessageSources(load_dict(MessageSource, d))
+    def from_mapping(d: Mapping) -> "MessageSources":
+        return MessageSources(load_mapping(MessageSource, d))
 
 
 @dataclass
@@ -102,17 +133,11 @@ class Config:
     wrappers: Optional[Wrappers] = None
     mount_dir: Optional[str] = None
 
-    Client = Client
-    MessageSources = MessageSources
-    Root = Root
-    Caches = Caches
-    Wrappers = Wrappers
-
     def set_root(self, root_cfg: Mapping) -> "Config":
         return replace(self, root=replace(self.root, content=root_cfg))
 
     @staticmethod
-    def from_dict(d: dict):
+    def from_mapping(d: dict):
         client_dict = d.get("client")
         message_sources_dict = d.get("message_sources")
         root_dict = d.get("root")
@@ -130,15 +155,17 @@ class Config:
 
         return Config(
             mount_dir=d.get("mount_dir"),
-            client=Client.from_dict(client_dict),
-            message_sources=MessageSources.from_dict(message_sources_dict),
+            client=Client.from_mapping(client_dict),
+            message_sources=MessageSources.from_mapping(message_sources_dict),
             root=Root.from_dict(root_dict),
-            caches=Caches.from_dict(caches_dict) if caches_dict is not None else None,
-            wrappers=Wrappers.from_dict(wrappers_dict)
+            caches=Caches.from_mapping(caches_dict)
+            if caches_dict is not None
+            else None,
+            wrappers=Wrappers.from_mapping(wrappers_dict)
             if wrappers_dict is not None
             else None,
         )
 
     @staticmethod
     def from_yaml(s):
-        return Config.from_dict(yaml.safe_load(s))
+        return Config.from_mapping(yaml.safe_load(s))

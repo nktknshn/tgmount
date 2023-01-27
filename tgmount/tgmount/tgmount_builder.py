@@ -1,5 +1,6 @@
 from tgmount import cache, tgclient, vfs
 from tgmount.tgclient.guards import MessageWithReactions, MessageWithText
+from tgmount.tgmount.cached_filefactory_factory import CacheFileFactoryFactory
 from tgmount.tgmount.file_factory.classifier import ClassifierDefault
 
 from .tgmount_builderbase import TgmountBuilderBase
@@ -42,6 +43,9 @@ class MyClassifier(ClassifierDefault[MessageWithText]):
 
 MyClassifier.register(MessageWithText)
 
+# cccc = tgclient.TgmountTelegramClient()
+# a: tgclient.client_types.TgmountTelegramClientReaderProto = cccc
+
 
 class TgmountBuilder(TgmountBuilderBase):
     TelegramClient = tgclient.TgmountTelegramClient
@@ -56,8 +60,10 @@ class TgmountBuilder(TgmountBuilderBase):
     FilesSource = tgclient.TelegramFilesSource
     """ Class used for content provider """
 
-    FilesSourceCaching = cache.FilesSourceCaching
+    FilesSourceCached = cache.FilesSourceCached
     """ class used for caching content provider """
+
+    CacheFileFactoryFactory = CacheFileFactoryFactory
 
     FileFactory = MyFileFactoryDefault
     """ Class that constructs file from messages """

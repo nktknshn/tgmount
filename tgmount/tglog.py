@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import sys
 import tgmount
 from tgmount.util import yes
 
@@ -30,7 +29,12 @@ class TgmountLogger(logging.Logger):
     def trace(self, msg, *args, **kwargs):
         self.log(TRACE, msg, *args, **kwargs)
 
-    def getChild(self, suffix: str, suffix_as_tag=False) -> "TgmountLogger":
+    def getChild(
+        self,
+        suffix: str,
+        suffix_as_tag=False,
+    ) -> "TgmountLogger":
+        """`suffix_as_tag` suffix will be used a a tag"""
         child = super().getChild(suffix)
         child.suffix_as_tag = suffix_as_tag
         return child
@@ -123,10 +127,12 @@ class Formatter(logging.Formatter):
 
 def init_logging(debug_level: int = 0):
     # print(f"init_logging: {debug_level}", file=sys.stderr)
-    logging.getLogger("asyncio").setLevel(logging.ERROR)
+    logging.getLogger("asyncio").setLevel(logging.CRITICAL)
     logging.getLogger("telethon").setLevel(logging.INFO)
 
     tgmount.tgmount.logger.setLevel(debug_level)
+    tgmount.cli.logger.setLevel(debug_level)
+
     tgmount.tgmount.filters.logger.setLevel(logging.INFO)
     tgmount.tgmount.producers.producer_plain.VfsTreeProducerPlainDir.logger.setLevel(
         logging.INFO

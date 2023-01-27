@@ -1,14 +1,17 @@
 from abc import abstractmethod
-from typing import Any, Awaitable, Callable, Generic, Protocol, TypeVar
+from typing import Any, Awaitable, Callable, Generic, Iterable, Protocol, TypeVar
 from typing_extensions import TypeVarTuple, Unpack
 
 from telethon import events
-from telethon.tl.custom import Message
+
+from tgmount.tgclient.message_types import MessageProto
+from tgmount.tgclient.messages_collection import WithId
 
 
 T = TypeVar("T")
 Arg = TypeVar("Arg")
 Arg_co = TypeVar("Arg_co", covariant=True)
+M = TypeVar("M", bound=WithId)
 
 
 Ts = TypeVarTuple("Ts")
@@ -32,21 +35,41 @@ class SubscribableProto(Protocol[Arg_co]):
         ...
 
 
-class MessageSourceProto(Protocol):
+# class MessageSourceProto(Generic[M], Protocol):
+#     @abstractmethod
+#     async def get_messages(self) -> list[M]:
+#         pass
+
+
+class MessageSourceProto(Generic[M], Protocol):
+
+    event_new_messages: SubscribableProto[list[M]]
+    event_removed_messages: SubscribableProto[list[M]]
+    event_edited_messages: SubscribableProto[list[tuple[M, M]]]
+
     @abstractmethod
-    async def get_messages(self) -> list[Message]:
+    async def get_messages(self) -> list[M]:
+        ...
+
+    @abstractmethod
+    async def set_messages(self, messages: list[M], notify=True):
         pass
 
-
-class MessageSourceSubscribableProto(MessageSourceProto, Protocol):
-
-    event_new_messages: SubscribableProto[list[Message]]
-    event_removed_messages: SubscribableProto[list[Message]]
-    event_edited_messages: SubscribableProto[list[tuple[Message, Message]]]
+    @abstractmethod
+    async def add_messages(self, messages: Iterable[M]):
+        pass
 
     @abstractmethod
-    async def get_messages(self) -> list[Message]:
-        ...
+    async def edit_messages(self, messages: Iterable[M]):
+        pass
+
+    @abstractmethod
+    async def get_by_ids(self, ids: list[int]) -> list[M] | None:
+        pass
+
+    @abstractmethod
+    async def remove_messages_ids(self, removed_messages: list[int]):
+        pass
 
 
 class Subscribable(SubscribableProto[Arg]):

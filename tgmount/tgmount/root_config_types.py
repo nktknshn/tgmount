@@ -1,7 +1,7 @@
 from dataclasses import dataclass, replace
 from typing import Optional
 
-from tgmount.tgclient import MessageSourceSubscribableProto, MessageSourceProto
+from tgmount.tgclient import MessageSourceProto, MessageSourceProto
 from tgmount.tgmount.file_factory import FileFactoryProto, ClassifierBase
 from tgmount.tgmount.filters_types import Filter
 from tgmount.tgmount.tgmount_types import TgmountResources
@@ -15,7 +15,7 @@ class RootConfigWalkingContext:
     current_path: list[str]
     file_factory: FileFactoryProto
     classifier: ClassifierBase
-    recursive_source: Optional[MessageSourceSubscribableProto] = None
+    recursive_source: Optional[MessageSourceProto] = None
     recursive_filters: Optional[list[Filter]] = None
 
     def set_recursive_source(self, source: Optional[MessageSourceProto]):
@@ -43,7 +43,7 @@ class RootConfigWalkingContext:
     def from_resources(
         resources: TgmountResources,
         current_path: list[str] | None = None,
-        recursive_source: Optional[MessageSourceSubscribableProto] = None,
+        recursive_source: Optional[MessageSourceProto] = None,
     ):
         return RootConfigWalkingContext(
             current_path=none_fallback(current_path, []),

@@ -1,25 +1,21 @@
 import abc
 import os
 from typing import Iterable, Mapping, TypeVar
-from tests.helpers.spawn import P
 
+from tests.helpers.spawn import P
 from tgmount.tgclient.message_source import MessageSource
 from tgmount.tgclient.message_types import MessageProto
 from tgmount.tgclient.messages_collection import messages_difference
-
-from ..error import TgmountError
-from ..producers.producer_plain import VfsTreeProducerPlainDir
-from ..root_config_types import RootConfigWalkingContext
-from ..tgmount_types import TgmountResources
-from ..vfs_tree_producer_types import VfsTreeProducerConfig
-
 from tgmount.util import sanitize_string_for_path
-from tgmount.util.col import sets_difference
 from tgmount.util.func import map_values, snd
 from tgmount.util.timer import Timer
 
+from ..producers.producer_plain import VfsTreeProducerPlainDir
+from ..root_config_types import RootConfigWalkingContext
+from ..tgmount_types import TgmountResources
 from ..vfs_tree import VfsTreeDir
 from ..vfs_tree_producer import VfsTreeProducer
+from ..vfs_tree_producer_types import VfsTreeProducerConfig
 from .logger import logger as _logger
 
 M = TypeVar("M", bound=MessageProto)
@@ -102,6 +98,9 @@ class VfsTreeProducerGrouperBase(abc.ABC):
 
         grouped, root = await self._group_messages(new_messages)
 
+        if len(root) > 0:
+            await self._source_root.add_messages(root)
+
         for dir_name, dir_messages in grouped.items():
             await self._update_group(dir_name, [], dir_messages)
 
@@ -114,7 +113,7 @@ class VfsTreeProducerGrouperBase(abc.ABC):
 
         grouped, root = await self._group_messages(removed_messages)
 
-        await self._source_root.set_messages(root)
+        await self._source_root.remove_messages(root)
 
         for dir_name, dir_messages in grouped.items():
             await self._update_group(dir_name, dir_messages, [])
@@ -163,16 +162,12 @@ class VfsTreeProducerGrouperBase(abc.ABC):
         grouped_after, root_after = await self._group_messages(messages_after)
 
         for dir_name, dir_messages_before in grouped_before.items():
-
             dir_after = grouped_after.get(dir_name, [])
-
             await self._update_group(dir_name, dir_messages_before, dir_after)
 
         for dir_name, dir_messages_after in grouped_after.items():
-
             if dir_name in grouped_before:
                 continue
-
             await self._update_group(dir_name, [], dir_messages_after)
 
     async def produce(self):

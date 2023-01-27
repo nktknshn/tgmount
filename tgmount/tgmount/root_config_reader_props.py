@@ -2,7 +2,7 @@ from typing import TypeVar, Mapping, Optional, Any, TypedDict
 
 from tgmount import config
 from tgmount.config.helpers import type_check
-from tgmount.util import col
+from tgmount.util import col, dict_exclude
 from .filters_types import FilterConfigValue, Filter
 from .root_config_types import RootConfigWalkingContext
 from .tgmount_types import TgmountResources
@@ -37,15 +37,17 @@ class RootProducerPropsReader:
         return cls.PropSourceType(source_name=source_name, recursive=recursive)
 
     def read_prop_filter(self, d: TgmountRootSource) -> Mapping | None:
-        filter_prop_cfg: FilterConfigValue = d.get("filter")
+        filter_prop_cfg = d.get("filter")
 
         if filter_prop_cfg is None:
             return
 
+        # filter_prop_cfg: FilterConfigValue = d.get("filter")
+
         filter_recursive = False
         filter_overwright = False
 
-        if isinstance(filter_prop_cfg, dict) and "filter" in filter_prop_cfg:
+        if isinstance(filter_prop_cfg, Mapping) and "filter" in filter_prop_cfg:
             filter_recursive = filter_prop_cfg.get("recursive", False)
             filter_overwright = filter_prop_cfg.get("overwright", False)
             filter_prop_cfg = filter_prop_cfg["filter"]
@@ -53,7 +55,7 @@ class RootProducerPropsReader:
         if not isinstance(filter_prop_cfg, list):
             filter_prop_cfg = [filter_prop_cfg]
 
-        filter_prop_cfg = to_list_of_single_key_dicts(filter_prop_cfg)
+        filter_prop_cfg = to_list_of_single_key_dicts(filter_prop_cfg)  # type: ignore
 
         filters = []
 
@@ -67,16 +69,35 @@ class RootProducerPropsReader:
             filters.append((f_name, filter_arg))
 
         return dict(
-            filters=filters, recursive=filter_recursive, overwright=filter_overwright
+            filters=filters,
+            recursive=filter_recursive,
+            overwright=filter_overwright,
         )
 
-    def read_prop_cache(self, d: TgmountRootSource):
+    def read_prop_cache(self, d: TgmountRootSource) -> str | Mapping | None:
         _cache = d.get("cache")
 
         if _cache is None:
             return
 
-        return _cache
+        if isinstance(_cache, str):
+            return _cache
+
+        elif isinstance(_cache, Mapping):
+            cache_type = _cache.get("type")
+
+            if cache_type is None:
+                raise config.ConfigError(
+                    f"Invalid cache value: {_cache}. Missing type."
+                )
+
+            cache_kwargs = dict_exclude(_cache, ["type"])
+
+            return {"type": cache_type, "kwargs": cache_kwargs}
+
+        raise config.ConfigError(
+            f"Invalid cache value: {_cache}. Expected mapping or string."
+        )
 
     def read_prop_wrappers(
         self, d: TgmountRootSource
@@ -162,8 +183,8 @@ class RootProducerPropsReader:
 
 
 def to_list_of_single_key_dicts(
-    items: list[str | dict[str, dict]]
-) -> list[str | dict[str, dict]]:
+    items: list[str | Mapping[str, dict]]
+) -> list[str | Mapping[str, dict]]:
     res = []
 
     for item in items:

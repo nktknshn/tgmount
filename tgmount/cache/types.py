@@ -1,8 +1,9 @@
-from abc import abstractmethod
+from abc import abstractclassmethod, abstractmethod
 from typing import (
     Awaitable,
     Callable,
     Generic,
+    Mapping,
     Optional,
     Protocol,
     Set,
@@ -10,6 +11,9 @@ from typing import (
 )
 
 import telethon
+
+from tgmount.tgclient.message_types import MessageProto
+from tgmount.tgmount.file_factory.types import FileFactoryProto
 
 T = TypeVar("T", covariant=True)
 
@@ -51,9 +55,9 @@ class CacheBlocksStorageProto(Protocol):
     #     raise NotImplementedError()
 
 
-class CacheFactoryProto(Protocol, Generic[T]):
-    @abstractmethod
-    def __init__(self, **kwargs) -> None:
+class CacheProtoGeneric(Protocol, Generic[T]):
+    @abstractclassmethod
+    async def create(cls, **kwargs) -> "CacheProtoGeneric[T]":
         ...
 
     @abstractmethod
@@ -61,9 +65,9 @@ class CacheFactoryProto(Protocol, Generic[T]):
         ...
 
     @abstractmethod
-    async def get_cache(
+    async def get_reader(
         self,
-        message: telethon.tl.custom.Message,
+        message: MessageProto,
     ) -> T:
         ...
 
@@ -73,11 +77,11 @@ class CachingDocumentsStorageError(Exception):
         super().__init__(message)
 
 
-class CacheFactory(CacheFactoryProto[CacheBlockReaderWriterProto], Protocol):
+class CacheProto(CacheProtoGeneric[CacheBlockReaderWriterProto], Protocol):
     pass
 
 
-class CacheBlockReaderWriter(CacheBlockReaderWriterProto):
+class CacheBlockReaderWriterBase(CacheBlockReaderWriterProto):
     @abstractmethod
     def __init__(self, blocks_storage: CacheBlocksStorageProto) -> None:
         pass

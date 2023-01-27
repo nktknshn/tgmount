@@ -4,14 +4,14 @@ from tgmount.tgclient.messages_collection import MessagesCollection, WithId, mes
 from tgmount.util import none_fallback
 
 from .logger import logger as _logger
-from .message_source_types import MessageSourceSubscribableProto, Subscribable
+from .message_source_types import MessageSourceProto, Subscribable
 
 M = TypeVar("M", bound=WithId)
 
 MessageSourceFilter = Callable[[M], bool]
 
 
-class MessageSource(MessageSourceSubscribableProto, Generic[M]):
+class MessageSource(MessageSourceProto, Generic[M]):
     """
 
     Generic storage for a set of messages. It's a proxy between telegram client and its users. It gets updated with methods and can be subscribed for new and for removed messages.

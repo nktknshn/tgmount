@@ -1,17 +1,36 @@
 import random
-from typing import Callable, Optional, TypeGuard, TypeVar
+from typing import Any, Callable, Optional, Type, TypeGuard, TypeVar, overload
 
 import pathvalidate
 
-from .col import find, sets_difference
+from .col import find, sets_difference, dict_exclude
 from .guards import compose_guards
 
 T = TypeVar("T")
 O = TypeVar("O")
 
 
+@overload
 def yes(value: Optional[T]) -> TypeGuard[T]:
-    return value is not None
+    ...
+
+
+@overload
+def yes(value: Optional[Any], typ: Type[O]) -> TypeGuard[O]:
+    ...
+
+
+def yes(value: Optional[T], typ: Optional[Type[O]] = None) -> TypeGuard[O | T]:
+
+    if typ is None:
+        return value is not None
+
+    if value is not None and isinstance(value, typ):
+        return True
+    elif value is None:
+        return False
+    else:
+        raise ValueError(f"'{value}' is not '{typ}'")
 
 
 def none_fallback(value: Optional[T], default: T) -> T:

@@ -25,6 +25,7 @@ async def list_documents(
     only_unsupported=False,
     print_all_matching_types=False,
     only_unique_docs=False,
+    print_sender=True,
 ):
     factory = MyFileFactoryDefault(
         files_source=tgclient.TelegramFilesSource(client),
@@ -67,6 +68,10 @@ async def list_documents(
                 if MessageDownloadable.guard(m)
                 else "<not a document>"
             )
+
+            # if print_sender:
+            #     sender = await m.get_sender()
+            #     print(sender.username)
 
             print(
                 f"{m.id}\t{document_id}\t{types_str}\t{factory.size(m)}\t{factory.filename(m)}{original_fname}"

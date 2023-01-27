@@ -8,9 +8,28 @@ import yaml
 
 from tgmount.config import Config, ConfigValidator
 from tgmount.controlserver import ControlServer
+from tgmount.tgclient.client import TgmountTelegramClient
 from tgmount.tgmount.tgmount_builder import TgmountBuilder
 from tgmount.tgmount.error import TgmountError
 from .logger import logger
+
+
+def add_mount_arguments(command_mount: ArgumentParser):
+    command_mount.add_argument("config", type=str)
+    command_mount.add_argument(
+        "--mount-dir", type=str, required=False, dest="mount_dir"
+    )
+    command_mount.add_argument(
+        "--debug-fuse", default=False, action="store_true", dest="debug_fuse"
+    )
+
+    command_mount.add_argument(
+        "--server", default=False, action="store_true", dest="run_server"
+    )
+    command_mount.add_argument(
+        "--subfolder", type=str, required=False, dest="subfolder"
+    )
+    command_mount.add_argument("--min-tasks", default=10, type=int, dest="min_tasks")
 
 
 async def mount(
@@ -36,7 +55,7 @@ async def mount(
     except Exception as e:
         raise TgmountError(f"Error load config file:\n\n{e}")
 
-    cfg = Config.from_dict(cfg_dict)
+    cfg = Config.from_mapping(cfg_dict)
 
     validator.verify_config(cfg)
 
@@ -69,9 +88,17 @@ async def mount(
             f"Error while connecting the client. Check api_id and api_hash"
         )
 
+    # client: TgmountTelegramClient = tgm.client
+
+    # async def printa(c):
+    #     print(c)
+
+    # client.on_disconnected.subscribe(printa)
+
     if run_server:
         server_cor = ControlServer(tgm).start()
         server_task = asyncio.create_task(server_cor)
+
         mount_cor = tgm.mount(
             mount_dir=mount_dir, debug_fuse=debug_fuse, min_tasks=min_tasks
         )
@@ -87,21 +114,3 @@ async def mount(
             debug_fuse=debug_fuse,
             min_tasks=min_tasks,
         )
-
-
-def add_mount_arguments(command_mount: ArgumentParser):
-    command_mount.add_argument("config", type=str)
-    command_mount.add_argument(
-        "--mount-dir", type=str, required=False, dest="mount_dir"
-    )
-    command_mount.add_argument(
-        "--debug-fuse", default=False, action="store_true", dest="debug_fuse"
-    )
-
-    command_mount.add_argument(
-        "--server", default=False, action="store_true", dest="run_server"
-    )
-    command_mount.add_argument(
-        "--subfolder", type=str, required=False, dest="subfolder"
-    )
-    command_mount.add_argument("--min-tasks", default=10, type=int, dest="min_tasks")

@@ -65,7 +65,7 @@ async def mount_ops(
 
 def run_main(main_func, forever=None, loop=None):
 
-    loop = loop if loop is not None else asyncio.new_event_loop()
+    loop = loop if loop is not None else asyncio.get_event_loop()
 
     loop.set_debug(True)
     # warnings.simplefilter('always', ResourceWarning)
@@ -74,7 +74,7 @@ def run_main(main_func, forever=None, loop=None):
     # loop.slow_callback_duration = 0.001
 
     try:
-        loop.run_until_complete(main_func())
+        loop.run_until_complete(main_func(loop))
 
         if forever is True or (main.run_forever):
             loop.run_forever()
@@ -92,9 +92,30 @@ def run_main(main_func, forever=None, loop=None):
 
         if main.cleanup:
             main.cleanup()
+        # loop.shutdown_asyncgens()
 
-        if not loop.is_closed():
+        def shutdown_exception_handler(loop, context):
+            if "exception" not in context or not isinstance(
+                context["exception"], asyncio.CancelledError
+            ):
+                loop.default_exception_handler(context)
+
+        loop.set_exception_handler(shutdown_exception_handler)
+
+        # Handle shutdown gracefully by waiting for all tasks to be cancelled
+        try:
+            all_tasks = asyncio.gather(*asyncio.all_tasks(loop), return_exceptions=True)
+            all_tasks.cancel()
+
+            with contextlib.suppress(asyncio.CancelledError):
+                loop.run_until_complete(all_tasks)
+
+            loop.run_until_complete(loop.shutdown_asyncgens())
+        finally:
             loop.close()
+
+
+import contextlib
 
 
 async def get_tgclient(

@@ -34,7 +34,7 @@ class VfsTreeProducer:
         t1 = Timer()
         t1.start("producer")
 
-        for (path, keys, vfs_config, ctx) in config_reader.walk_config_with_ctx(
+        async for (path, keys, vfs_config, ctx) in config_reader.walk_config_with_ctx(
             dir_config,
             resources=self._resources,
             ctx=none_fallback(

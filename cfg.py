@@ -30,7 +30,7 @@ def main():
 
     with open(args["config"], "r+") as f:
         cfg_dict: dict = yaml.safe_load(f)
-        cfg = Config.from_dict(cfg_dict)
+        cfg = Config.from_mapping(cfg_dict)
 
         for dir_props in TgmountConfigReader().walk_dir_props(cfg.root.content):
             print(dir_props)

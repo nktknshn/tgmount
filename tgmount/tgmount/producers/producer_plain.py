@@ -101,11 +101,9 @@ class VfsTreeProducerPlainDir(VfsTreeProducerProto):
             list(old_messages_dict.values()), filtered_edited_messages
         )
 
-        # old_updated_messages = [old_messages_dict[i] for i in common_ids]
         old_updated_files = [
             self._message_to_file[old.id] for (old, new) in common_messages
         ]
-        # updated_messages = [edited_messages_dict[i] for i in common_ids]
 
         removed_files = [self._message_to_file[m.id] for m in removed_messages]
 

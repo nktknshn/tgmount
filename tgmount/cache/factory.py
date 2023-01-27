@@ -1,23 +1,29 @@
+import abc
 from typing import Type
 
 from telethon.tl.custom import Message
 
 from tgmount.tgclient.files_source import get_downloadable_item
 from .types import (
-    CacheBlockReaderWriter,
+    CacheBlockReaderWriterBase,
     CacheBlockReaderWriterProto,
     CacheBlocksStorageProto,
-    CacheFactoryProto,
+    CacheProtoGeneric,
     DocId,
 )
 from .util import get_bytes_count
 
 
-class CacheFactory(CacheFactoryProto[CacheBlockReaderWriterProto]):
+class Cache(CacheProtoGeneric[CacheBlockReaderWriterProto]):
     """This class is gonna decide how to store documents cache if needed"""
 
     CacheBlocksStorage: Type[CacheBlocksStorageProto]
-    CacheBlockReaderWriter: Type[CacheBlockReaderWriter]
+    CacheBlockReaderWriter: Type[CacheBlockReaderWriterBase]
+
+    @classmethod
+    @abc.abstractmethod
+    async def create(cls, **kwargs) -> "Cache":
+        ...
 
     def __init__(self, *, block_size: int | str, capacity: int | str) -> None:
         self._capacity = get_bytes_count(capacity)
@@ -33,7 +39,7 @@ class CacheFactory(CacheFactoryProto[CacheBlockReaderWriterProto]):
 
         return total
 
-    async def get_cache(
+    async def get_reader(
         self,
         message: Message,
     ) -> CacheBlockReaderWriterProto:

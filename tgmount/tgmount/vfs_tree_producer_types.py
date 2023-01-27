@@ -3,7 +3,7 @@ from typing import Optional, Iterable, Type, Protocol
 
 from typing import Mapping
 from abc import abstractmethod
-from tgmount.tgclient import MessageSourceSubscribableProto
+from tgmount.tgclient import MessageSourceProto
 from tgmount.tgclient.message_types import MessageProto
 from tgmount.tgmount.file_factory import FileFactoryProto
 from tgmount.tgmount.filters_types import Filter
@@ -33,14 +33,14 @@ class VfsTreeProducerProto(Protocol):
 class VfsTreeProducerConfig:
     """Wraps `message_source` with other"""
 
-    message_source: MessageSourceSubscribableProto
+    message_source: MessageSourceProto
     factory: FileFactoryProto
     filters: list[Filter]
     treat_as_prop: Optional[list[str]] = None
 
     def __init__(
         self,
-        message_source: MessageSourceSubscribableProto,
+        message_source: MessageSourceProto,
         factory: FileFactoryProto,
         filters: list[Filter],
         treat_as_prop: Optional[list[str]] = None,
@@ -79,7 +79,7 @@ class VfsTreeProducerConfig:
 
         return self._messages
 
-    def set_message_source(self, message_source: MessageSourceSubscribableProto):
+    def set_message_source(self, message_source: MessageSourceProto):
         return VfsTreeProducerConfig(
             message_source=message_source,
             factory=self.factory,

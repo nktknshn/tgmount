@@ -1,14 +1,15 @@
+import copy
+
 from telethon import events
 
 from tgmount import config
 from tgmount.tgclient.client_types import TgmountTelegramClientGetMessagesProto
 from tgmount.tgclient.message_reaction_event import MessageReactionEvent
+from tgmount.tgclient.message_source_types import MessageSourceProto
 from tgmount.tgclient.message_types import MessageProto
 
-from .message_source import MessageSource
-
 from .logger import logger as _logger
-import copy
+from .message_source import MessageSource
 
 EntityId = str | int
 EventType = (
@@ -32,7 +33,7 @@ class TelegramEventsDispatcher:
 
     def __init__(self) -> None:
         # self._client = client
-        self._sources: dict[EntityId, MessageSource] = {}
+        self._sources: dict[EntityId, MessageSourceProto[MessageProto]] = {}
 
         self._sources_events_queue: dict[EntityId, list[EventType]] = {}
 
@@ -45,11 +46,11 @@ class TelegramEventsDispatcher:
     def connect(
         self,
         entity_id: EntityId,
-        source: MessageSource,
+        source: MessageSourceProto[MessageProto],
     ):
         """events from `entity_id` will be turned into `MessageSource` methods calls"""
 
-        self.logger.debug(f"connect({entity_id})")
+        self.logger.trace(f"connect({entity_id})")
         self._sources[entity_id] = source
 
     async def process_new_message_event(self, chat_id, ev):
@@ -72,7 +73,7 @@ class TelegramEventsDispatcher:
         chat_id: EntityId,
         event: EventType,
     ):
-        self.logger.info(
+        self.logger.debug(
             f"_enqueue_event: {event.__class__}. Total events enqued: {self._get_total()}"
         )
 
@@ -110,15 +111,15 @@ class TelegramEventsDispatcher:
                     f"_on_edited_message: Missing message with id {event.msg_id}"
                 )
                 return
-            # else:
-            #     self.logger.debug(f"_on_edited_message: Missing {event.msg_id}")
 
             message = copy.copy(messages[0])
             message.reactions = event.reactions
 
             await source.edit_messages([message])
         else:
-            self.logger.info(f"Edited message: {event.message}")
+            self.logger.debug(
+                f"Edited message: {MessageProto.repr_short(event.message)}"
+            )
             await source.edit_messages([event.message])
 
     async def _on_new_message(self, chat_id: EntityId, event: events.NewMessage.Event):
@@ -178,19 +179,3 @@ class TelegramEventsDispatcher:
                     await self._on_delete_message(chat_id, ev)
                 else:
                     self.logger.error(f"Invalid event type: {ev}")
-
-
-class TelegramMessagesFetcher:
-    """Fetches messages for building initial vfs tree"""
-
-    def __init__(
-        self, client: TgmountTelegramClientGetMessagesProto, cfg: config.MessageSource
-    ) -> None:
-        self.client = client
-        self.cfg = cfg
-
-    async def fetch(self):
-        return await self.client.get_messages(
-            self.cfg.entity,
-            limit=self.cfg.limit,
-        )

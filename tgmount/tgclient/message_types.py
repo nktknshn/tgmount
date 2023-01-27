@@ -3,7 +3,7 @@ from typing import Any, Optional, Protocol
 
 import telethon
 
-from tgmount.util import is_not_none, yes
+from tgmount.util import yes
 
 MessageId = int
 ChatId = str | int
@@ -135,12 +135,13 @@ class MessageProto(Protocol):
     @staticmethod
     def guard(msg: Any):
         return hasattr(msg, "id") and hasattr(msg, "document")
-        #  and hasattr(msg, "file")
 
     @staticmethod
     def repr_short(message: "MessageProto"):
+        def fmt(text: str):
+            return text[:10].replace("\n", "\\n")
 
         if yes(message.text):
-            return f"Message(id={message.id}, message='{message.text[:10]}...', document={bool(message.document)}, photo={bool(message.photo)})"
+            return f"Message(id={message.id}, message='{fmt(message.text)}...', document={bool(message.document)}, photo={bool(message.photo)})"
 
         return f"Message(id={message.id}, document={bool(message.document)}, photo={bool(message.photo)})"

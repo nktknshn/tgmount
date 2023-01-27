@@ -2,7 +2,7 @@ from typing import Optional
 
 import telethon
 
-from .factory import CacheFactory
+from .factory import Cache
 from .reader import CacheBlockReaderWriter
 from .types import CacheBlocksStorageProto
 
@@ -34,7 +34,7 @@ class CacheBlocksStorageMemory(CacheBlocksStorageProto):
         return len(await self.blocks()) * self.blocksize
 
 
-class CacheFactoryMemory(CacheFactory):
+class CacheFactoryMemory(Cache):
     """This class is gonna decide how to store documents cache if needed"""
 
     CacheBlocksStorage = CacheBlocksStorageMemory
@@ -42,3 +42,7 @@ class CacheFactoryMemory(CacheFactory):
 
     def __init__(self, *, block_size: int | str, capacity: int | str) -> None:
         super().__init__(block_size=block_size, capacity=capacity)
+
+    @classmethod
+    async def create(cls, *, block_size: int | str, capacity: int | str):
+        return CacheFactoryMemory(block_size=block_size, capacity=capacity)

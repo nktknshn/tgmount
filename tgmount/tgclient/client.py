@@ -6,6 +6,10 @@ from typing import Optional, Protocol
 
 import telethon
 from telethon import TelegramClient
+from tgmount import tglog
+
+from tgmount.tgclient.message_source_types import Subscribable
+from tgmount.util import yes
 
 from .auth import TelegramAuthen
 
@@ -29,7 +33,7 @@ class TgmountTelegramClient(
     TgmountTelegramClientEventProto,
 ):
     def __repr__(self):
-        return f"TgmountTelegramClient({self.session.filename})"
+        return f"TgmountTelegramClient({self.session.filename if yes(self.session) else None})"
 
     def __init__(
         self,
@@ -45,7 +49,7 @@ class TgmountTelegramClient(
         request_retries: int = 5,
         connection_retries: int = 5,
         retry_delay: int = 1,
-        auto_reconnect: bool = False,
+        auto_reconnect: bool = True,
         sequential_updates: bool = False,
         flood_sleep_threshold: int = 60,
         raise_last_call_error: bool = False,
@@ -87,6 +91,29 @@ class TgmountTelegramClient(
 
         # self.api_id = api_id
         # self.api_hash = api_hash
+
+        async def aprint(d):
+            print(d)
+
+        self.on_disconnected = Subscribable()
+        # self.on(events.Raw)(aprint)
+
+        # self._wait_disconnected_handle = self.loop.create_task(
+        #     self._wait_disconnected()
+        # )
+
+        self.on_disconnected.subscribe(aprint)
+
+    async def _handle_auto_reconnect(self):
+        tglog.getLogger("TgmountTelegramClient").error("Reconnected")
+        await self.get_me()
+        await self.catch_up()
+
+    # async def _wait_disconnected(self):
+    #     # while True:
+    #     # if self.is_connected():
+    #     await self.disconnected
+    #     await self.on_disconnected.notify(self)
 
     def subscribe_new_messages(self, listener: ListenerNewMessages, chats=None):
         self.add_event_handler(listener, events.NewMessage(chats=chats))

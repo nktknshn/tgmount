@@ -1,30 +1,37 @@
 from abc import abstractmethod
 from typing import Protocol, Type, Mapping
 
-from tgmount.cache import CacheFactory
+from tgmount.cache import CacheProto
 from ..error import TgmountError
 
 
-class CachesProviderProto(Protocol):
+class CachesTypesProviderProto(Protocol):
     @abstractmethod
-    def get_caches(self) -> Mapping[str, Type[CacheFactory]]:
+    def as_mapping(self) -> Mapping[str, Type[CacheProto]]:
         pass
 
     @abstractmethod
-    async def get_cache_factory(self, cache_type: str) -> Type[CacheFactory]:
+    def get_cache_type(self, cache_type: str) -> Type[CacheProto]:
         pass
 
+    # @abstractmethod
+    # async def create_cache_factory(self, cache_type: str, **kwargs) -> CacheFactory:
+    #     pass
 
-class CacheProviderBase(CachesProviderProto):
-    caches: Mapping[str, Type[CacheFactory]]
 
-    def get_caches(self) -> Mapping[str, Type[CacheFactory]]:
+class CacheTypesProviderBase(CachesTypesProviderProto):
+    caches: Mapping[str, Type[CacheProto]]
+
+    def as_mapping(self) -> Mapping[str, Type[CacheProto]]:
         return self.caches
 
-    async def get_cache_factory(self, cache_type: str) -> Type[CacheFactory]:
+    def get_cache_type(self, cache_type: str) -> Type[CacheProto]:
         cache = self.caches.get(cache_type)
 
         if cache is None:
             raise TgmountError(f"Missing cache with type: {cache_type}")
 
         return cache
+
+    # async def create_cache_factory(self, cache_type: str, **kwargs) -> CacheFactory:
+    #     ...

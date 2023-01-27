@@ -16,7 +16,6 @@ caches:
 count: &count 10
 updates: &updates True
 
-    
 # definiton
 ogranized: &ogranized
   filter: { filter: [OnlyUniqueDocs], recursive: True }
@@ -78,7 +77,7 @@ ogranized: &ogranized
     filter: MessageWithZip
     # it's recommended to use cache with ZipsAsDirs. otherwise it is slow
     cache: memory1
-    wrappers: ZipsAsDirs
+    # wrappers: ZipsAsDirs
     #   - ZipsAsDirs:
     #       recursive: True
     #       skip_folder_if_single_subfolder: True
@@ -98,6 +97,7 @@ message_sources:
     limit: *count
     reverse: False
     updates: *updates
+    filter: InputMessagesFilterDocument
   relocationguidebig:
     entity: relocationguidebig
     limit: *count
@@ -108,10 +108,6 @@ message_sources:
     updates: *updates
   armenia:
     entity: -1001735630504
-    limit: *count
-    updates: *updates
-  ru_python:
-    entity: ru_python
     limit: *count
     updates: *updates
   NappingCat:
@@ -130,42 +126,50 @@ message_sources:
     entity: -1001678896566
   tmtc:
     entity: tgmounttestingchannel
+    filter: InputMessagesFilterDocument
     # filter: InputMessagesFilterMusic
+  ru_python:
+    entity: ru_python
+    limit: 1000
+    updates: *updates
+    filter: InputMessagesFilterDocument
+    offset_date: 25/01/2023
+    # reverse: True
 root:
   # ru2chmu:
   #   source: { source: ru2chmu, recursive: True }
   #   <<: *ogranized
   #   by-sender: *by-sender
-  armenia:
-    source: { source: armenia, recursive: True }
-    <<: *ogranized
-    by-sender: *by-sender
-  kz:
-    source: { source: kz, recursive: True }
-    <<: *ogranized
-    by-sender: *by-sender
-  relocationguidebig:
-    source: { source: relocationguidebig, recursive: True }
-    <<: *ogranized
-    by-sender: *by-sender
-  ru_python_beginners:
-    source: { source: ru_python_beginners, recursive: True }
-    <<: *ogranized
-    by-sender: *by-sender
+  # armenia:
+  #   source: { source: armenia, recursive: True }
+  #   <<: *ogranized
+  #   by-sender: *by-sender
+  # kz:
+  #   source: { source: kz, recursive: True }
+  #   <<: *ogranized
+  #   by-sender: *by-sender
+  # relocationguidebig:
+  #   source: { source: relocationguidebig, recursive: True }
+  #   <<: *ogranized
+  #   by-sender: *by-sender
+  # ru_python_beginners:
+  #   source: { source: ru_python_beginners, recursive: True }
+  #   <<: *ogranized
+  #   by-sender: *by-sender
   ru_python:
     source: { source: ru_python, recursive: True }
     <<: *ogranized
     by-sender: *by-sender
-  NappingCat_Chat:
-    source: { source: NappingCat, recursive: True }
-    <<: *ogranized
-    by-sender: *by-sender
-  my-mount:
-    source: { source: my-mount, recursive: True }
-    wrappers: ExcludeEmptyDirs
-    <<: *ogranized
-  tmtc:
-    source: { source: tmtc, recursive: True }
-    <<: *ogranized
-    by-sender:
-      <<: *by-sender
+  # NappingCat_Chat:
+  #   source: { source: NappingCat, recursive: True }
+  #   <<: *ogranized
+  #   by-sender: *by-sender
+  # my-mount:
+  #   source: { source: my-mount, recursive: True }
+  #   wrappers: ExcludeEmptyDirs
+  #   <<: *ogranized
+  # tmtc:
+  #   source: { source: tmtc, recursive: True }
+  #   <<: *ogranized
+  #   by-sender:
+  #     <<: *by-sender

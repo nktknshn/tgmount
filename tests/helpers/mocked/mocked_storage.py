@@ -531,7 +531,7 @@ class MockedTelegramStorage:
 
     #     return message
 
-    async def delete_messages(self, entity: str, msg_ids: list[int]):
+    async def delete_messages(self, entity: EntityId, msg_ids: list[int]):
         ent = self.get_entity(entity)
         await ent.delete_messages(msg_ids)
 

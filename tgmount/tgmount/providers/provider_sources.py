@@ -6,7 +6,7 @@ from tgmount.util import none_fallback
 
 MS = TypeVar(
     "MS",
-    bound=tgclient.MessageSourceSubscribableProto,
+    bound=tgclient.MessageSourceProto,
     # covariant=True,
 )
 

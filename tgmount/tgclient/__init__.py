@@ -4,7 +4,7 @@ from .files_source import TelegramFilesSource
 
 # from .telegram_message_source import TelegramMessageSource
 from .message_source import MessageSource
-from .message_source_types import MessageSourceProto, MessageSourceSubscribableProto
+from .message_source_types import MessageSourceProto, MessageSourceProto
 from .search.search import TelegramSearch
 from .types import (
     DocId,

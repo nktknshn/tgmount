@@ -1,4 +1,12 @@
 ##
+- file cache
+- messages cache
+- encrypted zips
+- reconnect handling
+    - catch up
+- cache settings
+- sysinfo
+
 - tests
 - yaml config
 - reorganize modules
@@ -9,9 +17,6 @@
     - author
     - audio performer
     - repost source
-- file cache
-- messages cache
-- encrypted zips
 - reactions
 - DONE correct creation date
 - KINDA DONE updates

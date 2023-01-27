@@ -1,14 +1,10 @@
 import mimetypes
 import os
 import random
-from dataclasses import dataclass, field
 
 import asyncio
-import aiofiles
-import telethon
 from tgmount import tglog
 import tgmount.tgclient as tg
-from telethon import events, hints
 from tgmount.tgclient.client_types import (
     IterDownloadProto,
     ListenerEditedMessage,
@@ -17,7 +13,6 @@ from tgmount.tgclient.client_types import (
     TgmountTelegramClientReaderProto,
     TgmountTelegramClientWriterProto,
 )
-from tgmount.tgclient.guards import MessageWithDocument
 from tgmount.tgclient.types import (
     InputDocumentFileLocation,
     InputPhotoFileLocation,
@@ -27,8 +22,8 @@ from tgmount.tgclient.types import (
 from .mocked_message import MockedMessage, MockedMessageWithDocument, MockedSender
 from .mocked_storage import EntityId, MockedTelegramStorage
 
-Message = telethon.tl.custom.Message
-Document = telethon.types.Document
+# Message = telethon.tl.custom.Message
+# Document = telethon.types.Document
 Client = tg.TgmountTelegramClient
 
 
@@ -93,7 +88,7 @@ class MockedClientWriter(TgmountTelegramClientWriterProto):
         entity: EntityId,
         message=None,
         file: str | None = None,
-    ) -> Message:
+    ) -> MockedMessage:
         self.logger.info(f"send_message({entity}, {message})")
         return await self._storage.get_entity(entity).message(
             text=message,

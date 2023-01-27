@@ -96,35 +96,35 @@ class ConfigError(Exception):
 Loader = Callable[[dict], T]
 
 
-def load_class_from_dict(
+def load_class_from_mapping(
     cls,
-    d: dict,
+    d: Mapping,
     *,
     loaders: Optional[dict[str, Loader]] = None,
 ):
     logger.debug(f"load_class_from_dict({cls}, {d}, {loaders})")
 
     loaders = loaders if loaders is not None else {}
+
     assert_that(
-        isinstance(d, dict),
+        isinstance(d, Mapping),
         ConfigError(f"{d} is not dictionary"),
     )
 
     input_d = {}
 
     for field in fields(cls):
-
         if (loader := loaders.get(field.name)) is not None:
             input_d[field.name] = loader(d)
             continue
 
-        value = d.get(field.name)
+        value = d.get(field.name, field.default)
 
         type_check(
             value,
             field.type,
             ConfigError(
-                f"mismatching type for {field.name}. Expected: {field.type} received {type(value)}"
+                f"Mismatching type for {field.name}. Expected: {field.type} received {type(value)}"
             ),
         )
 
@@ -133,14 +133,20 @@ def load_class_from_dict(
     try:
         return cls(**input_d)
     except TypeError as e:
-        raise ConfigError(f"error loading {cls}: {e}")
+        raise ConfigError(f"Error loading {cls}: {e}")
 
 
-def load_dict(cls: Type | Callable, d: dict):
-    return {
-        k: load_class_from_dict(cls, v) if isinstance(cls, Type) else cls(v)
-        for k, v in d.items()
-    }
+def load_mapping(cls: Type | Callable, d: Mapping):
+    def load_class(d):
+        if hasattr(cls, "from_mapping"):
+            return cls.from_mapping(d)
+
+        if isinstance(cls, Type):
+            return load_class_from_mapping(cls, d)
+
+        return cls(d)
+
+    return {k: load_class(v) for k, v in d.items()}
 
 
 T = TypeVar("T")

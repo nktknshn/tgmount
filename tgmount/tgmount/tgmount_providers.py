@@ -22,7 +22,7 @@ from .filters import (
     Union,
     from_context_classifier,
 )
-from .providers.provider_caches import CacheProviderBase
+from .providers.provider_caches import CacheTypesProviderBase
 from .providers.provider_filters import FilterProviderBase
 from .providers.provider_vfs_wrappers import ProviderVfsWrappersBase
 from .providers.provider_producers import ProducersProviderBase
@@ -36,7 +36,7 @@ class VfsWrappersProvider(ProviderVfsWrappersBase):
     }
 
 
-class CachesProvider(CacheProviderBase):
+class CachesProvider(CacheTypesProviderBase):
     caches = {
         "memory": CacheFactoryMemory,  # type: ignore XXX
     }

@@ -19,7 +19,7 @@ def get_parser():
     return parser
 
 
-async def mount():
+async def mount(loop):
 
     args = get_parser().parse_args()
 
@@ -31,7 +31,7 @@ async def mount():
     with open(args.config, "r+") as f:
         cfg_dict: dict = yaml.safe_load(f)
 
-    cfg = Config.from_dict(cfg_dict)
+    cfg = Config.from_mapping(cfg_dict)
 
     validator.verify_config(cfg)
 
