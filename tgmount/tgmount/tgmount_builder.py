@@ -1,7 +1,10 @@
 from tgmount import cache, tgclient, vfs
 from tgmount.tgclient.guards import MessageWithReactions, MessageWithText
+from tgmount.tgclient.message_types import MessageProto
 from tgmount.tgmount.cached_filefactory_factory import CacheFileFactoryFactory
 from tgmount.tgmount.file_factory.classifier import ClassifierDefault
+from tgmount.tgmount.producers.producer_by_sender import get_message_sender_display_name
+from tgmount.util import yes
 
 from .tgmount_builderbase import TgmountBuilderBase
 from .file_factory import FileFactoryDefault
@@ -19,10 +22,40 @@ class MyFileFactoryDefault(FileFactoryDefault[MessageWithText]):
     pass
 
 
+class MessageWithTextContent:
+    @staticmethod
+    async def make_string(message: MessageWithText) -> str:
+        result = ""
+
+        if yes(message.date):
+            result += message.date.ctime()
+        else:
+            result += "no date"
+
+        result += "\n"
+
+        sender_name = await get_message_sender_display_name(message, True)
+
+        if yes(sender_name):
+            result += f"from: {sender_name}\n"
+        else:
+            result += f"from: Deleted Account\n"
+
+        result += ""
+        result += message.text
+        result += "\n"
+
+        return result
+
+    @staticmethod
+    async def create_content(m: MessageWithText):
+        return vfs.text_content(await MessageWithTextContent.make_string(m))
+
+
 MyFileFactoryDefault.register(
     klass=MessageWithText,
     filename=MessageWithText.filename,
-    file_content=lambda m: vfs.text_content(m.text),
+    file_content=MessageWithTextContent.create_content,
 )
 
 

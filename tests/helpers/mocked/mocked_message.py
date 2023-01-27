@@ -15,7 +15,7 @@ import random
 import aiofiles
 import os
 
-from tgmount.util import map_none
+from tgmount.util import map_none, none_fallback
 
 # Message = telethon.tl.custom.Message
 # Document = telethon.types.Document
@@ -176,11 +176,12 @@ class MockedMessage(MessageProto):
         forward=None,
         gif=None,
         reactions=None,
+        date=None,
     ) -> None:
 
         # super().__init__(message_id)
         self.post = True
-
+        self.date = none_fallback(date, datetime.now())
         # self.message = message
         self._text = message
 

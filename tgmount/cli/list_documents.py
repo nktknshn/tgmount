@@ -74,7 +74,7 @@ async def list_documents(
             #     print(sender.username)
 
             print(
-                f"{m.id}\t{document_id}\t{types_str}\t{factory.size(m)}\t{factory.filename(m)}{original_fname}"
+                f"{m.id}\t{document_id}\t{types_str}\t{factory.size(m)}\t{await factory.filename(m)}{original_fname}"
             )
 
             if print_message_object:

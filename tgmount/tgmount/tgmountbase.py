@@ -180,7 +180,7 @@ class TgmountBase:
         entity_id: EntityId,
         event: events.MessageEdited.Event | MessageReactionEvent.Event,
     ):
-        if isinstance(event, events.MessageEdited):
+        if isinstance(event, events.MessageEdited.Event):
             self.logger.info(
                 f"on_edited_message({MessageProto.repr_short(event.message)})"
             )

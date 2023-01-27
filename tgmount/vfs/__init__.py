@@ -1,4 +1,3 @@
-from .compare import *
 from .dir import (
     DirContent,
     DirContentItem,

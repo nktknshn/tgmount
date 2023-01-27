@@ -1,7 +1,8 @@
 from abc import abstractmethod
+from asyncio import Future
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Callable, Mapping, Type
+from typing import Awaitable, Callable, Mapping, Type
 
 from tgmount import vfs
 from tgmount.tgclient.guards import *
@@ -16,9 +17,15 @@ C = TypeVar("C", bound=WithTryGetMethodProto)
 TryGetFunc = Callable[[MessageProto], Optional[T]]
 
 SupportedClass = WithTryGetMethodProto[T]
-FilenameGetter = Callable[[T], str]
-FileContentGetter = Callable[[T], vfs.FileContentProto]
-FileGetter = Callable[[T, Optional[str]], vfs.FileLike]
+FilenameGetter = Callable[[T], Awaitable[str]] | Callable[[T], str]
+FileContentGetter = (
+    Callable[[T], Awaitable[vfs.FileContentProto]] | Callable[[T], vfs.FileContentProto]
+)
+
+FileGetter = (
+    Callable[[T, Optional[str]], Awaitable[vfs.FileLike]]
+    | Callable[[T, Optional[str]], vfs.FileLike]
+)
 
 ClassName = str
 
@@ -29,6 +36,13 @@ class FileFactoryItem:
     filename: FilenameGetter
     content: Optional[FileContentGetter]
     file: Optional[FileGetter]
+
+
+async def resolve_getter(future_or_value: T | Awaitable[T]) -> T:
+    if isinstance(future_or_value, Awaitable):
+        return await future_or_value
+
+    return future_or_value
 
 
 class FileFactoryBase(FileFactoryProto[T], abc.ABC):
@@ -124,26 +138,28 @@ class FileFactoryBase(FileFactoryProto[T], abc.ABC):
         class_name = self.get_cls(supported_item, treat_as=treat_as).__name__
         return self._supported[class_name]
 
-    def size(
+    async def size(
         self,
         supported_item: T,
         *,
         treat_as: Optional[list[str]] = None,
     ) -> int:
-        return self.file_content(supported_item, treat_as=treat_as).size
+        return (await self.file_content(supported_item, treat_as=treat_as)).size
 
-    def filename(
+    async def filename(
         self,
         supported_item: T,
         *,
         treat_as: Optional[list[str]] = None,
     ) -> str:
-        return self.get_cls_item(supported_item, treat_as=treat_as).filename(
+        fname = self.get_cls_item(supported_item, treat_as=treat_as).filename(
             supported_item
         )
 
+        return await resolve_getter(fname)
+
     @abstractmethod
-    def file(
+    async def file(
         self,
         supported_item: T,
         name=None,
@@ -153,7 +169,7 @@ class FileFactoryBase(FileFactoryProto[T], abc.ABC):
         ...
 
     @abstractmethod
-    def file_content(
+    async def file_content(
         self,
         supported_item: T,
         *,

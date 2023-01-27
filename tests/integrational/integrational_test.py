@@ -13,8 +13,10 @@ from tests.helpers.mount import handle_mount
 from tgmount import tglog, vfs
 from tgmount.config.types import Config
 from tgmount.main.util import mount_ops
+from tgmount.tgclient.guards import MessageWithText
 from tgmount.tgmount import TgmountBase, VfsTreeProducer
-from tgmount.tgmount.tgmount_builder import TgmountBuilder
+from tgmount.tgmount.file_factory.filefactory import FileFactoryDefault
+from tgmount.tgmount.tgmount_builder import MyFileFactoryDefault, TgmountBuilder
 from tgmount.util import none_fallback
 
 from ..helpers.fixtures_common import mnt_dir
@@ -35,10 +37,22 @@ class MockedTgmountBase(TgmountBase):
     ...
 
 
+class MockedFileFactory(MyFileFactoryDefault):
+    pass
+
+
+MockedFileFactory.register(
+    klass=MessageWithText,
+    filename=MessageWithText.filename,
+    file_content=lambda m: vfs.text_content(m.text),
+)
+
+
 class MockedTgmountBuilderBase(TgmountBuilder):
     TelegramClient = MockedClientReader
     VfsTreeProducer = MockedVfsTreeProducer
     TgmountBase = MockedTgmountBase
+    FileFactory = MockedFileFactory
 
     def __init__(self, storage: MockedTelegramStorage) -> None:
         self._storage = storage

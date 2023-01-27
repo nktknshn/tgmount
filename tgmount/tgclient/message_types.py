@@ -1,4 +1,5 @@
 from abc import abstractmethod
+from datetime import datetime
 from typing import Any, Optional, Protocol
 
 import telethon
@@ -127,6 +128,7 @@ class MessageProto(Protocol):
     audio: AudioProto | None
     voice: VoiceProto | None
     reactions: ReactionsProto | None
+    date: datetime | None
 
     @abstractmethod
     async def get_sender() -> SenderProto:

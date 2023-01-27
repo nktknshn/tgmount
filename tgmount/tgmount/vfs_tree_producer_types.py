@@ -53,7 +53,7 @@ class VfsTreeProducerConfig:
         self._messages: list[MessageProto] | None = None
 
     async def produce_file(self, m: MessageProto):
-        return self.factory.file(m, treat_as=self.treat_as_prop)
+        return await self.factory.file(m, treat_as=self.treat_as_prop)
 
     async def apply_filters(
         self, messages: Iterable[MessageProto]

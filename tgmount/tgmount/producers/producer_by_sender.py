@@ -15,6 +15,30 @@ from .grouperbase import GroupedMessages, VfsTreeProducerGrouperBase
 from .logger import module_logger as _logger
 
 
+async def get_message_sender_display_name(
+    m: MessageProto,
+    include_username=False,
+):
+    sender = await m.get_sender()
+    key = None
+
+    if sender is None:
+        return None
+
+    if sender.username is not None:
+        key = sender.username
+
+    if key is None:
+        key = telethon.utils.get_display_name(sender)
+    elif include_username:
+        key = f"{telethon.utils.get_display_name(sender)} @{key}"
+
+    if key == "":
+        key = None
+
+    return key
+
+
 def get_get_key(*, use_get_sender=True):
     """Retuns a async function that gets from a message a key for grouping"""
 
@@ -28,19 +52,7 @@ def get_get_key(*, use_get_sender=True):
 
         if use_get_sender:
             sender = await m.get_sender()
-            key = None
-
-            if sender is None:
-                return None
-
-            if sender.username is not None:
-                key = sender.username
-
-            if key is None:
-                key = telethon.utils.get_display_name(sender)
-
-            if key == "":
-                key = None
+            key = await get_message_sender_display_name(m)
 
             return f"{sender_id}_{key}"
         else:

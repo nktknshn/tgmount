@@ -48,17 +48,17 @@ class FileFactoryProto(Protocol[T]):
         ...
 
     @abstractmethod
-    def filename(self, message: T, *, treat_as: list[str] | None = None) -> str:
+    async def filename(self, message: T, *, treat_as: list[str] | None = None) -> str:
         ...
 
     @abstractmethod
-    def file_content(
+    async def file_content(
         self, message: T, *, treat_as: list[str] | None = None
     ) -> vfs.FileContent:
         ...
 
     @abstractmethod
-    def file(
+    async def file(
         self, message: T, name=None, *, treat_as: list[str] | None = None
     ) -> vfs.FileLike:
         ...
@@ -70,7 +70,7 @@ class FileFactoryProto(Protocol[T]):
         ...
 
     @abstractmethod
-    def size(self, message: Message) -> int:
+    async def size(self, message: Message) -> int:
         ...
 
     @measure_time_sync(logger_func=print)

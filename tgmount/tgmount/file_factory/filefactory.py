@@ -9,7 +9,7 @@ from tgmount.util import none_fallback
 from .types import (
     FileContentProviderProto,
 )
-from .filefactorybase import FileFactoryBase, TryGetFunc
+from .filefactorybase import FileFactoryBase, TryGetFunc, resolve_getter
 
 FileFactorySupportedTypes = (
     MessageWithMusic
@@ -38,18 +38,18 @@ class FileFactoryDefault(FileFactoryBase[FileFactorySupportedTypes | T], Generic
         super().__init__()
         self._files_source = files_source
 
-    def file_content(
+    async def file_content(
         self, supported_item: FileFactorySupportedTypes, treat_as=None
     ) -> vfs.FileContentProto:
 
         if (
             cf := self.get_cls_item(supported_item, treat_as=treat_as).content
         ) is not None:
-            return cf(supported_item)
+            return await resolve_getter(cf(supported_item))
 
         return self._files_source.file_content(supported_item)
 
-    def file(
+    async def file(
         self, supported_item: FileFactorySupportedTypes, name=None, treat_as=None
     ) -> vfs.FileLike:
 
@@ -67,8 +67,13 @@ class FileFactoryDefault(FileFactoryBase[FileFactorySupportedTypes | T], Generic
         extra = (message_id, doc_id)
 
         return vfs.FileLike(
-            name=none_fallback(name, self.filename(supported_item, treat_as=treat_as)),
-            content=self.file_content(supported_item, treat_as=treat_as),
+            name=none_fallback(
+                name,
+                await resolve_getter(self.filename(supported_item, treat_as=treat_as)),
+            ),
+            content=await resolve_getter(
+                self.file_content(supported_item, treat_as=treat_as)
+            ),
             extra=extra,
             creation_time=creation_time,
         )
