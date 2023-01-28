@@ -4,7 +4,7 @@ from typing import Optional, TypedDict
 
 from tgmount.tgmount.error import TgmountError
 
-_read_os_env = TypedDict(
+ReadosEnv = TypedDict(
     "_read_os_env",
     api_id=Optional[int],
     api_hash=Optional[str],
@@ -23,7 +23,7 @@ def parse_tgapp_str(TGAPP: str):
     return api_id, api_hash
 
 
-def read_os_env(TGAPP="TGAPP", TGSESSION="TGSESSION") -> _read_os_env:
+def read_os_env(TGAPP="TGAPP", TGSESSION="TGSESSION") -> ReadosEnv:
     TGAPP = os.environ.get(TGAPP)
     TGSESSION = os.environ.get(TGSESSION)
 
@@ -33,7 +33,7 @@ def read_os_env(TGAPP="TGAPP", TGSESSION="TGSESSION") -> _read_os_env:
     if TGAPP is not None:
         api_id, api_hash = parse_tgapp_str(TGAPP)
 
-    return _read_os_env(
+    return ReadosEnv(
         api_id=api_id,
         api_hash=api_hash,
         session=TGSESSION,
@@ -54,6 +54,8 @@ def get_tgapp_and_session(args: argparse.Namespace):
         session = args.session
 
     if session is None or api_id is None or api_hash is None:
-        raise TgmountError(f"missing either session or api_id or api_hash")
+        raise TgmountError(
+            f"Missing either session or api_id or api_hash. Use TGAPP and SESSION environment variable or command line arguments to set them."
+        )
 
     return session, api_id, api_hash

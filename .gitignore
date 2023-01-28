@@ -13,3 +13,4 @@ tgapp2.txt
 *.session
 *.session-journal
 *.stats
+config.yaml

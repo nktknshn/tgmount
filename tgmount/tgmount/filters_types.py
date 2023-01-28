@@ -5,6 +5,7 @@ from telethon.tl.custom import Message
 from tgmount.tgclient.message_types import MessageProto
 
 from tgmount.tgmount.file_factory import FileFactoryBase, ClassifierBase
+from tgmount.common.filter import FilterAllMessagesProto
 
 T = TypeVar("T")
 FilterConfigValue = str | dict[str, dict] | list[str | dict[str, dict]]
@@ -29,22 +30,7 @@ class FilterFromConfigProto(InstanceFromConfigProto["FilterAllMessagesProto"]):
         ...
 
 
-class FilterAllMessagesProto(Protocol):
-    @abstractmethod
-    def __init__(self, **kwargs) -> None:
-        pass
-
-    @abstractmethod
-    async def filter(self, messages: Iterable[MessageProto]) -> list[MessageProto]:
-        ...
-
-    @staticmethod
-    @abstractmethod
-    def from_config(*args) -> "FilterAllMessagesProto":
-        ...
-
-
 FilterSingleMessage = Callable[[Message], T | None | bool]
 FilterAllMessages = FilterAllMessagesProto
-Filter = FilterAllMessages | FilterSingleMessage
+Filter = FilterAllMessages
 ParseFilter = Callable[[FilterConfigValue], list[Filter]]

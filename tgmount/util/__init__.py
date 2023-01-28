@@ -1,7 +1,6 @@
 import random
 from typing import Any, Callable, Optional, Type, TypeGuard, TypeVar, overload
 
-import pathvalidate
 
 from .col import find, sets_difference, dict_exclude
 from .guards import compose_guards

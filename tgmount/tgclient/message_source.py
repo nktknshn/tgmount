@@ -1,4 +1,5 @@
 from typing import Callable, Generic, Iterable, TypeVar
+from tgmount.common.filter import FilterAllMessagesProto, FilterSingleMessage
 from tgmount.tgclient.messages_collection import MessagesCollection, WithId, message_ids
 
 from tgmount.util import none_fallback
@@ -8,7 +9,7 @@ from .message_source_types import MessageSourceProto, Subscribable
 
 M = TypeVar("M", bound=WithId)
 
-MessageSourceFilter = Callable[[M], bool]
+MessageSourceFilter = FilterSingleMessage[M] | FilterAllMessagesProto[M]
 
 
 class MessageSource(MessageSourceProto, Generic[M]):
@@ -57,14 +58,13 @@ class MessageSource(MessageSourceProto, Generic[M]):
         self._filters.append(filt)
 
     async def _filter_messages(self, messages: Iterable[M]) -> list[M]:
-        res = []
+        res = list(messages)
 
-        for m in messages:
-            for f in self._filters:
-                if not f(m):
-                    break
-            else:
-                res.append(m)
+        for f in self._filters:
+            if FilterAllMessagesProto.guard(f):
+                res = await f.filter(res)
+            elif isinstance(f, Callable):
+                res = list(filter(f, res))
 
         return res
 

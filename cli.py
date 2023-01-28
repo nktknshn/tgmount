@@ -1,13 +1,11 @@
+import traceback
+
 import argparse
 import logging
-import os
-import sys
-from collections.abc import Callable
-from typing import Optional, TypedDict
 
 from tgmount import cli
 from tgmount import main as main_settings
-from tgmount.cli.util import ClientEnv, get_tgapp_and_session
+from tgmount.cli.util import get_client, get_tgapp_and_session
 
 # import list_dialogs, list_documents, add_list_documents_arguments
 from tgmount.main.util import run_main
@@ -29,6 +27,7 @@ def get_parser():
 
     parser.add_argument("--session", type=str, required=False)
     parser.add_argument("--tgapp", type=str, required=False)
+
     parser.add_argument("--debug", default=False, action="store_true")
 
     commands_subparsers = parser.add_subparsers(dest="command")
@@ -41,13 +40,14 @@ def get_parser():
 
     command_list = commands_subparsers.add_parser("list")
     command_list_subparsers = command_list.add_subparsers(dest="list_subcommand")
+
     command_list_dialogs = command_list_subparsers.add_parser("dialogs")
     command_list_documents = command_list_subparsers.add_parser("documents")
 
     cli.add_list_documents_arguments(command_list_documents)
-    cli.add_mount_arguments(command_mount)
+    cli.add_mount_config_arguments(command_mount)
     cli.add_stats_parser(command_stats)
-    cli.add_mount_args_arguments(command_mount_args)
+    cli.add_mount_arguments(command_mount_args)
 
     return parser
 
@@ -56,18 +56,18 @@ async def main(loop):
 
     args = get_parser().parse_args()
 
-    # init_logging(debug_level=logging.DEBUG if args.debug else logging.INFO)
-    init_logging(debug_level=logging.DEBUG)
+    init_logging(debug_level=logging.DEBUG if args.debug else logging.INFO)
 
     if args.command == "list" and args.list_subcommand == "dialogs":
         session, api_id, api_hash = get_tgapp_and_session(args)
 
-        async with ClientEnv(session, api_id, api_hash, loop=loop) as client:
+        async with get_client(session, api_id, api_hash, loop=loop) as client:
             await cli.list_dialogs(client)
 
     elif args.command == "list" and args.list_subcommand == "documents":
         session, api_id, api_hash = get_tgapp_and_session(args)
-        async with ClientEnv(session, api_id, api_hash, loop=loop) as client:
+
+        async with get_client(session, api_id, api_hash, loop=loop) as client:
             await cli.list_documents(
                 client,
                 args.entity,
@@ -82,20 +82,19 @@ async def main(loop):
 
     elif args.command == "mount-config":
         session, api_id, api_hash = get_tgapp_and_session(args)
-        main_settings.run_forever = args.run_server
+        # main_settings.run_forever = args.run_server
 
         api_credentials = (
             (api_id, api_hash) if api_id is not None and api_hash is not None else None
         )
-        await cli.mount(
+        await cli.mount_config(
             args.config,
             api_credentials=api_credentials,
             session=args.session,
             mount_dir=args.mount_dir,
             debug_fuse=args.debug_fuse,
             min_tasks=args.min_tasks,
-            run_server=args.run_server,
-            subfolder=args.subfolder,
+            # run_server=args.run_server,
         )
     elif args.command == "mount":
         session, api_id, api_hash = get_tgapp_and_session(args)
@@ -103,7 +102,7 @@ async def main(loop):
         api_credentials = (
             (api_id, api_hash) if api_id is not None and api_hash is not None else None
         )
-        await cli.mount_args(
+        await cli.mount(
             args,
             api_credentials=api_credentials,
             session=session,
@@ -119,4 +118,7 @@ if __name__ == "__main__":
             forever=main_settings.run_forever,
         )
     except TgmountError as e:
-        print(f"Error happened: {e}")
+        print(f"Tgmount error happened: {e}")
+    except Exception as e:
+        print(f"Other exception happened: {e}")
+        print(str(traceback.format_exc()))

@@ -1,18 +1,13 @@
-import logging
 import os
 from typing import Mapping, Optional, Type
 
 from telethon import events
 
-from tests import tgmount
-from tgmount import fs, main, tgclient, tglog, tgmount, vfs
+from tgmount import fs, main, tgclient, tglog, vfs
 from tgmount.fs.update import FileSystemOperationsUpdate
 from tgmount.tgclient.events_disptacher import EntityId, TelegramEventsDispatcher
 from tgmount.tgclient.message_reaction_event import MessageReactionEvent
-from tgmount.tgclient.message_source import MessageSource
-from tgmount.tgclient.message_source_types import MessageSourceProto
 from tgmount.tgclient.message_types import MessageProto
-from tgmount.tgmount.producers.producer_plain import VfsTreeProducerPlainDir
 from tgmount.tgmount.vfs_tree_producer import VfsTree, VfsTreeProducer
 from tgmount.util import measure_time, none_fallback
 from tgmount.vfs.util import MyLock
@@ -29,9 +24,6 @@ from .vfs_tree_types import (
     TreeEventType,
     TreeEventUpdatedItems,
 )
-
-# VfsTreeProducerPlainDir.logger.setLevel(logging.CRITICAL)
-# tgmount.producers.logger.setLevel(logging.DEBUG)
 
 
 class TgmountBase:
@@ -141,7 +133,9 @@ class TgmountBase:
 
     @measure_time(logger_func=logger.info)
     async def on_new_message(self, entity_id: EntityId, event: events.NewMessage.Event):
-        self.logger.info(f"on_new_message({MessageProto.repr_short(event.message)})")
+        self.logger.info(
+            f"on_new_message({entity_id}, {MessageProto.repr_short(event.message)})"
+        )
         self.logger.trace(f"on_new_message({event})")
         listener = TreeListener(self._vfs_tree)
         async with self._update_lock:
@@ -159,7 +153,7 @@ class TgmountBase:
     async def on_delete_message(
         self, entity_id: EntityId, event: events.MessageDeleted.Event
     ):
-        self.logger.info(f"on_delete_message({event})")
+        self.logger.info(f"on_delete_message({entity_id}, {event.deleted_ids})")
         listener = TreeListener(self._vfs_tree)
 
         async with self._update_lock:
@@ -182,10 +176,12 @@ class TgmountBase:
     ):
         if isinstance(event, events.MessageEdited.Event):
             self.logger.info(
-                f"on_edited_message({MessageProto.repr_short(event.message)})"
+                f"on_edited_message({entity_id}, {MessageProto.repr_short(event.message)})"
             )
         else:
-            self.logger.info(f"on_edited_message(reaction update for {event.msg_id})")
+            self.logger.info(
+                f"on_edited_message({entity_id}, reaction update for message {event.msg_id})"
+            )
 
         self.logger.trace(event)
 

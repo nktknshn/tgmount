@@ -32,13 +32,6 @@ def compose_guards_or(
     return _inner
 
 
-# @overload
-# def guards(
-#     g: Callable[[Message], TypeGuard[Any]],
-# ) -> Callable[[Message], bool]:
-#     ...
-
-
 def compose_guards(
     *gs: Callable[[Message], TypeGuard[Any]]
 ) -> Callable[[Message], TypeGuard[Any]]:

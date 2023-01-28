@@ -5,8 +5,7 @@ from zipfile import ZipFile, ZipInfo
 from tgmount import util
 from tgmount.util.func import (
     fst,
-    group_by,
-    list_filter,
+    group_by0,
 )
 from tgmount.vfs import Tree
 from tgmount.vfs.util import norm_and_parse_path
@@ -24,10 +23,10 @@ def get_zipinfo_list(zf: ZipFile, *, exclude_global_paths=True) -> list[ZipInfo]
     excluding dirs themselves
     excluding global paths (ones starting with `/`) if needed
     """
-    filelist = list_filter(is_file, zf.infolist())
+    filelist = list(filter(is_file, zf.infolist()))
 
     if exclude_global_paths:
-        filelist = list_filter(lambda f: not f.filename.startswith("/"), filelist)
+        filelist = list(filter(lambda f: not f.filename.startswith("/"), filelist))
 
     return filelist
 
@@ -78,7 +77,7 @@ def group_dirs_into_tree(dirs: list[list]):
     """
     res = {}
 
-    for k, v in group_by(fst, dirs).items():
+    for k, v in group_by0(fst, dirs).items():
         if isinstance(k, str):
             # this is directory
             res[k] = group_dirs_into_tree([v[1:] for v in v])

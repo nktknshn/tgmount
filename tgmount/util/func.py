@@ -1,23 +1,12 @@
 from typing import Awaitable, Callable, Iterable, Mapping, Optional, TypeVar
 
-import funcy as funcy
 
-cmap = funcy.curry(map)
-compose = funcy.compose
-group_by = funcy.group_by
-walk_values = funcy.walk_values
 fst = lambda a: a[0]
 snd = lambda a: a[1]
-endswith = funcy.partial(funcy.rpartial, str.endswith)
 
 _T1 = TypeVar("_T1")
 _T2 = TypeVar("_T2")
 
-
-list_map = compose(list, map)
-
-set_map = compose(set, map)
-list_filter = compose(list, filter)
 
 _KT = TypeVar("_KT")
 _VT = TypeVar("_VT")
@@ -69,7 +58,7 @@ async def group_by_func_async(
 
         res.append((key, m))
 
-    d = group_by(fst, res)
+    d = group_by0(fst, res)
     d = {k: list(map(snd, v)) for k, v in d.items()}
 
     if None in d:

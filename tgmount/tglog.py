@@ -5,9 +5,9 @@ from tgmount.util import yes
 
 
 def init_logging(debug_level: int = 0):
-    # print(f"init_logging: {debug_level}", file=sys.stderr)
+
     logging.getLogger("asyncio").setLevel(logging.CRITICAL)
-    logging.getLogger("telethon").setLevel(logging.INFO)
+    logging.getLogger("telethon").setLevel(logging.ERROR)
 
     tgmount.tgmount.module_logger.setLevel(debug_level)
     tgmount.cli.logger.setLevel(debug_level)
@@ -23,7 +23,6 @@ def init_logging(debug_level: int = 0):
 
     tgmount.fs.logger.setLevel(logging.INFO)
 
-    # tgmount.tgmount.wrappers.logger.setLevel(logging.INFO)
     tgmount.tgmount.wrappers.wrapper_exclude_empty_dirs.WrapperEmpty.logger.setLevel(
         logging.INFO
     )

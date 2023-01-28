@@ -20,7 +20,6 @@ updates: &updates True
 # definiton
 ogranized: &ogranized
   filter: { filter: [OnlyUniqueDocs], recursive: True }
-  # cache: { cache: memory1, filter: { ByExtension: .zip }, recursive: True }
   docs:
     filter:
       - MessageWithOtherDocument
@@ -79,7 +78,6 @@ ogranized: &ogranized
     # it's recommended to use cache with ZipsAsDirs. otherwise it is slow
     cache: memory1
     producer: UnpackedZip
-    #   - ZipsAsDirs:
     #       recursive: True
     #       skip_folder_if_single_subfolder: True
     #       hide_sources: True

@@ -28,6 +28,12 @@
 -  timeout raises IOError #10 
 -  new file detection doesn't work in non-supergroup groups #4 
 
+FIX:
+
+when using head with client
+`BrokenPipeError: [Errno 32] Broken pipe`
+
+
 
 ## feature requests and issues
 -  Way to specify file types to mount #8 

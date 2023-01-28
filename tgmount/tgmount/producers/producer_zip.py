@@ -105,7 +105,7 @@ class VfsProducerZip(VfsTreeProducerPlainDir):
 
             zip_tree = await self._dir_content_zip_factory.get_ziptree(zip_file.content)
         except BadZipFile:
-            self._logger.error(f"{zip_file} is a bad zip file")
+            self._logger.warning(f"{zip_file} is a bad zip file")
             return
 
         zip_tree_root_items_names = list(

@@ -1,13 +1,8 @@
 telethon
-pysocks
-pysqlite3
-# pyfuse3
-tqdm
-# cython
+pyfuse3
 typing_extensions
 pytest
 greenback
 aiofiles
-funcy
 pytest-asyncio
 pyyaml

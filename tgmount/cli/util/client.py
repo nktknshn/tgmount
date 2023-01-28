@@ -1,7 +1,7 @@
 from tgmount.tgclient import TgmountTelegramClient
 
 
-class ClientEnv:
+class get_client:
     """Authorizes client on enter and disconnects on exit"""
 
     TelegramClient = TgmountTelegramClient

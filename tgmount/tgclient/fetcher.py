@@ -11,6 +11,7 @@ from .client_types import TgmountTelegramClientGetMessagesProto
 from .logger import logger as module_logger
 
 from telethon.tl import types
+from tgmount.tgclient.guards import *
 
 
 class TelegramMessagesFetcherProto(Protocol):
@@ -22,17 +23,10 @@ class TelegramMessagesFetcherProto(Protocol):
 class TelegramMessagesFetcher(TelegramMessagesFetcherProto):
     """Fetches messages for building initial vfs tree"""
 
-    # from_user
-    # offset_date
-    # offset_id
-    # min_id
-    # max_id
-    # wait_time
-    # reply_to
     class_logger = module_logger.getChild(f"TelegramMessagesFetcher")
 
     FILTERS = {
-        "InputMessagesFilterEmpty": types.InputMessagesFilterEmpty,
+        # "InputMessagesFilterEmpty": types.InputMessagesFilterEmpty,
         "InputMessagesFilterPhotos": types.InputMessagesFilterPhotos,
         "InputMessagesFilterVideo": types.InputMessagesFilterVideo,
         "InputMessagesFilterPhotoVideo": types.InputMessagesFilterPhotoVideo,
@@ -41,14 +35,14 @@ class TelegramMessagesFetcher(TelegramMessagesFetcherProto):
         "InputMessagesFilterGif": types.InputMessagesFilterGif,
         "InputMessagesFilterVoice": types.InputMessagesFilterVoice,
         "InputMessagesFilterMusic": types.InputMessagesFilterMusic,
-        "InputMessagesFilterChatPhotos": types.InputMessagesFilterChatPhotos,
-        "InputMessagesFilterPhoneCalls": types.InputMessagesFilterPhoneCalls,
+        # "InputMessagesFilterChatPhotos": types.InputMessagesFilterChatPhotos,
+        # "InputMessagesFilterPhoneCalls": types.InputMessagesFilterPhoneCalls,
         "InputMessagesFilterRoundVoice": types.InputMessagesFilterRoundVoice,
         "InputMessagesFilterRoundVideo": types.InputMessagesFilterRoundVideo,
         "InputMessagesFilterMyMentions": types.InputMessagesFilterMyMentions,
-        "InputMessagesFilterGeo": types.InputMessagesFilterGeo,
-        "InputMessagesFilterContacts": types.InputMessagesFilterContacts,
-        "InputMessagesFilterPinned": types.InputMessagesFilterPinned,
+        # "InputMessagesFilterGeo": types.InputMessagesFilterGeo,
+        # "InputMessagesFilterContacts": types.InputMessagesFilterContacts,
+        # "InputMessagesFilterPinned": types.InputMessagesFilterPinned,
     }
 
     def __init__(

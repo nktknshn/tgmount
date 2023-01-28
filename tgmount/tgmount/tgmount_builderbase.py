@@ -16,7 +16,7 @@ from tgmount.tgmount.providers.provider_vfs_wrappers import ProviderVfsWrappersB
 from tgmount.tgmount.root_config_reader import TgmountConfigReader
 from tgmount.tgmount.vfs_tree import VfsTree
 from tgmount.tgmount.vfs_tree_producer import VfsTreeProducer
-from tgmount.util import none_fallback
+from tgmount.util import none_fallback, yes
 
 from .file_factory import classifier, FileFactoryDefault
 from .providers.provider_caches import CachesTypesProviderProto
@@ -117,7 +117,14 @@ class TgmountBuilderBase(abc.ABC):
                 continue
 
             message_source = await self.create_message_source(cfg, client, msc)
+
             message_source.add_filter(file_factory.supports)
+
+            if yes(msc.filter):
+                tg_filter = self.filters.telegram_filters.get(msc.filter)
+
+                if yes(tg_filter):
+                    message_source.add_filter(tg_filter)
 
             fetcher = await self.create_fetcher(cfg, client, msc, message_source)
 

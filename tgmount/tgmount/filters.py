@@ -1,6 +1,9 @@
 from abc import abstractmethod
 from typing import Any, Iterable, Mapping, Optional, Protocol, Type, TypeVar, Callable
 
+from telethon.tl import types
+from tgmount.tgclient.guards import *
+
 from telethon.tl.custom import Message
 
 from tgmount.tgmount.error import TgmountError
@@ -14,7 +17,7 @@ from tgmount.tgclient import guards
 from tgmount.tgclient.guards import MessageDownloadable, MessageWithReactions
 from tgmount.tgclient.message_types import MessageProto
 from tgmount.util import col, func
-from tgmount.util.guards import compose_try_gets
+from tgmount.util.guards import compose_guards_or, compose_try_gets
 from .filters_types import (
     FilterConfigValue,
     FilterContext,
@@ -329,7 +332,18 @@ def from_context_classifier(klass_name: str) -> Type[FilterFromConfigProto]:
     return from_function(from_config)
 
 
-class ProviderMappingProto(Protocol[T]):
-    @abstractmethod
-    def get(self, key) -> Optional[Type[InstanceFromConfigProto[T]]]:
-        ...
+telegram_filter_filter = {
+    "InputMessagesFilterPhotos": from_guard(MessageWithCompressedPhoto.guard)(),
+    "InputMessagesFilterVideo": from_guard(MessageWithVideo.guard)(),
+    "InputMessagesFilterPhotoVideo": from_guard(
+        compose_guards_or(MessageWithCompressedPhoto.guard, MessageWithVideo.guard)
+    )(),
+    "InputMessagesFilterDocument": from_guard(MessageWithDocument.guard)(),
+    "InputMessagesFilterGif": from_guard(MessageWithAnimated.guard)(),
+    "InputMessagesFilterVoice": from_guard(MessageWithVoice.guard)(),
+    "InputMessagesFilterMusic": from_guard(MessageWithMusic.guard)(),
+    "InputMessagesFilterRoundVoice": from_guard(
+        compose_guards_or(MessageWithKruzhochek.guard, MessageWithVoice.guard)
+    )(),
+    "InputMessagesFilterRoundVideo": from_guard(MessageWithKruzhochek.guard)(),
+}
