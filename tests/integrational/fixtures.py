@@ -62,6 +62,9 @@ class FixtureFiles:
 
     zip_debrecen: FixtureFile
     zip_bandcamp: FixtureFile
+    zip_bad: FixtureFile
+    zip_linux2: FixtureFile
+    zip_atrium: FixtureFile
 
     video0: str
     video1: str
@@ -81,6 +84,9 @@ def files():
         music_long="tests/fixtures/files/music/Forlate.mp3",
         zip_debrecen=FixtureFile("tests/fixtures/files/zips/2010_debrecen.zip"),
         zip_bandcamp=FixtureFile("tests/fixtures/files/zips/bandcamp1.zip"),
+        zip_bad=FixtureFile("tests/fixtures/bad_zip.zip"),
+        zip_atrium=FixtureFile("tests/fixtures/Atrium Carceri.zip"),
+        zip_linux2=FixtureFile("tests/fixtures/linux_zip2.zip"),
         video0="tests/fixtures/files/videos/000bbadb-b42d-48ac-816f-11c8756487b5.mp4",
         video1="tests/fixtures/files/videos/video_2022-10-13_15-36-27.mp4",
     )

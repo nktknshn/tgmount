@@ -1,12 +1,12 @@
-from tgmount import tglog, vfs
-from tgmount.util import none_fallback
+from tgmount import vfs
+from tgmount.util import none_fallback, yes
 from tgmount.util.timer import Timer
 
-from .logger import module_logger as _logger
+from .logger import module_logger as logger
 from .root_config_reader import TgmountConfigReader
 from .root_config_types import RootConfigWalkingContext
 from .tgmount_types import TgmountResources
-from .types import TgmountRootSource
+from .types import TgmountRootType
 from .vfs_tree import VfsTree, VfsTreeDir
 from .vfs_tree_producer_types import VfsDirConfig
 
@@ -14,7 +14,8 @@ from .vfs_tree_producer_types import VfsDirConfig
 class VfsTreeProducer:
     """Class that using `TgmountResources` and `VfsStructureConfig` produces content into `VfsTreeDir` or `VfsTree`"""
 
-    logger = _logger.getChild(f"VfsTreeProducer")
+    logger = logger.getChild(f"VfsTreeProducer")
+    LOG_DEPTH = 2
 
     def __init__(self, resources: TgmountResources) -> None:
         self._resources = resources
@@ -25,7 +26,7 @@ class VfsTreeProducer:
     async def produce(
         self,
         tree_dir: VfsTreeDir | VfsTree,
-        dir_config: TgmountRootSource,
+        dir_config: TgmountRootType,
         ctx=None,
     ):
         """Produce content into `tree_dir` using `dir_config`"""
@@ -45,9 +46,9 @@ class VfsTreeProducer:
 
         t1.stop()
 
-        self.logger.info(
-            f"Done producing {tree_dir.path}. {t1.intervals[0].duration:.2f} ms"
-        )
+        # self.logger.trace(
+        #     f"Done producing {tree_dir.path}. {t1.intervals[0].duration:.2f} ms"
+        # )
 
     async def produce_from_config(
         self,
@@ -57,8 +58,12 @@ class VfsTreeProducer:
         # ctx: RootConfigContext,
     ):
         """Using `VfsDirConfig` produce content into `tree_dir`"""
+        global_path = vfs.path_join(tree_dir.path, path)
 
-        self.logger.info(f"Producing {vfs.path_join(tree_dir.path, path)}")
+        if len(vfs.napp(global_path, True)) <= self.LOG_DEPTH:
+            self.logger.info(f"Producing {global_path}")
+        else:
+            self.logger.debug(f"Producing {global_path}")
 
         # create the subdir
         sub_dir = await tree_dir.create_dir(path)
@@ -88,5 +93,15 @@ class VfsTreeProducer:
                 none_fallback(vfs_config.vfs_producer_arg, {}),
                 sub_dir,
             )
-
             await producer.produce()
+
+        # elif yes(vfs_config.vfs_producer) and isinstance(
+        #     vfs_config.vfs_producer, VfsTreeProducerWithoutConfigProto
+        # ):
+        #     producer = await vfs_config.vfs_producer.from_config(
+        #         resources=self._resources,
+        #         vfs_tree_dir=sub_dir,
+        #         arg={},
+        #     )
+
+        #     await producer.produce()

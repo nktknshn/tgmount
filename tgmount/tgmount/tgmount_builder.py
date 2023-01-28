@@ -1,8 +1,10 @@
+from typing import Mapping
 from tgmount import cache, tgclient, vfs
 from tgmount.tgclient.guards import MessageWithReactions, MessageWithText
 from tgmount.tgclient.message_types import MessageProto
 from tgmount.tgmount.cached_filefactory_factory import CacheFileFactoryFactory
 from tgmount.tgmount.file_factory.classifier import ClassifierDefault
+from tgmount.tgmount.file_factory.filefactory import FileFactorySupportedTypes
 from tgmount.tgmount.producers.producer_by_sender import get_message_sender_display_name
 from tgmount.util import yes
 
@@ -19,7 +21,25 @@ from .tgmount_providers import (
 
 
 class MyFileFactoryDefault(FileFactoryDefault[MessageWithText]):
-    pass
+    def copy_with_props(self, factory_props):
+        return MyFileFactoryDefault(
+            files_source=self._files_source, factory_props=factory_props
+        )
+
+    async def file(
+        self,
+        supported_item: FileFactorySupportedTypes | MessageWithText,
+        name=None,
+        factory_props=None,
+    ) -> vfs.FileLike:
+        return await super().file(supported_item, name, factory_props)
+
+    async def file_content(
+        self,
+        supported_item: FileFactorySupportedTypes | MessageWithText,
+        factory_props=None,
+    ) -> vfs.FileContentProto:
+        return await super().file_content(supported_item, factory_props)
 
 
 class MessageWithTextContent:
@@ -59,17 +79,6 @@ MyFileFactoryDefault.register(
 )
 
 
-def reactions_file_name():
-    pass
-
-
-# MyFileFactoryDefault.register(
-#     klass=MessageWithText,
-#     filename=MessageWithText.filename,
-#     file_content=lambda m: vfs.text_content(m.text),
-# )
-
-
 class MyClassifier(ClassifierDefault[MessageWithText]):
     pass
 
@@ -81,6 +90,10 @@ MyClassifier.register(MessageWithText)
 
 
 class TgmountBuilder(TgmountBuilderBase):
+    def __init__(self, mount_texts=True) -> None:
+        if not mount_texts:
+            MyFileFactoryDefault.unregister(MessageWithText)
+
     TelegramClient = tgclient.TgmountTelegramClient
     """ Class used for telegram client """
 
@@ -96,7 +109,7 @@ class TgmountBuilder(TgmountBuilderBase):
     FilesSourceCached = cache.FilesSourceCached
     """ class used for caching content provider """
 
-    CacheFileFactoryFactory = CacheFileFactoryFactory
+    CacheFactory = CacheFileFactoryFactory
 
     FileFactory = MyFileFactoryDefault
     """ Class that constructs file from messages """

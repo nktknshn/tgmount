@@ -7,7 +7,12 @@ from tgmount.tgclient.client_types import (
     ListenerNewMessages,
     ListenerRemovedMessages,
 )
-from tgmount.tgclient.message_types import AudioProto, DocumentProto, VoiceProto
+from tgmount.tgclient.message_types import (
+    AudioProto,
+    DocumentProto,
+    MessageProto,
+    VoiceProto,
+)
 from tgmount.tgclient.types import (
     InputDocumentFileLocation,
     InputPhotoFileLocation,
@@ -20,7 +25,7 @@ from telethon import events, hints, types
 import aiofiles
 import os
 
-from tgmount.util import map_none, none_fallback, random_int, none_fallback_lazy
+from tgmount.util import map_none, none_fallback, random_int, none_fallback_lazy, yes
 from .mocked_message import (
     MockedDocument,
     MockedFile,
@@ -212,6 +217,7 @@ class StorageEntityMixin:
         video_note=False,
         gif=False,
         reactions: Mapping[str, int] | None = None,
+        msg_id: int | None = None,
     ) -> MockedMessageWithDocument:
         msg = await self.message(
             put=False,
@@ -219,6 +225,9 @@ class StorageEntityMixin:
             forward=forward,
             reactions=reactions,
         )
+
+        if yes(msg_id):
+            msg.id = msg_id
 
         if isinstance(file, str):
             storage_file = await self._storage.create_storage_file(file, file_name)
@@ -343,7 +352,7 @@ class StorageEntity(StorageEntityMixin):
         self._messages = entity_messages
 
     @property
-    def messages(self) -> TotalListTyped:
+    def messages(self) -> TotalListTyped[MockedMessage]:
         return self._messages
 
 

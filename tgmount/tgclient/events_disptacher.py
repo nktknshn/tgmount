@@ -163,7 +163,7 @@ class TelegramEventsDispatcher:
     async def resume(self):
         """Dispatches the accumulated events to sources"""
         self._is_paused = False
-        self.logger.info(f"resume(). Total events enqued: {self._get_total()}")
+        self.logger.debug(f"resume(). Total events enqued: {self._get_total()}")
 
         for chat_id, q in self._sources_events_queue.items():
             self.logger.debug(f"Resume {chat_id}, {len(q)} events")

@@ -5,6 +5,7 @@ from typing import Any, TypeVar
 from telethon.errors import FileReferenceExpiredError
 from tgmount import tgclient, vfs
 from tgmount.tgclient.message_types import MessageProto, PhotoProto
+from tgmount.util import none_fallback
 
 from .guards import MessageDownloadable, MessageWithCompressedPhoto
 from .source.document import SourceItemDocument
@@ -53,11 +54,11 @@ class TelegramFilesSource:
     def __init__(
         self,
         client: tgclient.client_types.TgmountTelegramClientReaderProto,
-        request_size: int = BLOCK_SIZE,
+        request_size: int | None = None,
     ) -> None:
         self.client = client
         self.items_file_references: dict[int, bytes] = {}
-        self.request_size = request_size
+        self.request_size = none_fallback(request_size, BLOCK_SIZE)
 
     def file_content(self, message: MessageDownloadable) -> vfs.FileContent:
 

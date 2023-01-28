@@ -50,5 +50,5 @@ class ClassifierBase(ClassifierProto[Any, TG]):
         return klasses
 
     @classmethod
-    def register(cls, klass: Type[TG]):
+    def register(cls, klass: guards.ClassWithGuard):
         cls.classes = [*cls.classes, klass]

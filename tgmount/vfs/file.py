@@ -49,7 +49,10 @@ def simple_read(content: str):
 
 
 def text_content(text: str):
-    return FileContent(size=len(text.encode("utf-8")), read_func=simple_read(text))
+    return FileContent(
+        size=len(str.encode(text)),
+        read_func=simple_read(text),
+    )
 
 
 def text_file(fname: str, text_str: str, creation_time=None):

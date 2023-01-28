@@ -1,6 +1,7 @@
 from collections import defaultdict
 from datetime import datetime
 import logging
+from tgmount.util import none_fallback
 from tgmount.util.func import snd
 from .types import (
     RangeFetcher,
@@ -16,10 +17,14 @@ class CacheBlockReaderWriter(CacheBlockReaderWriterBaseProto):
 
     logger = logger.getChild("CacheBlockReaderWriter")
 
-    def __init__(self, blocks_storage: CacheBlocksStorageProto) -> None:
+    def __init__(self, blocks_storage: CacheBlocksStorageProto, tag=None) -> None:
         self._blocks_storage: CacheBlocksStorageProto = blocks_storage
         self._blocks_read_count: defaultdict[int, int] = defaultdict(lambda: 0)
         self._last_read_time: datetime | None = None
+        self._tag = tag
+        self._logger = self.logger.getChild(
+            none_fallback(self._tag, "NoTaf"), suffix_as_tag=True
+        )
 
     @property
     def blocks_storage(self):
@@ -33,12 +38,12 @@ class CacheBlockReaderWriter(CacheBlockReaderWriterBaseProto):
         s = list(sorted(self._blocks_read_count.items(), key=snd))
 
         if len(s) == 0:
-            self.logger.debug(f"Nothing to discard.")
+            self._logger.debug(f"Nothing to discard.")
             return
 
         block_id = s[0][0]
 
-        self.logger.debug(f"Discarding block {block_id}")
+        self._logger.debug(f"Discarding block {block_id}")
 
         del self._blocks_read_count[block_id]
         await self._blocks_storage.discard_blocks({block_id})
@@ -101,11 +106,11 @@ class CacheBlockReaderWriter(CacheBlockReaderWriterBaseProto):
 
         for block_number in self.range_blocks(offset, limit):
             if block := await self.get_block(block_number):
-                self.logger.debug(
+                self._logger.debug(
                     f"read_range(offset={offset}, limit={limit} ({limit//1024} kb)): block {block_number} hit"
                 )
             else:
-                self.logger.debug(
+                self._logger.debug(
                     f"read_range({offset}, {limit} ({limit//1024} kb)): block {block_number} miss"
                 )
 

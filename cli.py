@@ -34,8 +34,8 @@ def get_parser():
     commands_subparsers = parser.add_subparsers(dest="command")
 
     command_auth = commands_subparsers.add_parser("auth")
-    command_mount = commands_subparsers.add_parser("mount")
-    command_mount_args = commands_subparsers.add_parser("mount-args")
+    command_mount = commands_subparsers.add_parser("mount-config")
+    command_mount_args = commands_subparsers.add_parser("mount")
     command_validate = commands_subparsers.add_parser("validate")
     command_stats = commands_subparsers.add_parser("stats")
 
@@ -80,7 +80,7 @@ async def main(loop):
                 only_unique_docs=args.only_unique_docs,
             )
 
-    elif args.command == "mount":
+    elif args.command == "mount-config":
         session, api_id, api_hash = get_tgapp_and_session(args)
         main_settings.run_forever = args.run_server
 
@@ -97,7 +97,7 @@ async def main(loop):
             run_server=args.run_server,
             subfolder=args.subfolder,
         )
-    elif args.command == "mount-args":
+    elif args.command == "mount":
         session, api_id, api_hash = get_tgapp_and_session(args)
 
         api_credentials = (

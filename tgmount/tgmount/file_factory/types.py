@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Iterable, Optional, Protocol, TypeGuard, TypeVar
+from typing import Iterable, Mapping, Optional, Protocol, TypeGuard, TypeVar
 
 from telethon.tl.custom import Message
 
@@ -48,24 +48,26 @@ class FileFactoryProto(Protocol[T]):
         ...
 
     @abstractmethod
-    async def filename(self, message: T, *, treat_as: list[str] | None = None) -> str:
+    async def filename(
+        self, message: T, *, factory_props: Mapping | None = None
+    ) -> str:
         ...
 
     @abstractmethod
     async def file_content(
-        self, message: T, *, treat_as: list[str] | None = None
+        self, message: T, *, factory_props: Mapping | None = None
     ) -> vfs.FileContent:
         ...
 
     @abstractmethod
     async def file(
-        self, message: T, name=None, *, treat_as: list[str] | None = None
+        self, message: T, name=None, *, factory_props: Mapping | None = None
     ) -> vfs.FileLike:
         ...
 
     @abstractmethod
     def try_get(
-        self, message: Message, *, treat_as: Optional[list[str]] = None
+        self, message: Message, *, factory_props: Mapping | None = None
     ) -> Optional[T]:
         ...
 
@@ -75,8 +77,8 @@ class FileFactoryProto(Protocol[T]):
 
     @measure_time_sync(logger_func=print)
     def filter_supported(
-        self, messages: Iterable[T], *, treat_as: Optional[list[str]] = None
+        self, messages: Iterable[T], *, factory_props: Mapping | None = None
     ):
-        msgs = [self.try_get(m, treat_as=treat_as) for m in messages]
+        msgs = [self.try_get(m, factory_props=factory_props) for m in messages]
 
         return list(filter(is_not_none, msgs))

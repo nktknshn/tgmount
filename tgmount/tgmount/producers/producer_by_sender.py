@@ -29,7 +29,7 @@ async def get_message_sender_display_name(
         key = sender.username
 
     if key is None:
-        key = telethon.utils.get_display_name(sender)
+        key: str | None = telethon.utils.get_display_name(sender)
     elif include_username:
         key = f"{telethon.utils.get_display_name(sender)} @{key}"
 

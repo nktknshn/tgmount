@@ -55,7 +55,10 @@ async def group_by_forward(
     return fws
 
 
-class VfsTreeGroupByForward(VfsTreeProducerGrouperBase, VfsTreeProducerProto):
+class VfsTreeGroupByForward(
+    VfsTreeProducerGrouperBase,
+    VfsTreeProducerProto,
+):
     @classmethod
     async def from_config(
         cls, resources, config: VfsTreeProducerConfig, arg: Mapping, sub_dir

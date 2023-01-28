@@ -56,8 +56,9 @@ class CacheBlockReaderCapacityAware(CacheBlockReaderWriter):
         self,
         blocks_storage: CacheBlocksStorageProto,
         capacity_handler: CacheBlockCapacityHandlerProto,
+        tag=None,
     ) -> None:
-        super().__init__(blocks_storage)
+        super().__init__(blocks_storage, tag=tag)
         self._capacity_handler = capacity_handler
 
     async def put_block(self, block_number: int, block: bytes, force=False):
@@ -133,6 +134,7 @@ class CacheInBlocks(
         return CacheBlockReaderCapacityAware(
             blocks_storage=blocks_storage,
             capacity_handler=self,
+            tag=message.file.name,
         )
 
     async def create_block_storage(self, message: MessageDownloadable):

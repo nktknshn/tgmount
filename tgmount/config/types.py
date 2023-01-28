@@ -2,6 +2,8 @@ from dataclasses import replace
 import datetime
 import yaml
 
+from tgmount.util import get_bytes_count, map_none
+
 from .root import *
 import time
 
@@ -81,10 +83,19 @@ class Client:
     session: str
     api_id: int
     api_hash: str
+    request_size: int | None = None
 
     @staticmethod
     def from_mapping(d: dict) -> "Client":
-        return load_class_from_mapping(Client, d)
+        return load_class_from_mapping(
+            Client,
+            d,
+            loaders={
+                "request_size": lambda d: map_none(
+                    d.get("request_size"), get_bytes_count
+                )
+            },
+        )
 
 
 @dataclass

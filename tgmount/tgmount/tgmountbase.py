@@ -65,7 +65,7 @@ class TgmountBase:
         self._vfs_tree: VfsTree
         self._producer: VfsTreeProducer
         self._events_dispatcher: TelegramEventsDispatcher
-        self._update_lock = MyLock("TgmountBase._update_lock", self.logger)
+        self._update_lock = MyLock("TgmountBase._update_lock", self.logger, tglog.TRACE)
 
     @property
     def vfs_tree(self) -> VfsTree:
@@ -239,23 +239,23 @@ class TgmountBase:
         if len(updates) == 0:
             return
 
-        fs_update = await self._join_tree_events(updates)
+        await self._dispatch_to_filesystem(updates)
 
-        self.logger.debug(
-            f"UPDATE: new_files={list(fs_update.new_files.keys())}"
-            + f" removed_files={list(fs_update.removed_files)}"
-            + f" new_dir_content={list(fs_update.new_dirs.keys())}"
-            + f" removed_dirs={fs_update.removed_dirs}"
-            + f" update_items={fs_update.update_items}"
-        )
+        # self.logger.debug(
+        #     f"UPDATE: new_files={list(fs_update.new_files.keys())}"
+        #     + f" removed_files={list(fs_update.removed_files)}"
+        #     + f" new_dir_content={list(fs_update.new_dirs.keys())}"
+        #     + f" removed_dirs={fs_update.removed_dirs}"
+        #     + f" update_items={fs_update.update_items}"
+        # )
 
-        await self._update_fs(fs_update)
+        # await self._update_fs(fs_update)
 
-    async def _join_tree_events(self, events: list[TreeEventType[VfsTreeDir]]):
-
-        update = fs.FileSystemOperationsUpdate()
+    async def _dispatch_to_filesystem(self, events: list[TreeEventType[VfsTreeDir]]):
 
         for e in events:
+            update = fs.FileSystemOperationsUpdate()
+
             if isinstance(e, TreeEventRemovedItems):
                 path = e.sender.path
 
@@ -283,7 +283,9 @@ class TgmountBase:
                 for path in e.new_dirs:
                     update.new_dirs[path] = await self._vfs_tree.get_dir_content(path)
 
-        return update
+            await self._update_fs(update)
+
+        # return update
 
     async def mount(
         self,
@@ -298,7 +300,7 @@ class TgmountBase:
         if mount_dir is None:
             raise TgmountError(f"Missing mount destination.")
 
-        self.logger.info(f"Building root...")
+        # self.logger.info(f"Building...")
 
         assert self._events_dispatcher.is_paused
 

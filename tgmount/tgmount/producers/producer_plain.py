@@ -1,4 +1,4 @@
-from typing import Mapping, TypeVar
+from typing import Mapping, Sequence, TypeVar
 
 from tgmount import vfs
 from tgmount.tgclient.message_types import MessageProto
@@ -9,12 +9,9 @@ from tgmount.tgmount.vfs_tree_producer_types import (
     VfsTreeProducerConfig,
     VfsTreeProducerProto,
 )
-from tgmount.util import measure_time
-from tgmount.util.col import sets_difference
-from tgmount.util.func import snd
-from .logger import module_logger as _logger
 
-M = TypeVar("M")
+from tgmount.util.func import snd, fst
+from .logger import module_logger as _logger
 
 
 class VfsTreeProducerPlainDir(VfsTreeProducerProto):
@@ -47,6 +44,15 @@ class VfsTreeProducerPlainDir(VfsTreeProducerProto):
 
         return VfsTreeProducerPlainDir(tree_dir, vfs_config)
 
+    async def add_items_to_vfs_tree(self, items: Sequence[vfs.DirContentItem]):
+        await self._tree_dir.put_content(
+            items,
+        )
+
+    async def remove_items_from_vfs_dir(self, items: Sequence[vfs.DirContentItem]):
+        for f in items:
+            await self._tree_dir.remove_content(f)
+
     # @measure_time(logger_func=print)
     async def produce(self):
 
@@ -59,9 +65,7 @@ class VfsTreeProducerPlainDir(VfsTreeProducerProto):
         }
 
         if len(self._message_to_file) > 0:
-            await self._tree_dir.put_content(
-                list(self._message_to_file.values()),
-            )
+            await self.add_items_to_vfs_tree(list(self._message_to_file.values()))
 
         self._config.message_source.event_new_messages.subscribe(
             self.update_new_messages
@@ -130,14 +134,32 @@ class VfsTreeProducerPlainDir(VfsTreeProducerProto):
         for m in removed_messages:
             del self._message_to_file[m.id]
 
-        for f in removed_files:
-            await self._tree_dir.remove_content(f)
+        if len(removed_files):
+            await self.remove_items_from_vfs_dir(removed_files)
 
         if len(new_files):
-            await self._tree_dir.put_content(new_files)
+            await self.add_items_to_vfs_tree(new_files)
 
         if len(updated_files):
-            await self._tree_dir.update_content(update_content_dict)
+            await self.update_items_in_vfs_tree(
+                {
+                    item.name: (msg, item)
+                    for (msg, item) in zip(map(fst, common_messages), old_updated_files)
+                },
+                {
+                    item.name: (msg, item)
+                    for (msg, item) in zip(map(snd, common_messages), updated_files)
+                },
+                update_content_dict,
+            )
+
+    async def update_items_in_vfs_tree(
+        self,
+        old_files: Mapping[str, tuple[MessageProto, vfs.FileLike]],
+        new_files: Mapping[str, tuple[MessageProto, vfs.FileLike]],
+        update_content_dict: Mapping[str, vfs.FileLike],
+    ):
+        await self._tree_dir.update_content(update_content_dict)
 
     async def update_new_messages(self, source, new_messages: list[MessageProto]):
 
@@ -162,6 +184,7 @@ class VfsTreeProducerPlainDir(VfsTreeProducerProto):
 
         if len(new_files):
             await self._tree_dir.put_content(new_files)
+            # await self._tree_dir.put_content(new_files)
 
     async def update_removed_messages(
         self, source, removed_messages: list[MessageProto]
@@ -176,5 +199,6 @@ class VfsTreeProducerPlainDir(VfsTreeProducerProto):
             if m.id in self._message_to_file
         ]
 
-        for f in removed_files:
-            await self._tree_dir.remove_content(f)
+        # for f in removed_files:
+        await self.remove_items_from_vfs_dir(removed_files)
+        # await self._tree_dir.remove_content(f)

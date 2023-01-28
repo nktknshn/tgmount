@@ -42,15 +42,18 @@ class CacheFileFactoryFactoryProto(Protocol, Generic[T]):
 class CacheFileFactoryFactory(CacheFileFactoryFactoryProto):
     FilesSource: Type[FilesSourceCached] = FilesSourceCached
     FileFactory: Type[FileFactoryDefault] = FileFactoryDefault
+
     logger = module_logger.getChild(f"CacheFileFactoryFactory")
 
     def __init__(
         self,
         client: TgmountTelegramClientReaderProto,
         caches_class_provider: CachesTypesProviderProto,
+        files_source_request_size: int,
     ):
         self._client = client
         self._cache_types_provider = caches_class_provider
+        self._files_source_request_size = files_source_request_size
 
         self._caches: dict[str, CacheInBlocksProto] = {}
         self._caches_file_source: dict[str, FilesSourceCached] = {}
@@ -86,7 +89,9 @@ class CacheFileFactoryFactory(CacheFileFactoryFactoryProto):
 
         assert cache_id not in self._caches
 
-        fsc = self.FilesSource(self._client, cache=cache)
+        fsc = self.FilesSource(
+            self._client, cache=cache, request_size=self._files_source_request_size
+        )
         fc = self.FileFactory(fsc)
 
         self._caches[cache_id] = cache

@@ -11,49 +11,32 @@ from tgmount.tgmount.filters_types import Filter
 from tgmount.tgmount.vfs_tree_wrapper_types import VfsTreeWrapperProto
 
 
-class VfsTreeProducerProto(Protocol):
-    @abstractmethod
-    async def produce(self):
-        ...
-
-    @classmethod
-    @abstractmethod
-    async def from_config(
-        cls,
-        resources,
-        config: "VfsTreeProducerConfig",
-        arg: Mapping,
-        dir,
-        # dir: VfsTreeDir,
-        # XXX
-    ) -> "VfsTreeProducerProto":
-        ...
-
-
 class VfsTreeProducerConfig:
     """Wraps `message_source` with other"""
 
     message_source: MessageSourceProto
     factory: FileFactoryProto
     filters: list[Filter]
-    treat_as_prop: Optional[list[str]] = None
+    factory_props: Mapping | None = None
+    # treat_as_prop: Optional[list[str]] = None
 
     def __init__(
         self,
         message_source: MessageSourceProto,
         factory: FileFactoryProto,
         filters: list[Filter],
-        treat_as_prop: Optional[list[str]] = None,
+        factory_props: Mapping | None = None
+        # treat_as_prop: Optional[list[str]] = None,
     ) -> None:
         self.message_source = message_source
         self.factory = factory
         self.filters = filters
-        self.treat_as_prop = treat_as_prop
+        self.factory_props = factory_props
 
         self._messages: list[MessageProto] | None = None
 
     async def produce_file(self, m: MessageProto):
-        return await self.factory.file(m, treat_as=self.treat_as_prop)
+        return await self.factory.file(m, factory_props=self.factory_props)
 
     async def apply_filters(
         self, messages: Iterable[MessageProto]
@@ -84,7 +67,7 @@ class VfsTreeProducerConfig:
             message_source=message_source,
             factory=self.factory,
             filters=self.filters,
-            treat_as_prop=self.treat_as_prop,
+            factory_props=self.factory_props,
         )
 
 
@@ -92,10 +75,10 @@ class VfsTreeProducerConfig:
 class VfsDirConfig:
     """Contains information for creating a `VfsProducer`"""
 
-    source_config: Mapping
+    dir_config: Mapping
     """ Config this structure was sourced from """
 
-    vfs_producer: Type[VfsTreeProducerProto] | None
+    vfs_producer: Type["VfsTreeProducerProto"] | None
     """ Producer for a vfs structure content """
 
     vfs_producer_arg: Optional[Mapping] = None
@@ -107,3 +90,22 @@ class VfsDirConfig:
         list[tuple[Type[VfsTreeWrapperProto], Optional[Mapping]]]
     ] = None
     # vfs_wrapper_arg: Optional[Type[Mapping]] = None
+
+
+class VfsTreeProducerProto(Protocol):
+    @abstractmethod
+    async def produce(self):
+        ...
+
+    @classmethod
+    @abstractmethod
+    async def from_config(
+        cls,
+        resources,
+        config: "VfsTreeProducerConfig",
+        arg: Mapping,
+        dir,
+        # dir: VfsTreeDir,
+        # XXX
+    ) -> "VfsTreeProducerProto":
+        ...

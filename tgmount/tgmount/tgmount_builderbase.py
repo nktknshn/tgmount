@@ -2,16 +2,14 @@ import abc
 from dataclasses import replace
 from typing import Type
 
-from tgmount import cache, config, tgclient
-from tgmount.cache.types import CacheInBlocksProto
+from tgmount import config, tgclient
 from tgmount.tgclient.events_disptacher import (
     TelegramEventsDispatcher,
 )
 from tgmount.tgclient.fetcher import TelegramMessagesFetcher
-from tgmount.tgmount import cached_filefactory_factory
+from tgmount.tgclient.source.util import BLOCK_SIZE
 from tgmount.tgmount.cached_filefactory_factory import (
     CacheFileFactoryFactory,
-    CacheFileFactoryFactoryProto,
 )
 
 from tgmount.tgmount.providers.provider_vfs_wrappers import ProviderVfsWrappersBase
@@ -28,20 +26,19 @@ from .providers.provider_sources import SourcesProvider
 
 from .tgmount_types import TgmountResources
 from .tgmountbase import TgmountBase
-from .logger import module_logger as _logger
+from .logger import module_logger as logger
 
 
 class TgmountBuilderBase(abc.ABC):
     """Construct TgmountBase from a config"""
 
-    logger = _logger.getChild(f"TgmountBuilderBase")
+    logger = logger.getChild(f"TgmountBuilderBase")
 
     TelegramClient: Type[tgclient.client_types.TgmountTelegramClientReaderProto]
     MessageSource: Type[tgclient.MessageSource]
     FilesSource: Type[tgclient.TelegramFilesSource]
     FileFactory: Type[FileFactoryDefault]
-    FilesSourceCached: Type[cache.FilesSourceCached]
-    CacheFileFactoryFactory: Type[CacheFileFactoryFactory]
+    CacheFactory: Type[CacheFileFactoryFactory]
 
     TgmountBase = TgmountBase
     TelegramMessagesFetcher = TelegramMessagesFetcher
@@ -63,26 +60,25 @@ class TgmountBuilderBase(abc.ABC):
             **kwargs,
         )
 
-    # async def create_cache_factory(
-    #     self,
-    #     client: tgclient.client_types.TgmountTelegramClientReaderProto,
-    #     cache_config: config.Cache,
-    # ) -> CacheProto:
-    #     cache_factory_cls = self.caches.get_cache_factory(cache_config.type)
-    #     return cache_factory_cls(**cache_config.kwargs)
-
     async def create_vfs_tree(self):
         return self.VfsTree()
 
     async def create_file_source(self, cfg: config.Config, client):
-        return self.FilesSource(client)
+        return self.FilesSource(
+            client,
+            request_size=none_fallback(cfg.client.request_size, BLOCK_SIZE),
+        )
 
     async def create_file_factory(self, cfg: config.Config, client, files_source):
         return self.FileFactory(files_source)
 
     async def create_cached_filefactory_factory(self, cfg: config.Config, client):
-        self.cached_filefactory_factory = self.CacheFileFactoryFactory(
-            client, self.caches
+        self.cached_filefactory_factory = self.CacheFactory(
+            client,
+            self.caches,
+            files_source_request_size=none_fallback(
+                cfg.client.request_size, BLOCK_SIZE
+            ),
         )
         return self.cached_filefactory_factory
 
@@ -129,11 +125,9 @@ class TgmountBuilderBase(abc.ABC):
 
             source_provider.add_source(k, message_source)
 
-        # caches: dict[str, cache.CacheFactory] = {}
-        # cached_factories = {}
-        # cached_sources = {}
-
-        await self.create_cached_filefactory_factory(cfg, client)
+        cached_filefactory_factory = await self.create_cached_filefactory_factory(
+            cfg, client
+        )
 
         caches_config = cfg.caches.caches if cfg.caches is not None else {}
 
@@ -147,9 +141,7 @@ class TgmountBuilderBase(abc.ABC):
         return TgmountResources(
             message_sources=source_provider,
             fetchers_dict=fetchers_dict,
-            caches=self.cached_filefactory_factory,
-            # caches=cached_factories,
-            # cache_provider=self.caches,
+            caches=cached_filefactory_factory,
             file_factory=file_factory,
             filters=self.filters,
             producers=self.producers,

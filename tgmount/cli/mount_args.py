@@ -45,6 +45,9 @@ def add_mount_args_arguments(command_mount: ArgumentParser):
         "--reverse", default=False, action="store_true", dest="reverse"
     )
     command_mount.add_argument(
+        "--mount-texts", default=False, action="store_true", dest="mount_texts"
+    )
+    command_mount.add_argument(
         "--no-updates", default=False, action="store_true", dest="no_updates"
     )
 
@@ -62,7 +65,9 @@ async def mount_args(
     session: Optional[str] = None,
 ):
     validator = ConfigValidator()
-    builder = TgmountBuilder()
+    builder = TgmountBuilder(
+        mount_texts=args.mount_texts,
+    )
 
     producer = None
     root_content = {
@@ -93,7 +98,7 @@ async def mount_args(
     if yes(producer):
         root_content["producer"] = args.producer
 
-    logger.debug(f"{root_content}")
+    # logger.debug(f"{root_content}")
 
     cfg = config.Config(
         client=config.Client(
@@ -127,7 +132,7 @@ async def mount_args(
     tgm = await builder.create_tgmount(cfg)
 
     try:
-        logger.info(f"Connecting Telegram")
+        logger.debug(f"Connecting Telegram")
         await tgm.client.auth()
     except Exception as e:
         # await tgm.client.disconnect()

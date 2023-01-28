@@ -5,6 +5,7 @@ client:
   session: tgfs
   api_id: 123
   api_hash: deadbeed121212121
+  request_size: 128KB
 # caches
 caches:
   # will instantiate a single in memory cache
@@ -77,7 +78,7 @@ ogranized: &ogranized
     filter: MessageWithZip
     # it's recommended to use cache with ZipsAsDirs. otherwise it is slow
     cache: memory1
-    # wrappers: ZipsAsDirs
+    producer: UnpackedZip
     #   - ZipsAsDirs:
     #       recursive: True
     #       skip_folder_if_single_subfolder: True
@@ -135,41 +136,46 @@ message_sources:
     filter: InputMessagesFilterDocument
     offset_date: 25/01/2023
     # reverse: True
+factory:
+  mount_texts: True
 root:
-  # ru2chmu:
-  #   source: { source: ru2chmu, recursive: True }
-  #   <<: *ogranized
-  #   by-sender: *by-sender
-  # armenia:
-  #   source: { source: armenia, recursive: True }
-  #   <<: *ogranized
-  #   by-sender: *by-sender
-  # kz:
-  #   source: { source: kz, recursive: True }
-  #   <<: *ogranized
-  #   by-sender: *by-sender
-  # relocationguidebig:
-  #   source: { source: relocationguidebig, recursive: True }
-  #   <<: *ogranized
-  #   by-sender: *by-sender
-  # ru_python_beginners:
-  #   source: { source: ru_python_beginners, recursive: True }
-  #   <<: *ogranized
-  #   by-sender: *by-sender
+  sysinfo:
+    source: { source: ru2chmu, recursive: True }
+    producer: SysInfo
+  ru2chmu:
+    source: { source: ru2chmu, recursive: True }
+    <<: *ogranized
+    by-sender: *by-sender
+  armenia:
+    source: { source: armenia, recursive: True }
+    <<: *ogranized
+    by-sender: *by-sender
+  kz:
+    source: { source: kz, recursive: True }
+    <<: *ogranized
+    by-sender: *by-sender
+  relocationguidebig:
+    source: { source: relocationguidebig, recursive: True }
+    <<: *ogranized
+    by-sender: *by-sender
+  ru_python_beginners:
+    source: { source: ru_python_beginners, recursive: True }
+    <<: *ogranized
+    by-sender: *by-sender
   ru_python:
     source: { source: ru_python, recursive: True }
     <<: *ogranized
     by-sender: *by-sender
-  # NappingCat_Chat:
-  #   source: { source: NappingCat, recursive: True }
-  #   <<: *ogranized
-  #   by-sender: *by-sender
-  # my-mount:
-  #   source: { source: my-mount, recursive: True }
-  #   wrappers: ExcludeEmptyDirs
-  #   <<: *ogranized
-  # tmtc:
-  #   source: { source: tmtc, recursive: True }
-  #   <<: *ogranized
-  #   by-sender:
-  #     <<: *by-sender
+  NappingCat_Chat:
+    source: { source: NappingCat, recursive: True }
+    <<: *ogranized
+    by-sender: *by-sender
+  my-mount:
+    source: { source: my-mount, recursive: True }
+    wrappers: ExcludeEmptyDirs
+    <<: *ogranized
+  tmtc:
+    source: { source: tmtc, recursive: True }
+    <<: *ogranized
+    by-sender:
+      <<: *by-sender

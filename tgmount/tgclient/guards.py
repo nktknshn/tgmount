@@ -1,5 +1,5 @@
 import abc
-from typing import Any, Optional, Protocol, TypeGuard, TypeVar
+from typing import Any, ClassVar, Optional, Protocol, TypeGuard, TypeVar
 
 from .message_types import (
     DocumentProto,
@@ -16,6 +16,8 @@ T_co = TypeVar("T_co", covariant=True)
 
 
 class ClassWithGuard(Protocol[T_co]):
+    # __name__: ClassVar[str]
+
     @staticmethod
     @abc.abstractmethod
     def guard(msg: MessageProto) -> TypeGuard[T_co]:
@@ -80,7 +82,7 @@ class MessageDownloadable(
 
     @staticmethod
     def document_or_photo_id(
-        m: "MessageDownloadable",
+        m: "MessageProto",
     ) -> int:
         if (_id := MessageDownloadable.try_document_or_photo_id(m)) is not None:
             return _id
@@ -89,7 +91,7 @@ class MessageDownloadable(
 
     @staticmethod
     def try_document_or_photo_id(
-        m: "MessageDownloadable",
+        m: "MessageProto",
     ) -> int | None:
         if MessageWithDocument.guard(m):
             return m.document.id

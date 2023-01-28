@@ -7,6 +7,7 @@ from tgmount.tgmount.producers.producer_by_reaction import VfsTreeGroupByReactio
 from tgmount.tgmount.producers.producer_by_sender import VfsTreeDirBySender
 from tgmount.tgmount.producers.producer_plain import VfsTreeProducerPlainDir
 from tgmount.tgmount.producers.producer_sysinfo import VfsTreeProducerSysInfo
+from tgmount.tgmount.producers.producer_zip import VfsProducerZip
 from tgmount.tgmount.vfs_tree_producer_types import VfsTreeProducerProto
 from tgmount.tgmount.wrappers.wrapper_exclude_empty_dirs import WrapperEmpty
 from .filters import (
@@ -50,6 +51,7 @@ class ProducersProvider(ProducersProviderBase):
         "ByPerformer": VfsTreeGroupByPerformer,
         "ByReactions": VfsTreeGroupByReactions,
         "SysInfo": VfsTreeProducerSysInfo,
+        "UnpackedZip": VfsProducerZip,
     }
 
 

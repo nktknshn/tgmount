@@ -9,7 +9,7 @@ from tgmount.util import none_fallback
 from .types import (
     FileContentProviderProto,
 )
-from .filefactorybase import FileFactoryBase, TryGetFunc, resolve_getter
+from .filefactorybase import FileFactoryBase, TryGetFunc, resolve_future_or_value
 
 FileFactorySupportedTypes = (
     MessageWithMusic
@@ -24,6 +24,7 @@ FileFactorySupportedTypes = (
     | MessageWithOtherDocument
     | MessageWithFilename
     | MessageDownloadable
+    | T
 )
 
 
@@ -33,24 +34,29 @@ class FileFactoryDefault(FileFactoryBase[FileFactorySupportedTypes | T], Generic
     def __init__(
         self,
         files_source: FileContentProviderProto,
+        factory_props: Mapping | None = None
         # extra_files_source: Mapping[str, FileContentProviderProto] | None = None,
     ) -> None:
-        super().__init__()
+        super().__init__(factory_props=factory_props)
+
         self._files_source = files_source
+        self._supported = {**self._supported}
 
     async def file_content(
-        self, supported_item: FileFactorySupportedTypes, treat_as=None
+        self, supported_item: FileFactorySupportedTypes, factory_props=None
     ) -> vfs.FileContentProto:
 
         if (
-            cf := self.get_cls_item(supported_item, treat_as=treat_as).content
+            get_file_content := self.get_cls_item(
+                supported_item, factory_props=factory_props
+            ).content
         ) is not None:
-            return await resolve_getter(cf(supported_item))
+            return await resolve_future_or_value(get_file_content(supported_item))
 
         return self._files_source.file_content(supported_item)
 
     async def file(
-        self, supported_item: FileFactorySupportedTypes, name=None, treat_as=None
+        self, supported_item: FileFactorySupportedTypes, name=None, factory_props=None
     ) -> vfs.FileLike:
 
         creation_time = getattr(supported_item, "date", datetime.now())
@@ -69,10 +75,12 @@ class FileFactoryDefault(FileFactoryBase[FileFactorySupportedTypes | T], Generic
         return vfs.FileLike(
             name=none_fallback(
                 name,
-                await resolve_getter(self.filename(supported_item, treat_as=treat_as)),
+                await resolve_future_or_value(
+                    self.filename(supported_item, factory_props=factory_props)
+                ),
             ),
-            content=await resolve_getter(
-                self.file_content(supported_item, treat_as=treat_as)
+            content=await resolve_future_or_value(
+                self.file_content(supported_item, factory_props=factory_props)
             ),
             extra=extra,
             creation_time=creation_time,

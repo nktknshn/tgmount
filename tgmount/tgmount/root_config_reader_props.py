@@ -2,11 +2,11 @@ from typing import TypeVar, Mapping, Optional, Any, TypedDict
 
 from tgmount import config
 from tgmount.config.helpers import type_check
-from tgmount.util import col, dict_exclude
+from tgmount.util import col, dict_exclude, yes
 from .filters_types import FilterConfigValue, Filter
 from .root_config_types import RootConfigWalkingContext
 from .tgmount_types import TgmountResources
-from .types import TgmountRootSource
+from .types import TgmountRootType
 
 T = TypeVar("T")
 
@@ -17,7 +17,7 @@ class RootProducerPropsReader:
     PropSourceType = TypedDict("PropSource", source_name=str, recursive=bool)
 
     @classmethod
-    def read_prop_source(cls, d: TgmountRootSource) -> PropSourceType | None:
+    def read_prop_source(cls, d: TgmountRootType) -> PropSourceType | None:
         source_prop_cfg: Mapping | str | None = d.get("source")
 
         if source_prop_cfg is None:
@@ -36,7 +36,7 @@ class RootProducerPropsReader:
 
         return cls.PropSourceType(source_name=source_name, recursive=recursive)
 
-    def read_prop_filter(self, d: TgmountRootSource) -> Mapping | None:
+    def read_prop_filter(self, d: TgmountRootType) -> Mapping | None:
         filter_prop_cfg = d.get("filter")
 
         if filter_prop_cfg is None:
@@ -74,7 +74,7 @@ class RootProducerPropsReader:
             overwright=filter_overwright,
         )
 
-    def read_prop_cache(self, d: TgmountRootSource) -> str | Mapping | None:
+    def read_prop_cache(self, d: TgmountRootType) -> str | Mapping | None:
         _cache = d.get("cache")
 
         if _cache is None:
@@ -100,7 +100,7 @@ class RootProducerPropsReader:
         )
 
     def read_prop_wrappers(
-        self, d: TgmountRootSource
+        self, d: TgmountRootType
     ) -> Optional[list[tuple[str, Any | None]]]:
         _wrappers = d.get("wrappers")
 
@@ -123,7 +123,7 @@ class RootProducerPropsReader:
 
         return wrappers
 
-    def read_prop_treat_as(self, d: TgmountRootSource) -> list[str] | None:
+    def read_prop_treat_as(self, d: TgmountRootType) -> list[str] | None:
         value = d.get("treat_as")
 
         if value is None:
@@ -136,7 +136,39 @@ class RootProducerPropsReader:
 
         raise config.ConfigError(f"Invalid treat_as value: {value}")
 
-    def read_prop_producer(self, d: TgmountRootSource) -> tuple[str, Any] | None:
+    def read_prop_factory(self, d: TgmountRootType) -> Mapping[str, Any] | None:
+        factory_cfg = d.get("factory")
+
+        if not yes(factory_cfg):
+            return
+
+        if not isinstance(factory_cfg, dict):
+            raise config.ConfigError(f"Invalid 'factory' value: {factory_cfg}")
+
+        opt_recursive = factory_cfg.get("recursive", False)
+        opt_mount_texts = factory_cfg.get("mount_texts", False)
+        opt_treat_as = factory_cfg.get("treat_as", [])
+
+        if isinstance(opt_treat_as, str):
+            opt_treat_as = [opt_treat_as]
+        elif isinstance(opt_treat_as, list):
+            for v in opt_treat_as:
+                if not isinstance(v, str):
+                    raise config.ConfigError(
+                        f"Invalid 'factory.treat_as' value: {opt_treat_as}"
+                    )
+        else:
+            raise config.ConfigError(
+                f"Invalid 'factory.treat_as' value: {opt_treat_as}"
+            )
+
+        return dict(
+            recursive=opt_recursive,
+            mount_texts=opt_mount_texts,
+            treat_as=opt_treat_as,
+        )
+
+    def read_prop_producer(self, d: TgmountRootType) -> tuple[str, Any] | None:
         _producer_dict = d.get("producer")
 
         if _producer_dict is None:

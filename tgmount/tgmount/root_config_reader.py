@@ -3,11 +3,11 @@ import os
 from typing import AsyncGenerator, Mapping, TypeVar, Generator
 
 from tgmount import config, vfs
-from tgmount.util import none_fallback
+from tgmount.util import none_fallback, yes
 from .root_config_reader_props import RootProducerPropsReader
 from .root_config_types import RootConfigWalkingContext
 from .tgmount_types import TgmountResources
-from .types import TgmountRootSource
+from .types import TgmountRootType
 from .vfs_tree_producer_types import VfsTreeProducerConfig, VfsDirConfig
 from dataclasses import dataclass
 from .logger import module_logger as _logger
@@ -31,7 +31,7 @@ class TgmountConfigReader(RootProducerPropsReader):
     def __init__(self) -> None:
         pass
 
-    async def get_used_sources(self, d: TgmountRootSource) -> set[str]:
+    async def get_used_sources(self, d: TgmountRootType) -> set[str]:
         sources = set()
         for dir_props in self.walk_dir_props(d):
             if dir_props.source_prop is None:
@@ -40,7 +40,7 @@ class TgmountConfigReader(RootProducerPropsReader):
             sources.add(dir_props.source_prop["source_name"])
         return sources
 
-    def walk_dir_props(self, d: TgmountRootSource, *, current_path=[]):
+    def walk_dir_props(self, d: TgmountRootType, *, current_path=[]):
         current_path_str = vfs.path_join(*current_path)
 
         other_keys = set(d.keys()).difference(self.PROPS_KEYS)
@@ -59,7 +59,7 @@ class TgmountConfigReader(RootProducerPropsReader):
 
     async def walk_config_with_ctx(
         self,
-        dir_config: TgmountRootSource,
+        dir_config: TgmountRootType,
         *,
         resources: TgmountResources,
         ctx: RootConfigWalkingContext,
@@ -78,7 +78,13 @@ class TgmountConfigReader(RootProducerPropsReader):
         cache_prop = self.read_prop_cache(dir_config)
         wrappers_prop = self.read_prop_wrappers(dir_config)
         producer_prop = self.read_prop_producer(dir_config)
+        factory_prop = self.read_prop_factory(dir_config)
         treat_as_prop = self.read_prop_treat_as(dir_config)
+
+        factory_prop = none_fallback(factory_prop, {})
+
+        if yes(treat_as_prop):
+            factory_prop = {**factory_prop, "treat_as": treat_as_prop}
 
         self.logger.info(f"source_prop={source_prop}")
         self.logger.info(f"filters_prop={filters_prop}")
@@ -141,6 +147,7 @@ class TgmountConfigReader(RootProducerPropsReader):
         1. source_prop is specified and it's not recursive
         2. recursive_source is in the context and a filters_prop specified and it's not recursive
         3. source_prop or recursive_source is specified and producer_prop is specified
+        4. only producer specified (e.g. for SysInfo producer) 
         """
         if source_prop is not None and not source_prop["recursive"]:
             self.logger.info(f"1. source_prop is specified and it's not recursive")
@@ -197,12 +204,14 @@ class TgmountConfigReader(RootProducerPropsReader):
                     f"Missing message source {source_prop['source_name']} used at {ctx.current_path}"
                 )
             ctx = ctx.set_recursive_source(recursive_message_source)
+        elif yes(producer_prop):
+            pass
         elif len(other_keys) == 0:
             raise config.ConfigError(
                 f"Missing source, subfolders or filter in {ctx.current_path}"
             )
 
-        if filters_prop is not None and filters_prop["recursive"] and filters_from_prop:
+        if yes(filters_prop) and filters_prop["recursive"] and filters_from_prop:
             self.logger.info(
                 f"Setting recoursive message filters: {filters_prop['filters']}"
             )
@@ -243,12 +252,11 @@ class TgmountConfigReader(RootProducerPropsReader):
                 message_source=message_source,
                 factory=current_file_factory,
                 filters=filters,
-                treat_as_prop=treat_as_prop,
+                factory_props=factory_prop,
             )
 
         vfs_config = VfsDirConfig(
-            source_config=dir_config,
-            # vfs_producer_name=producer_name,
+            dir_config=dir_config,
             vfs_producer=producer_cls,
             vfs_producer_arg=producer_arg,
             vfs_wrappers=vfs_wrappers,

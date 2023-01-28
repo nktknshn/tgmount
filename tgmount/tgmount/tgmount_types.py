@@ -40,3 +40,6 @@ class TgmountResources:
 
     def set_sources(self, sources: SourcesProviderProto):
         return replace(self, sources=sources)
+
+    def set_factory(self, file_factory: FileFactoryProto):
+        return replace(self, file_factory=file_factory)
