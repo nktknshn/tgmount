@@ -2,6 +2,8 @@
 
 The main purpose of the program is to make audio files posted on Telegram available to regular desktop audio players. This is done via VFS by mapping remote files from telegram's cloud to local file system. Tested with audio players [quodlibet](https://github.com/quodlibet/quodlibet), [deadbeef](https://github.com/DeaDBeeF-Player/deadbeef), [clementine](https://github.com/clementine-player/Clementine).
 
+**This version is not maintained anymore. Use new version instead [https://github.com/nktknshn/tgmount-ng](https://github.com/nktknshn/tgmount-ng)**
+
 # Libraries used 
 * [telethon](https://github.com/LonamiWebs/Telethon)
 * [libfuse](http://github.com/libfuse/libfuse)
