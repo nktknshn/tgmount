@@ -1,3 +1,4 @@
+import mimetypes
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Callable, Any, Optional
@@ -42,8 +43,7 @@ def message_doc_filename_format(msg: Message, doc: TgmountDocument):
     attr_file_name = doc.attributes.get('file_name')
 
     if attr_file_name:
-        return ("%s %s" % (msg.id, attr_file_name)).encode()
+        return f"{msg.id} {attr_file_name}".encode()
     else:
-        return ("msg_%s_doc" % msg.id).encode()
-
-# https://t.me/techtroit/28377
+        ext = mimetypes.guess_extension(doc.mime_type)
+        return f"{msg.id} unnamed{ext}".encode()

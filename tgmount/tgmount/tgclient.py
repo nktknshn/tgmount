@@ -1,6 +1,5 @@
 import getpass
 import logging
-from random import random
 from typing import Dict, Optional, List, Tuple
 
 from telethon import TelegramClient
@@ -113,7 +112,8 @@ class TelegramFsClient(TelegramClient):
             api_id,
             api_hash,
             use_ipv6=use_ipv6,
-            proxy=proxy
+            proxy=proxy,
+            connection_retries=-1,
         )
 
         self.api_id = api_id

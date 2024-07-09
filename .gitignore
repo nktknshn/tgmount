@@ -1,9 +1,9 @@
 misc/
-.vscode
 env/
 __pycache__
 src/
-*.session
-.venv3.7
-tgfs.session-journal
-.idea
+data/
+*.session*
+.idea/
+.vscode/
+.venv*

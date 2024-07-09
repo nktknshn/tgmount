@@ -3,8 +3,10 @@ import json
 import logging
 from typing import List
 
+import aiohttp
 import pyfuse3
 import pyfuse3_asyncio
+from telethon import events
 from telethon.hints import Entity
 from telethon.tl import types
 from telethon.utils import get_display_name
@@ -55,8 +57,10 @@ async def list_documents(client, id, offset_id: int = 0, limit: int = None,
             print("%s\t%s" % (d['message_id'], d['attributes']['file_name']))
 
 
-def create_new_files_handler(client: TelegramFsClient, telegram_fs, entity: Entity):
-    async def new_files_handler(update):
+def create_new_files_handler(client: TelegramFsClient, telegram_fs, entity: Entity, new_file_webhook_urls=None):
+    async def new_files_handler(event):
+        update = event.original_update
+
         if not isinstance(update, (types.UpdateNewMessage, types.UpdateNewChannelMessage)):
             # logging.debug("Not instance UpdateNewMessage or UpdateNewChannelMessage")
             return
@@ -75,7 +79,7 @@ def create_new_files_handler(client: TelegramFsClient, telegram_fs, entity: Enti
                 # logging.debug("Not required chat id %d != %d" % (update_entity_id, entity.id))
                 return
 
-        msg = update.message
+        msg = event.message
 
         if not getattr(msg, 'media', None):
             return
@@ -91,15 +95,43 @@ def create_new_files_handler(client: TelegramFsClient, telegram_fs, entity: Enti
         logging.debug(f'new msg: {msg}')
         logging.debug(f'new file: {document_handle.document}')
 
-        telegram_fs.add_file(msg, document_handle)
+        file = telegram_fs.add_file(msg, document_handle)
+
+        if new_file_webhook_urls:
+            reply = await msg.get_reply_message()
+            data = {
+                "msg_id": msg.id,
+                "chat_id": document_handle.document.chat_id,
+                "sender_id": msg.sender_id,
+                "fname": file.fname.decode("utf-8"),
+
+                "mimetype": document_handle.document.mime_type,
+                "size": document_handle.document.size,
+
+                "voice": msg.media.voice,
+                "video": msg.media.video,
+
+                "fwd_sender_id": msg.fwd_from.from_id.user_id if msg.fwd_from and msg.fwd_from.from_id else None,
+                "reply_to_msg_id": msg.reply_to.reply_to_msg_id if msg.reply_to else None,
+                "reply_to_sender_id": reply.sender_id if reply else None,
+            }
+            logging.debug(f'webhook data: {data}')
+
+            async with aiohttp.ClientSession() as sess:
+                for new_file_webhook_url in new_file_webhook_urls:
+                    async with sess.post(new_file_webhook_url, json=data) as resp:
+                        logging.debug(f'new file hook response code: {resp.status}')
 
     return new_files_handler
 
 
 async def mount(client, id, destination: str, offset_id=0, limit=None,
-                filter_music=False, debug_fuse=False, reverse=False, updates=False, fsname="tgfs"):
+                filter_music=False, debug_fuse=False, reverse=False, updates=False, fsname="tgfs",
+                additional_fuse_options=None, new_file_webhook_urls=None):
     pyfuse3_asyncio.enable()
     fuse_options = set(pyfuse3.default_options)
+    if additional_fuse_options is not None:
+        fuse_options.update(additional_fuse_options)
     fuse_options.add('fsname=' + fsname)
 
     if debug_fuse:
@@ -130,11 +162,13 @@ async def mount(client, id, destination: str, offset_id=0, limit=None,
     telegram_fs = TelegramFsAsync()
 
     for msg, dh in zip(messages, documents_handles):
-        telegram_fs.add_file(msg, dh)
+        telegram_fs.add_file(msg, dh, update_index=False)
+    telegram_fs.update_index()
 
     if updates:
         client.add_event_handler(
-            create_new_files_handler(client, telegram_fs, entity),
+            create_new_files_handler(client, telegram_fs, entity, new_file_webhook_urls),
+            events.NewMessage()
         )
 
     pyfuse3.init(telegram_fs, destination, fuse_options)

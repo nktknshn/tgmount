@@ -1,0 +1,34 @@
+# You need to run:
+# $ mkdir -p data/mnt
+# $ chown -R 65534:65534 data
+# $ docker compose run tgmount --list-dialogs
+# at the first start to create directories, permissions and the session
+
+services:
+  tgmount:
+    # build: .
+    image: ghcr.io/nktknshn/tgmount
+    privileged: true
+    volumes:
+      - # Directory where session will be stored
+        source: ./data
+        target: /app/data
+        type: bind
+      - # Directory where chat should be mounted
+        source: ./data/mnt
+        target: /app/data/mnt
+        type: bind
+        bind:
+          propagation: rshared
+    environment:
+      # CHANGE ME
+      TGAPP: "1234567:deadbeef0d04a3efe93e1af778773d6f0"
+    command:
+      - --all-files
+      - --mount
+      - ./mnt
+      - --fuse-options
+      - allow_other
+      - --id
+      # CHANGE ME
+      - "-1001562494246"

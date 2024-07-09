@@ -1,0 +1,24 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:best-practices",
+    ":semanticCommits",
+    ":semanticCommitScopeDisabled",
+    "docker:enableMajor",
+    "customManagers:dockerfileVersions"
+  ],
+  "packageRules": [
+    {
+      "description": "Group OS packages to avoid build errors if more than one package is updated and previous version is not present in repo already",
+      "matchDatasources": [
+        "repology"
+      ],
+      "groupName": "OS Packages"
+    }
+  ],
+  "ignoreDeps": [
+    "ghcr.io/juniorjpdj/tgmount",
+    "ghcr.io/nktknshn/tgmount"
+  ],
+  "forkProcessing": "enabled"
+}

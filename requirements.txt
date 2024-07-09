@@ -1,6 +1,8 @@
-telethon
-pysocks
-funcy
-pysqlite3
-pyfuse3
-tqdm
+telethon==1.36.0
+cryptg==0.4.0
+pysocks==1.7.1
+funcy==2.0.0
+pysqlite3==0.5.3
+pyfuse3==3.3.0
+tqdm==4.66.4
+aiohttp[speedups]==3.9.5
